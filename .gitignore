@@ -26,3 +26,6 @@ htmlcov/
 # Sistema operacional
 .DS_Store
 Thumbs.db
+
+# Metadados gerados pela instalação do pacote
+*.egg-info/
