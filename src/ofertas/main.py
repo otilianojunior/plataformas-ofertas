@@ -8,6 +8,7 @@ from ofertas.api.plataformas_divulgacao import router as plataformas_divulgacao_
 from ofertas.api.destinos_divulgacao import router as destinos_divulgacao_router
 from ofertas.api.credenciais_plataforma import router as credenciais_plataforma_router
 from ofertas.api.credenciais_divulgacao import router as credenciais_divulgacao_router
+from ofertas.api.publicacoes import router as publicacoes_router
 
 app = FastAPI(
     title="Plataformas de Ofertas",
@@ -23,6 +24,7 @@ app.include_router(plataformas_divulgacao_router)
 app.include_router(destinos_divulgacao_router)
 app.include_router(credenciais_plataforma_router)
 app.include_router(credenciais_divulgacao_router)
+app.include_router(publicacoes_router)
 
 
 @app.get("/health", tags=["Sistema"])

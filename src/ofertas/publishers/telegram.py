@@ -1,0 +1,212 @@
+from datetime import datetime, timezone
+
+import httpx
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from ofertas.core.security import descriptografar_credencial
+from ofertas.models.credencial_divulgacao import CredencialDivulgacao
+from ofertas.models.destino_divulgacao import DestinoDivulgacao
+from ofertas.models.oferta import Oferta
+from ofertas.models.plataforma_divulgacao import PlataformaDivulgacao
+from ofertas.models.publicacao import Publicacao
+from ofertas.publishers.mensagem import formatar_mensagem
+from ofertas.repositories.credencial_divulgacao_repository import (
+    CredencialDivulgacaoRepository,
+)
+from ofertas.repositories.destino_divulgacao_repository import (
+    DestinoDivulgacaoRepository,
+)
+
+
+class TelegramPublisher:
+    """Publica ofertas em destinos do Telegram."""
+
+    def __init__(
+        self,
+        credencial_repository: CredencialDivulgacaoRepository | None = None,
+        destino_repository: DestinoDivulgacaoRepository | None = None,
+        timeout: float = 20.0,
+    ) -> None:
+        self.credencial_repository = (
+            credencial_repository or CredencialDivulgacaoRepository()
+        )
+        self.destino_repository = (
+            destino_repository or DestinoDivulgacaoRepository()
+        )
+        self.timeout = timeout
+
+    def publicar(
+        self,
+        session: Session,
+        oferta: Oferta,
+        destino_id: int,
+    ) -> Publicacao:
+        """Valida e publica uma oferta, registrando o resultado no banco."""
+        if not oferta.affiliate_url:
+            raise ValueError(
+                "A oferta não pode ser publicada sem link de afiliado."
+            )
+
+        if not oferta.status_oferta:
+            raise ValueError("Não é possível publicar uma oferta inativa.")
+
+        if oferta.expira_em <= datetime.now(timezone.utc):
+            raise ValueError("Não é possível publicar uma oferta expirada.")
+
+        destino = self.destino_repository.buscar_por_id(session, destino_id)
+
+        if destino is None:
+            raise LookupError("Destino de divulgação não encontrado.")
+
+        if not destino.status_destino:
+            raise ValueError("O destino de divulgação está inativo.")
+
+        plataforma = session.get(
+            PlataformaDivulgacao,
+            destino.plataforma_divulgacao_id,
+        )
+
+        if plataforma is None:
+            raise LookupError("Canal de divulgação não encontrado.")
+
+        if not plataforma.status_plataforma:
+            raise ValueError("O canal de divulgação está inativo.")
+
+        if plataforma.codigo.lower() != "telegram":
+            raise ValueError("O destino selecionado não é do Telegram.")
+
+        if destino.credencial_divulgacao_id is None:
+            raise ValueError("O destino não possui credencial associada.")
+
+        credencial = self.credencial_repository.buscar_por_id(
+            session,
+            destino.credencial_divulgacao_id,
+        )
+
+        if credencial is None:
+            raise LookupError("Credencial de divulgação não encontrada.")
+
+        if credencial.status_credencial != "ativa":
+            raise ValueError("A credencial de divulgação está inativa.")
+
+        if credencial.plataforma_divulgacao_id != plataforma.id:
+            raise ValueError(
+                "A credencial não pertence ao canal de divulgação do destino."
+            )
+
+        if credencial.tipo_credencial != "bot_telegram":
+            raise ValueError("A credencial não é um token de bot do Telegram.")
+
+        mensagem = formatar_mensagem(oferta, oferta_plataforma_nome(session, oferta))
+        token = descriptografar_credencial(credencial.valor_criptografado)
+
+        consulta_publicacao = select(Publicacao).where(
+            Publicacao.oferta_id == oferta.id,
+            Publicacao.destino_divulgacao_id == destino.id,
+            Publicacao.status_publicacao.in_(("pendente", "publicada")),
+        )
+        publicacao_ativa = session.execute(
+            consulta_publicacao
+        ).scalar_one_or_none()
+
+        if publicacao_ativa is not None:
+            raise ValueError(
+                "Esta oferta já está pendente ou publicada neste destino."
+            )
+
+        publicacao = Publicacao(
+            oferta_id=oferta.id,
+            destino_divulgacao_id=destino.id,
+            preco_divulgado=oferta.preco_atual,
+            status_publicacao="pendente",
+            tentativas=1,
+        )
+        session.add(publicacao)
+
+        try:
+            session.commit()
+            session.refresh(publicacao)
+        except IntegrityError as erro:
+            session.rollback()
+            raise ValueError(
+                "Esta oferta já está pendente ou publicada neste destino."
+            ) from erro
+
+        dados = {
+            "chat_id": destino.identificador_destino,
+            "caption" if oferta.imagem_url else "text": mensagem,
+            "parse_mode": "HTML",
+        }
+
+        if oferta.imagem_url:
+            endpoint = f"https://api.telegram.org/bot{token}/sendPhoto"
+            dados["photo"] = oferta.imagem_url
+        else:
+            endpoint = f"https://api.telegram.org/bot{token}/sendMessage"
+
+        try:
+            resposta = httpx.post(
+                endpoint,
+                data=dados,
+                timeout=self.timeout,
+            )
+            resposta.raise_for_status()
+            resultado = resposta.json()
+
+            if not isinstance(resultado, dict) or resultado.get("ok") is not True:
+                raise RuntimeError(
+                    "O Telegram não confirmou a publicação."
+                )
+
+        except Exception as erro:
+            publicacao.status_publicacao = "falhou"
+
+            if isinstance(erro, httpx.HTTPStatusError):
+                try:
+                    detalhe = erro.response.json().get("description", "")
+                except (ValueError, AttributeError):
+                    detalhe = ""
+
+                publicacao.erro = (
+                    f"HTTP {erro.response.status_code}: "
+                    f"{detalhe or 'Erro retornado pelo Telegram'}"
+                )[:500]
+            else:
+                publicacao.erro = type(erro).__name__
+
+
+            try:
+                session.commit()
+                session.refresh(publicacao)
+            except Exception:
+                session.rollback()
+                raise
+
+            return publicacao
+
+        publicacao.status_publicacao = "publicada"
+        publicacao.publicada_em = datetime.now(timezone.utc)
+        publicacao.erro = None
+
+        try:
+            session.commit()
+            session.refresh(publicacao)
+        except Exception:
+            session.rollback()
+            raise
+
+        return publicacao
+
+
+def oferta_plataforma_nome(session: Session, oferta: Oferta) -> str:
+    """Obtém o nome da plataforma de origem da oferta."""
+    from ofertas.models.plataforma import Plataforma
+
+    plataforma = session.get(Plataforma, oferta.plataforma_id)
+
+    if plataforma is None:
+        raise LookupError("Plataforma de origem da oferta não encontrada.")
+
+    return plataforma.nome
