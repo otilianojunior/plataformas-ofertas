@@ -13,7 +13,7 @@ from ofertas.schemas.plataforma import (
 from ofertas.services.plataforma_service import PlataformaService
 
 
-router = APIRouter(prefix="/plataformas", tags=["Plataformas"])
+router = APIRouter(prefix="/plataformas", tags=["Lojas de origem das ofertas"])
 DbSession = Annotated[Session, Depends(get_db)]
 
 

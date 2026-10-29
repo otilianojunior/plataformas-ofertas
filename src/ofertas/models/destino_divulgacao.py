@@ -33,6 +33,12 @@ class DestinoDivulgacao(Base):
         index=True,
     )
 
+    credencial_divulgacao_id: Mapped[int | None] = mapped_column(
+        ForeignKey("credenciais_divulgacao.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
     identificador_destino: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
