@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class CredencialDivulgacaoCreate(BaseModel):
     plataforma_divulgacao_id: int = Field(gt=0)
+    nome_credencial: str = Field(min_length=1, max_length=100)
     tipo_credencial: str = Field(min_length=1, max_length=50)
     valor: str = Field(min_length=1)
 
@@ -18,6 +19,7 @@ class CredencialDivulgacaoResponse(BaseModel):
 
     id: int
     plataforma_divulgacao_id: int
+    nome_credencial: str
     tipo_credencial: str
     status_credencial: str
     created_at: datetime

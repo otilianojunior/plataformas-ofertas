@@ -21,7 +21,7 @@ em canais de comunicação.
 - Telegram
 - WhatsApp
 
-## Tecnologias planejadas
+## Tecnologias
 
 - Python
 - FastAPI
@@ -31,10 +31,19 @@ em canais de comunicação.
 - Pytest
 - Git
 
-## Status
+## Requisitos
 
-Em desenvolvimento.
+- Python compatível com as dependências do projeto.
+- PostgreSQL em execução.
+- Ambiente virtual Python configurado.
+- Variáveis de ambiente definidas no arquivo `.env`.
 
-## Licença
+Não versione o arquivo `.env` nem compartilhe credenciais ou tokens.
 
-A definir.
+## Executar localmente
+
+Na raiz do projeto, ative o ambiente virtual:
+
+```bash
+source .venv/bin/activate
+```

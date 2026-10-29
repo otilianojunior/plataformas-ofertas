@@ -33,12 +33,14 @@ class CredencialDivulgacaoRepository:
         session: Session,
         *,
         plataforma_divulgacao_id: int,
+        nome_credencial: str,
         tipo_credencial: str,
         valor_criptografado: str,
         status_credencial: str = "ativa",
     ) -> CredencialDivulgacao:
         credencial = CredencialDivulgacao(
             plataforma_divulgacao_id=plataforma_divulgacao_id,
+            nome_credencial=nome_credencial,
             tipo_credencial=tipo_credencial,
             valor_criptografado=valor_criptografado,
             status_credencial=status_credencial,

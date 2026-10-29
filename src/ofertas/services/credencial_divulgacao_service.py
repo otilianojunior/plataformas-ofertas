@@ -60,16 +60,22 @@ class CredencialDivulgacaoService:
         session: Session,
         *,
         plataforma_divulgacao_id: int,
+        nome_credencial: str,
         tipo_credencial: str,
         valor: str,
     ) -> CredencialDivulgacao:
-        tipo_credencial = tipo_credencial.strip()
-        valor = valor.strip()
+        nome = nome_credencial.strip()
+        tipo = tipo_credencial.strip()
+        segredo = valor.strip()
 
-        if not tipo_credencial:
-            raise ValueError("O tipo da credencial é obrigatório.")
-        if not valor:
-            raise ValueError("O valor da credencial é obrigatório.")
+        if not nome:
+            raise ValueError("O nome da credencial não pode ficar vazio.")
+
+        if not tipo:
+            raise ValueError("O tipo da credencial não pode ficar vazio.")
+
+        if not segredo:
+            raise ValueError("O valor da credencial não pode ficar vazio.")
 
         plataforma = self.plataforma_repository.buscar_por_id(
             session,
@@ -84,12 +90,13 @@ class CredencialDivulgacaoService:
                 "Não é possível cadastrar credenciais em um canal de divulgação inativo."
             )
 
-        valor_criptografado = criptografar_credencial(valor)
+        valor_criptografado = criptografar_credencial(segredo)
 
         return self.credencial_repository.criar(
             session,
             plataforma_divulgacao_id=plataforma_divulgacao_id,
-            tipo_credencial=tipo_credencial,
+            nome_credencial=nome,
+            tipo_credencial=tipo,
             valor_criptografado=valor_criptografado,
         )
 

@@ -59,6 +59,7 @@ def criar_credencial(
         credencial = service.criar(
             session,
             plataforma_divulgacao_id=dados.plataforma_divulgacao_id,
+            nome_credencial=dados.nome_credencial,
             tipo_credencial=dados.tipo_credencial,
             valor=dados.valor,
         )

@@ -32,6 +32,11 @@ class CredencialDivulgacao(Base):
         index=True,
     )
 
+    nome_credencial: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+    )
+
     tipo_credencial: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
