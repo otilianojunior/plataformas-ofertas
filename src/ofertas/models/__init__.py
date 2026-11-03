@@ -1,5 +1,5 @@
+from ofertas.models.estado_oauth import EstadoOAuth
 from ofertas.models.autenticacao_oauth import AutenticacaoOAuth
-from ofertas.models.configuracao_coleta import ConfiguracaoColeta
 from ofertas.models.configuracao_divulgacao import ConfiguracaoDivulgacao
 from ofertas.models.credencial_divulgacao import CredencialDivulgacao
 from ofertas.models.credencial_plataforma import CredencialPlataforma
@@ -12,14 +12,16 @@ from ofertas.models.plataforma import Plataforma
 from ofertas.models.plataforma_categoria import PlataformaCategoria
 from ofertas.models.plataforma_divulgacao import PlataformaDivulgacao
 from ofertas.models.publicacao import Publicacao
+from ofertas.models.configuracao_sistema import ConfiguracaoSistema
 
 __all__ = [
     "AutenticacaoOAuth",
-    "ConfiguracaoColeta",
     "ConfiguracaoDivulgacao",
+    "ConfiguracaoSistema",
     "CredencialDivulgacao",
     "CredencialPlataforma",
     "DestinoDivulgacao",
+    "EstadoOAuth",
     "ExecucaoColeta",
     "HistoricoPreco",
     "LinkAfiliado",

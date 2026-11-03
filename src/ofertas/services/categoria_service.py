@@ -1,4 +1,6 @@
 
+from decimal import Decimal
+
 from sqlalchemy.orm import Session
 
 from ofertas.models.plataforma import Plataforma
@@ -66,6 +68,7 @@ class CategoriaService:
             plataforma_id=dados.plataforma_id,
             id_categoria_plataforma=id_externo,
             nome_categoria=nome,
+            desconto_minimo_percentual=dados.desconto_minimo_percentual,
             status_categoria=dados.status_categoria,
         )
 
@@ -83,3 +86,23 @@ class CategoriaService:
             )
 
         return self.repository.atualizar_status(session, categoria, ativo)
+
+
+    def atualizar_desconto_minimo(
+        self,
+        session: Session,
+        categoria_id: int,
+        desconto_minimo_percentual: Decimal,
+    ) -> PlataformaCategoria:
+        categoria = self.repository.buscar_por_id(session, categoria_id)
+
+        if categoria is None:
+            raise LookupError(
+                f"Categoria de ID '{categoria_id}' não encontrada."
+            )
+
+        return self.repository.atualizar_desconto_minimo(
+            session,
+            categoria,
+            desconto_minimo_percentual,
+        )

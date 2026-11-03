@@ -23,6 +23,14 @@ class PlataformaRepository:
         )
         return session.scalars(consulta).one_or_none()
 
+    def buscar_por_id(
+        self,
+        session: Session,
+        plataforma_id: int,
+    ) -> Plataforma | None:
+        """Busca uma plataforma pelo identificador interno."""
+        return session.get(Plataforma, plataforma_id)
+
     def criar(
         self,
         session: Session,

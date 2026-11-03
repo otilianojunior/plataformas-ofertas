@@ -28,6 +28,24 @@ class CredencialPlataformaRepository:
     ) -> CredencialPlataforma | None:
         return session.get(CredencialPlataforma, credencial_id)
 
+    def buscar_ativas_por_tipo(
+        self,
+        session: Session,
+        plataforma_id: int,
+        tipo_credencial: str,
+    ) -> list[CredencialPlataforma]:
+        consulta = (
+            select(CredencialPlataforma)
+            .where(
+                CredencialPlataforma.plataforma_id == plataforma_id,
+                CredencialPlataforma.tipo_credencial == tipo_credencial,
+                CredencialPlataforma.status_credencial == "ativa",
+            )
+            .order_by(CredencialPlataforma.id)
+        )
+
+        return list(session.scalars(consulta).all())
+
     def criar(
         self,
         session: Session,

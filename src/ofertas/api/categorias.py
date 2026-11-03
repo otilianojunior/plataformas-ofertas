@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from ofertas.db.session import get_db
 from ofertas.schemas.categoria import (
     CategoriaCreate,
+    CategoriaDescontoUpdate,
     CategoriaResponse,
     CategoriaStatusUpdate,
 )
@@ -110,4 +111,37 @@ def atualizar_status_categoria(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Não foi possível atualizar o status da categoria.",
+        ) from erro
+
+@router.patch(
+    "/{categoria_id}/desconto-minimo",
+    response_model=CategoriaResponse,
+)
+def atualizar_desconto_minimo_categoria(
+    categoria_id: Annotated[int, Path(gt=0)],
+    dados: CategoriaDescontoUpdate,
+    session: Session = Depends(get_db),
+):
+    try:
+        categoria = service.atualizar_desconto_minimo(
+            session,
+            categoria_id,
+            dados.desconto_minimo_percentual,
+        )
+        session.commit()
+        session.refresh(categoria)
+        return categoria
+
+    except LookupError as erro:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(erro),
+        ) from erro
+
+    except IntegrityError as erro:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Não foi possível atualizar o desconto mínimo da categoria.",
         ) from erro

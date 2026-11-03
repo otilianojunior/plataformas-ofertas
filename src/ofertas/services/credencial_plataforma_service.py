@@ -5,7 +5,10 @@ from ofertas.repositories.credencial_plataforma_repository import (
     CredencialPlataformaRepository,
 )
 from ofertas.repositories.plataforma_repository import PlataformaRepository
-from ofertas.core.security import criptografar_credencial
+from ofertas.core.security import (
+    criptografar_credencial,
+    descriptografar_credencial,
+)
 
 
 class CredencialPlataformaService:
@@ -47,6 +50,42 @@ class CredencialPlataformaService:
             raise LookupError("Credencial não encontrada.")
 
         return credencial
+
+    def buscar_valor_ativo(
+        self,
+        session: Session,
+        *,
+        plataforma_codigo: str,
+        tipo_credencial: str,
+    ) -> str:
+        plataforma = self.plataforma_repository.buscar_por_codigo(
+            session,
+            plataforma_codigo,
+        )
+
+        if plataforma is None:
+            raise LookupError("Plataforma não encontrada.")
+
+        credenciais = self.credencial_repository.buscar_ativas_por_tipo(
+            session,
+            plataforma.id,
+            tipo_credencial,
+        )
+
+        if not credenciais:
+            raise LookupError(
+                f"Credencial ativa '{tipo_credencial}' não encontrada."
+            )
+
+        if len(credenciais) > 1:
+            raise ValueError(
+                f"Existe mais de uma credencial ativa do tipo "
+                f"'{tipo_credencial}' para esta plataforma."
+            )
+
+        return descriptografar_credencial(
+            credenciais[0].valor_criptografado
+        )
 
     def criar(
         self,

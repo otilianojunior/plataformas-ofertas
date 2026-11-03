@@ -1,4 +1,6 @@
 
+from decimal import Decimal
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -54,6 +56,7 @@ class CategoriaRepository:
         plataforma_id: int,
         id_categoria_plataforma: str,
         nome_categoria: str,
+        desconto_minimo_percentual: Decimal,
         status_categoria: bool = True,
     ) -> PlataformaCategoria:
         """Adiciona uma categoria à sessão atual."""
@@ -61,6 +64,7 @@ class CategoriaRepository:
             plataforma_id=plataforma_id,
             id_categoria_plataforma=id_categoria_plataforma,
             nome_categoria=nome_categoria,
+            desconto_minimo_percentual=desconto_minimo_percentual,
             status_categoria=status_categoria,
         )
         session.add(categoria)
@@ -75,5 +79,16 @@ class CategoriaRepository:
     ) -> PlataformaCategoria:
         """Atualiza o status de uma categoria."""
         categoria.status_categoria = ativo
+        session.flush()
+        return categoria
+
+    def atualizar_desconto_minimo(
+        self,
+        session: Session,
+        categoria: PlataformaCategoria,
+        desconto_minimo_percentual: Decimal,
+    ) -> PlataformaCategoria:
+        """Atualiza o desconto mínimo de uma categoria."""
+        categoria.desconto_minimo_percentual = desconto_minimo_percentual
         session.flush()
         return categoria

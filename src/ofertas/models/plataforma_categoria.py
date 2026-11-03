@@ -1,9 +1,12 @@
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     DateTime,
     ForeignKey,
+    Numeric,
     String,
     UniqueConstraint,
     func,
@@ -28,6 +31,11 @@ class PlataformaCategoria(Base):
             "plataforma_id",
             name="uq_categoria_id_plataforma",
         ),
+        CheckConstraint(
+            "desconto_minimo_percentual >= 10 AND "
+            "desconto_minimo_percentual <= 100",
+            name="ck_categoria_desconto_minimo_valido",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -45,6 +53,11 @@ class PlataformaCategoria(Base):
 
     nome_categoria: Mapped[str] = mapped_column(
         String(150),
+        nullable=False,
+    )
+
+    desconto_minimo_percentual: Mapped[Decimal] = mapped_column(
+        Numeric(5, 2),
         nullable=False,
     )
 
