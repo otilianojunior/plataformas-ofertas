@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from ofertas.api.plataformas import router as plataformas_router
-from ofertas.api.ofertas import router as ofertas_router
+from ofertas.api.produtos import router as produtos_router
 from ofertas.api.categorias import router as categorias_router
 from ofertas.api.configuracoes_sistema import router as configuracoes_sistema_router
 from ofertas.api.plataformas_divulgacao import router as plataformas_divulgacao_router
@@ -10,16 +10,18 @@ from ofertas.api.credenciais_plataforma import router as credenciais_plataforma_
 from ofertas.api.credenciais_divulgacao import router as credenciais_divulgacao_router
 from ofertas.api.publicacoes import router as publicacoes_router
 from ofertas.api.oauth_mercado_livre import router as oauth_mercado_livre_router
+from ofertas.api.coletas import router as coletas_router
 
 app = FastAPI(
     title="Plataformas de Ofertas",
-    description="API para coleta, armazenamento e distribuição de ofertas.",
+    description="API para coleta, armazenamento e distribuição de produtos e ofertas.",
     version="0.1.0",
 )
 
 app.include_router(plataformas_router)
+app.include_router(coletas_router)
 app.include_router(oauth_mercado_livre_router)
-app.include_router(ofertas_router)
+app.include_router(produtos_router)
 app.include_router(categorias_router)
 app.include_router(configuracoes_sistema_router)
 app.include_router(plataformas_divulgacao_router)

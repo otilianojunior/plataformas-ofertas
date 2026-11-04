@@ -14,9 +14,15 @@ class CategoriaRepository:
         self,
         session: Session,
         plataforma_id: int | None = None,
+        somente_ativas: bool = False,
     ) -> list[PlataformaCategoria]:
         """Lista categorias, opcionalmente filtradas por plataforma."""
         consulta = select(PlataformaCategoria)
+
+        if somente_ativas:
+            consulta = consulta.where(
+                PlataformaCategoria.status_categoria.is_(True)
+            )
 
         if plataforma_id is not None:
             consulta = consulta.where(

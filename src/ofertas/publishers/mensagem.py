@@ -1,3 +1,4 @@
+
 from decimal import Decimal
 from html import escape
 from urllib.parse import urlparse
@@ -21,7 +22,7 @@ def validar_link_afiliado(link: str | None) -> str:
     """Exige um link de afiliado HTTP ou HTTPS válido."""
     if not link:
         raise ValueError(
-            "A oferta não pode ser publicada sem link de afiliado."
+            "O produto não pode ser publicado sem link de afiliado."
         )
 
     link = link.strip()
@@ -33,11 +34,11 @@ def validar_link_afiliado(link: str | None) -> str:
     return link
 
 
-def formatar_mensagem(oferta, nome_plataforma: str) -> str:
+def formatar_mensagem(produto, nome_plataforma: str) -> str:
     """Gera a legenda HTML padronizada para publicação no Telegram."""
-    link_afiliado = validar_link_afiliado(oferta.affiliate_url)
+    link_afiliado = validar_link_afiliado(produto.url_afiliada)
 
-    titulo = escape(oferta.titulo.strip())
+    titulo = escape(produto.titulo.strip())
     plataforma = escape(nome_plataforma.strip())
 
     if not titulo:
@@ -48,8 +49,8 @@ def formatar_mensagem(oferta, nome_plataforma: str) -> str:
 
     partes = [f"<b>{titulo}</b>", ""]
 
-    preco_original = oferta.preco_original
-    preco_atual = oferta.preco_atual
+    preco_original = produto.preco_original
+    preco_atual = produto.preco_atual
 
     if preco_original is not None and preco_original > preco_atual:
         partes.append(
@@ -58,11 +59,14 @@ def formatar_mensagem(oferta, nome_plataforma: str) -> str:
 
     partes.append(f"🔥 <b>Por: {formatar_preco(preco_atual)}</b>")
     partes.append("")
+
     preposicao = "no" if plataforma.casefold() == "mercado livre" else "na"
+
     partes.append(
         f'🛒 Link do produto {preposicao} <b>{plataforma}</b>:\n'
         f'<a href="{escape(link_afiliado, quote=True)}">Comprar produto</a>'
     )
+
     partes.append("")
     partes.append(RODAPE_PUBLICACAO)
 

@@ -35,6 +35,10 @@ class ExecucaoColeta(Base):
             "finalizada_em IS NULL OR finalizada_em >= iniciada_em",
             name="ck_execucao_finalizacao_valida",
         ),
+        CheckConstraint(
+            "quantidade_ignorada >= 0",
+            name="ck_execucao_quantidade_ignorada_nao_negativa",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -71,6 +75,13 @@ class ExecucaoColeta(Base):
     )
 
     quantidade_processada: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default=text("0"),
+    )
+
+    quantidade_ignorada: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
         default=0,

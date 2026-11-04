@@ -1,3 +1,4 @@
+
 from datetime import datetime
 from decimal import Decimal
 
@@ -10,7 +11,7 @@ class PublicacaoResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    oferta_id: int
+    produto_id: int
     destino_divulgacao_id: int
     preco_divulgado: Decimal
     status_publicacao: str

@@ -6,8 +6,7 @@ from ofertas.models.credencial_plataforma import CredencialPlataforma
 from ofertas.models.destino_divulgacao import DestinoDivulgacao
 from ofertas.models.execucao_coleta import ExecucaoColeta
 from ofertas.models.historico_preco import HistoricoPreco
-from ofertas.models.link_afiliado import LinkAfiliado
-from ofertas.models.oferta import Oferta
+from ofertas.models.produto import Produto
 from ofertas.models.plataforma import Plataforma
 from ofertas.models.plataforma_categoria import PlataformaCategoria
 from ofertas.models.plataforma_divulgacao import PlataformaDivulgacao
@@ -24,10 +23,9 @@ __all__ = [
     "EstadoOAuth",
     "ExecucaoColeta",
     "HistoricoPreco",
-    "LinkAfiliado",
-    "Oferta",
     "Plataforma",
     "PlataformaCategoria",
     "PlataformaDivulgacao",
+    "Produto",
     "Publicacao",
 ]

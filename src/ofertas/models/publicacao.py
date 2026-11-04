@@ -1,16 +1,18 @@
+
 from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
     Text,
     func,
     text,
-    CheckConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -33,12 +35,21 @@ class Publicacao(Base):
             "status_publicacao IN ('pendente', 'publicada', 'falhou')",
             name="ck_publicacao_status_valido",
         ),
+        Index(
+            "uq_publicacao_ativa_por_destino",
+            "produto_id",
+            "destino_divulgacao_id",
+            unique=True,
+            postgresql_where=text(
+                "status_publicacao IN ('pendente', 'publicada')"
+            ),
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    oferta_id: Mapped[int] = mapped_column(
-        ForeignKey("ofertas.id", ondelete="CASCADE"),
+    produto_id: Mapped[int] = mapped_column(
+        ForeignKey("produtos.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )

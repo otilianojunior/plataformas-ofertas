@@ -80,3 +80,55 @@ def atualizar_configuracao_sistema(
     except Exception:
         db.rollback()
         raise
+
+
+@router.post(
+    "/coleta-automatica/iniciar",
+    response_model=ConfiguracaoSistemaResponse,
+    responses={404: {"description": "Configuração global não encontrada."}},
+)
+def iniciar_coleta_automatica(
+    db: DbSession,
+) -> ConfiguracaoSistemaResponse:
+    try:
+        configuracao = (
+            ConfiguracaoSistemaService().iniciar_coleta_automatica(db)
+        )
+        db.commit()
+        db.refresh(configuracao)
+        return configuracao
+    except LookupError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except Exception:
+        db.rollback()
+        raise
+
+
+@router.post(
+    "/coleta-automatica/pausar",
+    response_model=ConfiguracaoSistemaResponse,
+    responses={404: {"description": "Configuração global não encontrada."}},
+)
+def pausar_coleta_automatica(
+    db: DbSession,
+) -> ConfiguracaoSistemaResponse:
+    try:
+        configuracao = (
+            ConfiguracaoSistemaService().pausar_coleta_automatica(db)
+        )
+        db.commit()
+        db.refresh(configuracao)
+        return configuracao
+    except LookupError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except Exception:
+        db.rollback()
+        raise

@@ -6,3 +6,4 @@ alembic
 pydantic-settings
 cryptography
 httpx
+APScheduler>=3.11,<4.0
