@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
@@ -20,6 +20,56 @@ router = APIRouter(
 )
 
 DbSession = Annotated[Session, Depends(get_db)]
+
+AutomacaoControlavel = Literal[
+    "coleta_mercado_livre",
+    "coleta_shopee",
+    "publicacao_telegram",
+    "publicacao_whatsapp",
+]
+
+
+def _alterar_status_automacao(
+    db: Session,
+    automacao: str,
+    ativa: bool,
+) -> ConfiguracaoSistemaResponse:
+    try:
+        configuracao = (
+            ConfiguracaoSistemaService().atualizar_status_automacao(
+                db,
+                automacao,
+                ativa,
+            )
+        )
+        db.commit()
+        db.refresh(configuracao)
+        return configuracao
+
+    except LookupError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A alteração viola uma restrição do banco de dados.",
+        ) from exc
+
+    except Exception:
+        db.rollback()
+        raise
 
 
 @router.get(
@@ -59,27 +109,72 @@ def atualizar_configuracao_sistema(
         db.commit()
         db.refresh(configuracao)
         return configuracao
+
     except LookupError as exc:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc),
         ) from exc
+
     except ValueError as exc:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(exc),
         ) from exc
+
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="A configuração viola uma restrição do banco de dados.",
         ) from exc
+
     except Exception:
         db.rollback()
         raise
+
+
+@router.post(
+    "/automacoes/{automacao}/ativar",
+    response_model=ConfiguracaoSistemaResponse,
+    responses={
+        404: {"description": "Configuração global não encontrada."},
+        409: {"description": "Não foi possível ativar a automação."},
+    },
+)
+def ativar_automacao(
+    automacao: AutomacaoControlavel,
+    db: DbSession,
+) -> ConfiguracaoSistemaResponse:
+    return _alterar_status_automacao(
+        db,
+        automacao,
+        True,
+    )
+
+
+@router.post(
+    "/automacoes/{automacao}/pausar",
+    response_model=ConfiguracaoSistemaResponse,
+    responses={
+        404: {"description": "Configuração global não encontrada."},
+        409: {"description": "Não foi possível pausar a automação."},
+    },
+)
+def pausar_automacao(
+    automacao: AutomacaoControlavel,
+    db: DbSession,
+) -> ConfiguracaoSistemaResponse:
+    return _alterar_status_automacao(
+        db,
+        automacao,
+        False,
+    )
+
+
+# Rotas antigas mantidas durante a transição.
 
 
 @router.post(
@@ -90,22 +185,11 @@ def atualizar_configuracao_sistema(
 def iniciar_coleta_automatica(
     db: DbSession,
 ) -> ConfiguracaoSistemaResponse:
-    try:
-        configuracao = (
-            ConfiguracaoSistemaService().iniciar_coleta_automatica(db)
-        )
-        db.commit()
-        db.refresh(configuracao)
-        return configuracao
-    except LookupError as exc:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc),
-        ) from exc
-    except Exception:
-        db.rollback()
-        raise
+    return _alterar_status_automacao(
+        db,
+        "coleta_mercado_livre",
+        True,
+    )
 
 
 @router.post(
@@ -116,19 +200,8 @@ def iniciar_coleta_automatica(
 def pausar_coleta_automatica(
     db: DbSession,
 ) -> ConfiguracaoSistemaResponse:
-    try:
-        configuracao = (
-            ConfiguracaoSistemaService().pausar_coleta_automatica(db)
-        )
-        db.commit()
-        db.refresh(configuracao)
-        return configuracao
-    except LookupError as exc:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc),
-        ) from exc
-    except Exception:
-        db.rollback()
-        raise
+    return _alterar_status_automacao(
+        db,
+        "coleta_mercado_livre",
+        False,
+    )

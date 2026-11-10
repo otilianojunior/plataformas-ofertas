@@ -1,12 +1,9 @@
-
 from datetime import datetime, timezone
 
 import httpx
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ofertas.core.security import descriptografar_credencial
-from ofertas.models.credencial_divulgacao import CredencialDivulgacao
 from ofertas.models.plataforma import Plataforma
 from ofertas.models.plataforma_divulgacao import PlataformaDivulgacao
 from ofertas.models.produto import Produto
@@ -18,6 +15,9 @@ from ofertas.repositories.credencial_divulgacao_repository import (
 from ofertas.repositories.destino_divulgacao_repository import (
     DestinoDivulgacaoRepository,
 )
+from ofertas.repositories.publicacao_repository import (
+    PublicacaoRepository,
+)
 
 
 class TelegramPublisher:
@@ -27,6 +27,7 @@ class TelegramPublisher:
         self,
         credencial_repository: CredencialDivulgacaoRepository | None = None,
         destino_repository: DestinoDivulgacaoRepository | None = None,
+        publicacao_repository: PublicacaoRepository | None = None,
         timeout: float = 20.0,
     ) -> None:
         self.credencial_repository = (
@@ -35,6 +36,9 @@ class TelegramPublisher:
         self.destino_repository = (
             destino_repository or DestinoDivulgacaoRepository()
         )
+        self.publicacao_repository = (
+            publicacao_repository or PublicacaoRepository()
+        )
         self.timeout = timeout
 
     def publicar(
@@ -42,6 +46,7 @@ class TelegramPublisher:
         session: Session,
         produto: Produto,
         destino_id: int,
+        publicacao: Publicacao | None = None,
     ) -> Publicacao:
         """Publica um produto sem confirmar a transação da sessão."""
 
@@ -51,7 +56,9 @@ class TelegramPublisher:
             )
 
         if produto.status_link_afiliado != "gerado":
-            raise ValueError("O link de afiliado do produto não está validado.")
+            raise ValueError(
+                "O link de afiliado do produto não está validado."
+            )
 
         if not produto.elegivel_divulgacao:
             raise ValueError(
@@ -59,14 +66,19 @@ class TelegramPublisher:
             )
 
         if not produto.disponivel:
-            raise ValueError("Não é possível publicar um produto indisponível.")
+            raise ValueError(
+                "Não é possível publicar um produto indisponível."
+            )
 
         if produto.status_monitoramento != "ativo":
             raise ValueError(
                 "O monitoramento do produto não está ativo."
             )
 
-        destino = self.destino_repository.buscar_por_id(session, destino_id)
+        destino = self.destino_repository.buscar_por_id(
+            session,
+            destino_id,
+        )
 
         if destino is None:
             raise LookupError("Destino de divulgação não encontrado.")
@@ -86,10 +98,14 @@ class TelegramPublisher:
             raise ValueError("O canal de divulgação está inativo.")
 
         if plataforma.codigo.lower() != "telegram":
-            raise ValueError("O destino selecionado não é do Telegram.")
+            raise ValueError(
+                "O destino selecionado não é do Telegram."
+            )
 
         if destino.credencial_divulgacao_id is None:
-            raise ValueError("O destino não possui credencial associada.")
+            raise ValueError(
+                "O destino não possui credencial associada."
+            )
 
         credencial = self.credencial_repository.buscar_por_id(
             session,
@@ -97,71 +113,103 @@ class TelegramPublisher:
         )
 
         if credencial is None:
-            raise LookupError("Credencial de divulgação não encontrada.")
+            raise LookupError(
+                "Credencial de divulgação não encontrada."
+            )
 
         if credencial.status_credencial != "ativa":
-            raise ValueError("A credencial de divulgação está inativa.")
+            raise ValueError(
+                "A credencial de divulgação está inativa."
+            )
 
         if credencial.plataforma_divulgacao_id != plataforma.id:
             raise ValueError(
-                "A credencial não pertence ao canal de divulgação do destino."
+                "A credencial não pertence ao canal de divulgação "
+                "do destino."
             )
 
         if credencial.tipo_credencial != "bot_telegram":
-            raise ValueError("A credencial não é um token de bot do Telegram.")
-
-        plataforma_origem = session.get(Plataforma, produto.plataforma_id)
-
-        if plataforma_origem is None:
-            raise LookupError("Plataforma de origem do produto não encontrada.")
-
-        consulta_publicacao = select(Publicacao).where(
-            Publicacao.produto_id == produto.id,
-            Publicacao.destino_divulgacao_id == destino.id,
-            Publicacao.status_publicacao.in_(("pendente", "publicada")),
-        )
-
-        publicacao_ativa = session.execute(
-            consulta_publicacao
-        ).scalar_one_or_none()
-
-        if publicacao_ativa is not None:
             raise ValueError(
-                "Este produto já está pendente ou publicado neste destino."
+                "A credencial não é um token de bot do Telegram."
             )
 
-        publicacao = Publicacao(
-            produto_id=produto.id,
-            destino_divulgacao_id=destino.id,
-            preco_divulgado=produto.preco_atual,
-            status_publicacao="pendente",
-            tentativas=1,
-        )
-        session.add(publicacao)
-        session.flush()
-
-        mensagem = formatar_mensagem(
-            produto,
-            plataforma_origem.nome,
+        plataforma_origem = session.get(
+            Plataforma,
+            produto.plataforma_id,
         )
 
-        token = descriptografar_credencial(
-            credencial.valor_criptografado
-        )
+        if plataforma_origem is None:
+            raise LookupError(
+                "Plataforma de origem do produto não encontrada."
+            )
 
-        dados = {
-            "chat_id": destino.identificador_destino,
-            "caption" if produto.imagem_url else "text": mensagem,
-            "parse_mode": "HTML",
-        }
+        if publicacao is None:
+            publicacao_pendente = (
+                self.publicacao_repository.buscar_ativa(
+                    session,
+                    produto.id,
+                    destino.id,
+                )
+            )
 
-        if produto.imagem_url:
-            endpoint = f"https://api.telegram.org/bot{token}/sendPhoto"
-            dados["photo"] = produto.imagem_url
+            if publicacao_pendente is not None:
+                raise ValueError(
+                    "Este produto já possui uma publicação pendente "
+                    "neste destino."
+                )
+
+            publicacao = self.publicacao_repository.criar(
+                session,
+                produto_id=produto.id,
+                destino_id=destino.id,
+                preco_divulgado=produto.preco_atual,
+                percentual_desconto_divulgado=(
+                    produto.percentual_desconto
+                ),
+                tentativas=1,
+            )
+
         else:
-            endpoint = f"https://api.telegram.org/bot{token}/sendMessage"
+            if publicacao.status_publicacao != "pendente":
+                raise ValueError(
+                    "A publicação informada não está pendente."
+                )
+
+            if (
+                publicacao.produto_id != produto.id
+                or publicacao.destino_divulgacao_id != destino.id
+            ):
+                raise ValueError(
+                    "A publicação pendente não corresponde "
+                    "ao produto e destino informados."
+                )
 
         try:
+            mensagem = formatar_mensagem(
+                produto,
+                plataforma_origem.nome,
+            )
+
+            token = descriptografar_credencial(
+                credencial.valor_criptografado
+            )
+
+            dados = {
+                "chat_id": destino.identificador_destino,
+                "caption" if produto.imagem_url else "text": mensagem,
+                "parse_mode": "HTML",
+            }
+
+            if produto.imagem_url:
+                endpoint = (
+                    f"https://api.telegram.org/bot{token}/sendPhoto"
+                )
+                dados["photo"] = produto.imagem_url
+            else:
+                endpoint = (
+                    f"https://api.telegram.org/bot{token}/sendMessage"
+                )
+
             resposta = httpx.post(
                 endpoint,
                 data=dados,
@@ -170,7 +218,10 @@ class TelegramPublisher:
             resposta.raise_for_status()
             resultado = resposta.json()
 
-            if not isinstance(resultado, dict) or resultado.get("ok") is not True:
+            if (
+                not isinstance(resultado, dict)
+                or resultado.get("ok") is not True
+            ):
                 raise RuntimeError(
                     "O Telegram não confirmou a publicação."
                 )
@@ -180,7 +231,10 @@ class TelegramPublisher:
 
             if isinstance(erro, httpx.HTTPStatusError):
                 try:
-                    detalhe = erro.response.json().get("description", "")
+                    detalhe = erro.response.json().get(
+                        "description",
+                        "",
+                    )
                 except (ValueError, AttributeError):
                     detalhe = ""
 

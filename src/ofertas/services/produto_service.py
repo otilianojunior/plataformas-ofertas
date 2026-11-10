@@ -312,3 +312,17 @@ class ProdutoService:
 
         session.flush()
         return produto
+
+    def atualizar_posicoes_selecao_categoria(
+        self,
+        session: Session,
+        categoria_id: int,
+        posicoes: dict[int, int],
+    ) -> None:
+        """Atualiza as posições dos produtos selecionados na categoria."""
+
+        self.repository.atualizar_posicoes_selecao_categoria(
+            session,
+            categoria_id,
+            posicoes,
+        )

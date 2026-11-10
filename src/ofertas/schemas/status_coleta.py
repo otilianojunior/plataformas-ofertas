@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from typing import Literal
 
@@ -14,7 +13,7 @@ class StatusColetaResponse(BaseModel):
         "aguardando_execucao",
     ]
 
-    coleta_automatica_ativa: bool
+    coleta_mercado_livre_ativa: bool
     agendador_ultimo_sinal_em: datetime | None
 
     ultima_execucao_id: int | None

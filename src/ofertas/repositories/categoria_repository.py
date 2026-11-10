@@ -1,4 +1,3 @@
-
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -63,6 +62,8 @@ class CategoriaRepository:
         id_categoria_plataforma: str,
         nome_categoria: str,
         desconto_minimo_percentual: Decimal,
+        etiqueta_afiliado: str | None = None,
+        destino_divulgacao_id: int | None = None,
         status_categoria: bool = True,
     ) -> PlataformaCategoria:
         """Adiciona uma categoria à sessão atual."""
@@ -71,6 +72,8 @@ class CategoriaRepository:
             id_categoria_plataforma=id_categoria_plataforma,
             nome_categoria=nome_categoria,
             desconto_minimo_percentual=desconto_minimo_percentual,
+            etiqueta_afiliado=etiqueta_afiliado,
+            destino_divulgacao_id=destino_divulgacao_id,
             status_categoria=status_categoria,
         )
         session.add(categoria)
@@ -96,5 +99,43 @@ class CategoriaRepository:
     ) -> PlataformaCategoria:
         """Atualiza o desconto mínimo de uma categoria."""
         categoria.desconto_minimo_percentual = desconto_minimo_percentual
+        session.flush()
+        return categoria
+
+    def atualizar_etiqueta_afiliado(
+        self,
+        session: Session,
+        categoria: PlataformaCategoria,
+        etiqueta: str | None,
+    ) -> PlataformaCategoria:
+        """Atualiza a etiqueta de afiliado de uma categoria."""
+        categoria.etiqueta_afiliado = etiqueta
+        session.flush()
+        return categoria
+
+    def atualizar_destino_divulgacao(
+        self,
+        session: Session,
+        categoria: PlataformaCategoria,
+        destino_id: int | None,
+    ) -> PlataformaCategoria:
+        """Atualiza o destino de divulgação da categoria."""
+        categoria.destino_divulgacao_id = destino_id
+        session.flush()
+        return categoria
+
+
+    def atualizar_selecao(
+        self,
+        session: Session,
+        categoria: PlataformaCategoria,
+        *,
+        limite_produtos_selecao: int,
+        selecao_renovada_em,
+    ) -> PlataformaCategoria:
+        """Atualiza o limite e a data da seleção semanal."""
+        categoria.limite_produtos_selecao = limite_produtos_selecao
+        categoria.selecao_renovada_em = selecao_renovada_em
+
         session.flush()
         return categoria

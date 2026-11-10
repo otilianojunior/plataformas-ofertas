@@ -7,6 +7,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     ForeignKeyConstraint,
+    Integer,
     Numeric,
     String,
     Text,
@@ -62,6 +63,11 @@ class Produto(Base):
             ],
             name="fk_produto_categoria_mesma_plataforma",
         ),
+        CheckConstraint(
+            "posicao_selecao_categoria IS NULL OR "
+            "posicao_selecao_categoria >= 1",
+            name="ck_produto_posicao_selecao_valida",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -75,6 +81,11 @@ class Produto(Base):
     categoria_id: Mapped[int | None] = mapped_column(
         nullable=True,
         index=True,
+    )
+
+    posicao_selecao_categoria: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
     )
 
     # Identificador do produto no catálogo do marketplace.

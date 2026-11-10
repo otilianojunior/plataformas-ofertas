@@ -6,6 +6,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Integer,
     Numeric,
     String,
     UniqueConstraint,
@@ -36,6 +37,10 @@ class PlataformaCategoria(Base):
             "desconto_minimo_percentual <= 100",
             name="ck_categoria_desconto_minimo_valido",
         ),
+        CheckConstraint(
+            "limite_produtos_selecao >= 10",
+            name="ck_categoria_limite_selecao_minimo",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -43,6 +48,16 @@ class PlataformaCategoria(Base):
     plataforma_id: Mapped[int] = mapped_column(
         ForeignKey("plataformas.id"),
         nullable=False,
+        index=True,
+    )
+
+    destino_divulgacao_id: Mapped[int | None] = mapped_column(
+        ForeignKey(
+            "destinos_divulgacao.id",
+            ondelete="SET NULL",
+            name="fk_plataforma_categoria_destino_divulgacao",
+        ),
+        nullable=True,
         index=True,
     )
 
@@ -56,9 +71,26 @@ class PlataformaCategoria(Base):
         nullable=False,
     )
 
+    etiqueta_afiliado: Mapped[str | None] = mapped_column(
+        String(150),
+        nullable=True,
+    )
+
     desconto_minimo_percentual: Mapped[Decimal] = mapped_column(
         Numeric(5, 2),
         nullable=False,
+    )
+
+    limite_produtos_selecao: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=10,
+        server_default=text("10"),
+    )
+
+    selecao_renovada_em: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
     )
 
     status_categoria: Mapped[bool] = mapped_column(

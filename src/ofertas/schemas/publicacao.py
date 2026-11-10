@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from decimal import Decimal
 
@@ -14,6 +13,7 @@ class PublicacaoResponse(BaseModel):
     produto_id: int
     destino_divulgacao_id: int
     preco_divulgado: Decimal
+    percentual_desconto_divulgado: Decimal | None
     status_publicacao: str
     tentativas: int
     publicada_em: datetime | None

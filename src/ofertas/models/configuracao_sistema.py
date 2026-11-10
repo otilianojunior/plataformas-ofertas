@@ -1,4 +1,3 @@
-
 from datetime import datetime
 
 from sqlalchemy import (
@@ -39,7 +38,28 @@ class ConfiguracaoSistema(Base):
         nullable=False,
     )
 
-    coleta_automatica_ativa: Mapped[bool] = mapped_column(
+    coleta_mercado_livre_ativa: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("false"),
+    )
+
+    coleta_shopee_ativa: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("false"),
+    )
+
+    publicacao_telegram_ativa: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("false"),
+    )
+
+    publicacao_whatsapp_ativa: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
         default=False,

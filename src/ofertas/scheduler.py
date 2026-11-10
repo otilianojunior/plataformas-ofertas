@@ -27,7 +27,7 @@ def verificar_coletas_agendadas() -> None:
         try:
             configuracao = servico_configuracao.registrar_sinal(session)
 
-            coleta_ativa = configuracao.coleta_automatica_ativa
+            coleta_ativa = configuracao.coleta_mercado_livre_ativa
             intervalo_segundos = (
                 configuracao.intervalo_coleta_minutos * 60
             )
@@ -74,7 +74,7 @@ def verificar_coletas_agendadas() -> None:
                 # solicitada durante o ciclo do agendador.
                 configuracao_atual = servico_configuracao.buscar(session)
 
-                if not configuracao_atual.coleta_automatica_ativa:
+                if not configuracao_atual.coleta_mercado_livre_ativa:
                     logger.info(
                         "Coleta automática pausada durante a execução."
                     )

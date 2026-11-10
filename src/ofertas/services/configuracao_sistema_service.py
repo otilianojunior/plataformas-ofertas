@@ -13,6 +13,13 @@ from ofertas.repositories.configuracao_sistema_repository import (
 class ConfiguracaoSistemaService:
     TEMPO_LIMITE_AGENDADOR_MINUTOS = 3
 
+    AUTOMACOES_VALIDAS = {
+        "coleta_mercado_livre",
+        "coleta_shopee",
+        "publicacao_telegram",
+        "publicacao_whatsapp",
+    }
+
     def __init__(self) -> None:
         self.repository = ConfiguracaoSistemaRepository()
 
@@ -44,28 +51,66 @@ class ConfiguracaoSistemaService:
             intervalo_coleta_minutos,
         )
 
+    def atualizar_status_automacao(
+        self,
+        session: Session,
+        automacao: str,
+        ativa: bool,
+    ) -> ConfiguracaoSistema:
+        """Atualiza o estado de uma automação específica."""
+
+        if automacao not in self.AUTOMACOES_VALIDAS:
+            raise ValueError("Automação não reconhecida.")
+
+        configuracao = self.buscar(session)
+
+        return self.repository.atualizar_status_automacao(
+            session,
+            configuracao,
+            automacao,
+            ativa,
+        )
+
+    def ativar_automacao(
+        self,
+        session: Session,
+        automacao: str,
+    ) -> ConfiguracaoSistema:
+        return self.atualizar_status_automacao(
+            session,
+            automacao,
+            True,
+        )
+
+    def pausar_automacao(
+        self,
+        session: Session,
+        automacao: str,
+    ) -> ConfiguracaoSistema:
+        return self.atualizar_status_automacao(
+            session,
+            automacao,
+            False,
+        )
+
     def iniciar_coleta_automatica(
         self,
         session: Session,
     ) -> ConfiguracaoSistema:
-        configuracao = self.buscar(session)
-
-        return self.repository.atualizar_status_coleta(
+        """Mantido temporariamente para compatibilidade com a API atual."""
+        return self.ativar_automacao(
             session,
-            configuracao,
-            True,
+            "coleta_mercado_livre",
         )
 
     def pausar_coleta_automatica(
         self,
         session: Session,
     ) -> ConfiguracaoSistema:
-        configuracao = self.buscar(session)
-
-        return self.repository.atualizar_status_coleta(
+        """Mantido temporariamente para compatibilidade com a API atual."""
+        return self.pausar_automacao(
             session,
-            configuracao,
-            False,
+            "coleta_mercado_livre",
         )
 
     def registrar_sinal(
@@ -122,7 +167,7 @@ class ConfiguracaoSistemaService:
                 minutes=configuracao.intervalo_coleta_minutos
             )
 
-        if not configuracao.coleta_automatica_ativa:
+        if not configuracao.coleta_mercado_livre_ativa:
             status_coleta = "pausada"
             proxima_execucao = None
 
@@ -149,8 +194,8 @@ class ConfiguracaoSistemaService:
                 "online" if agendador_online else "offline"
             ),
             "status_coleta": status_coleta,
-            "coleta_automatica_ativa": (
-                configuracao.coleta_automatica_ativa
+            "coleta_mercado_livre_ativa": (
+                configuracao.coleta_mercado_livre_ativa
             ),
             "agendador_ultimo_sinal_em": ultimo_sinal,
             "ultima_execucao_id": (

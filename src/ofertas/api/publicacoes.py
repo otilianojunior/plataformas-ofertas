@@ -6,9 +6,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ofertas.db.session import get_db
-from ofertas.models.produto import Produto
-from ofertas.publishers.telegram import TelegramPublisher
+from ofertas.models.publicacao import Publicacao
 from ofertas.schemas.publicacao import PublicacaoResponse
+from ofertas.services.publicacao_service import PublicacaoService
 
 
 router = APIRouter(
@@ -18,34 +18,26 @@ router = APIRouter(
 
 DbSession = Annotated[Session, Depends(get_db)]
 
+service = PublicacaoService()
+
 
 @router.post(
-    "/produtos/{produto_id}/destinos/{destino_id}",
+    "/produtos/{produto_id}",
     response_model=PublicacaoResponse,
     responses={
-        404: {"description": "Produto ou destino não encontrado."},
+        404: {"description": "Produto, categoria ou destino não encontrado."},
         409: {"description": "Publicação não permitida ou duplicada."},
         502: {"description": "Falha ao publicar no Telegram."},
     },
 )
 def publicar_produto(
     produto_id: Annotated[int, Path(gt=0)],
-    destino_id: Annotated[int, Path(gt=0)],
     db: DbSession,
-) -> PublicacaoResponse:
-    produto = db.get(Produto, produto_id)
-
-    if produto is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Produto não encontrado.",
-        )
-
+) -> Publicacao:
     try:
-        publicacao = TelegramPublisher().publicar(
+        publicacao = service.publicar_produto(
             db,
-            produto,
-            destino_id,
+            produto_id,
         )
 
         db.commit()

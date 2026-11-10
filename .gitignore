@@ -29,3 +29,6 @@ Thumbs.db
 
 # Metadados gerados pela instalação do pacote
 *.egg-info/
+
+# Perfil persistente do Chrome (sessão autenticada do Mercado Livre)
+data/chrome_profile/

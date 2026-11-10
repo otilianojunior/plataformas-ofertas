@@ -1,4 +1,3 @@
-
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
@@ -9,6 +8,8 @@ from ofertas.db.session import get_db
 from ofertas.schemas.categoria import (
     CategoriaCreate,
     CategoriaDescontoUpdate,
+    CategoriaDestinoDivulgacaoUpdate,
+    CategoriaEtiquetaAfiliadoUpdate,
     CategoriaResponse,
     CategoriaStatusUpdate,
 )
@@ -76,7 +77,10 @@ def criar_categoria(
         session.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Não foi possível cadastrar a categoria devido a uma restrição do banco de dados.",
+            detail=(
+                "Não foi possível cadastrar a categoria "
+                "devido a uma restrição do banco de dados."
+            ),
         ) from erro
 
 
@@ -113,6 +117,7 @@ def atualizar_status_categoria(
             detail="Não foi possível atualizar o status da categoria.",
         ) from erro
 
+
 @router.patch(
     "/{categoria_id}/desconto-minimo",
     response_model=CategoriaResponse,
@@ -143,5 +148,89 @@ def atualizar_desconto_minimo_categoria(
         session.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Não foi possível atualizar o desconto mínimo da categoria.",
+            detail=(
+                "Não foi possível atualizar o desconto mínimo "
+                "da categoria."
+            ),
+        ) from erro
+
+
+@router.patch(
+    "/{categoria_id}/etiqueta-afiliado",
+    response_model=CategoriaResponse,
+)
+def atualizar_etiqueta_afiliado_categoria(
+    categoria_id: Annotated[int, Path(gt=0)],
+    dados: CategoriaEtiquetaAfiliadoUpdate,
+    session: Session = Depends(get_db),
+):
+    try:
+        categoria = service.atualizar_etiqueta_afiliado(
+            session,
+            categoria_id,
+            dados.etiqueta_afiliado,
+        )
+        session.commit()
+        session.refresh(categoria)
+        return categoria
+
+    except LookupError as erro:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(erro),
+        ) from erro
+
+    except IntegrityError as erro:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Não foi possível atualizar a etiqueta "
+                "de afiliado da categoria."
+            ),
+        ) from erro
+
+
+@router.patch(
+    "/{categoria_id}/destino-divulgacao",
+    response_model=CategoriaResponse,
+)
+def atualizar_destino_divulgacao_categoria(
+    categoria_id: Annotated[int, Path(gt=0)],
+    dados: CategoriaDestinoDivulgacaoUpdate,
+    session: Session = Depends(get_db),
+):
+    try:
+        categoria = service.atualizar_destino_divulgacao(
+            session,
+            categoria_id,
+            dados.destino_divulgacao_id,
+        )
+        session.commit()
+        session.refresh(categoria)
+        return categoria
+
+    except LookupError as erro:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(erro),
+        ) from erro
+
+    except ValueError as erro:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(erro),
+        ) from erro
+
+    except IntegrityError as erro:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Não foi possível atualizar o destino "
+                "de divulgação da categoria."
+            ),
         ) from erro

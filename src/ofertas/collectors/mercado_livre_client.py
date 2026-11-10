@@ -140,6 +140,63 @@ class MercadoLivreClient:
             f"/highlights/MLB/category/{id_categoria.strip()}",
         )
 
+
+
+    def buscar_itens_categoria(
+        self,
+        session: Session,
+        plataforma_id: int,
+        categoria_id: str,
+        *,
+        limite: int = 10,
+        offset: int = 0,
+    ) -> dict:
+        """Busca anúncios de uma categoria com paginação."""
+
+        if not categoria_id.strip():
+            raise ValueError("O ID da categoria é obrigatório.")
+
+        if not 1 <= limite <= 50:
+            raise ValueError(
+                "O limite da busca deve estar entre 1 e 50."
+            )
+
+        if offset < 0:
+            raise ValueError("O offset não pode ser negativo.")
+
+        return self._request(
+            session,
+            plataforma_id,
+            "/sites/MLB/search",
+            params={
+                "category": categoria_id.strip(),
+                "limit": limite,
+                "offset": offset,
+            },
+        )
+
+
+
+    def buscar_item(
+        self,
+        session: Session,
+        plataforma_id: int,
+        item_id: str,
+    ) -> dict:
+        """Busca os detalhes de um anúncio pelo ID do item."""
+
+        if not item_id.strip():
+            raise ValueError("O ID do anúncio é obrigatório.")
+
+        return self._request(
+            session,
+            plataforma_id,
+            f"/items/{item_id.strip()}",
+        )
+
+
+
+
     def buscar_detalhes_produto(
         self,
         session: Session,

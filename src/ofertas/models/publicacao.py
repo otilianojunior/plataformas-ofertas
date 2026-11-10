@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from decimal import Decimal
 
@@ -28,6 +27,12 @@ class Publicacao(Base):
             name="ck_publicacao_preco_positivo",
         ),
         CheckConstraint(
+            "percentual_desconto_divulgado IS NULL OR "
+            "(percentual_desconto_divulgado >= 0 AND "
+            "percentual_desconto_divulgado <= 100)",
+            name="ck_publicacao_desconto_divulgado_valido",
+        ),
+        CheckConstraint(
             "tentativas >= 0",
             name="ck_publicacao_tentativas_nao_negativas",
         ),
@@ -36,12 +41,12 @@ class Publicacao(Base):
             name="ck_publicacao_status_valido",
         ),
         Index(
-            "uq_publicacao_ativa_por_destino",
+            "uq_publicacao_pendente_por_destino",
             "produto_id",
             "destino_divulgacao_id",
             unique=True,
             postgresql_where=text(
-                "status_publicacao IN ('pendente', 'publicada')"
+                "status_publicacao = 'pendente'"
             ),
         ),
     )
@@ -63,6 +68,11 @@ class Publicacao(Base):
     preco_divulgado: Mapped[Decimal] = mapped_column(
         Numeric(12, 2),
         nullable=False,
+    )
+
+    percentual_desconto_divulgado: Mapped[Decimal | None] = mapped_column(
+        Numeric(5, 2),
+        nullable=True,
     )
 
     status_publicacao: Mapped[str] = mapped_column(
