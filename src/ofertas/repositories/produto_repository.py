@@ -1,10 +1,13 @@
 from collections.abc import Sequence
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
-from sqlalchemy import case, select, update
+from sqlalchemy import and_, case, or_, select, update
 from sqlalchemy.orm import Session
 
 from ofertas.models.plataforma_categoria import PlataformaCategoria
 from ofertas.models.produto import Produto
+from ofertas.models.publicacao import Publicacao
 
 
 class ProdutoRepository:
@@ -177,5 +180,173 @@ class ProdutoRepository:
 
         if limite is not None:
             consulta = consulta.limit(limite)
+
+        return list(session.scalars(consulta).all())
+
+    def listar_candidatos_publicacao(
+        self,
+        session: Session,
+        *,
+        categoria_id: int,
+        destino_id: int,
+        desconto_minimo_percentual: Decimal,
+        preco_minimo: Decimal | None = None,
+        preco_maximo: Decimal | None = None,
+        limite: int = 10,
+    ) -> list[Produto]:
+        """Lista candidatos elegíveis para publicação em uma categoria."""
+
+        if limite <= 0:
+            return []
+
+        agora = datetime.now(timezone.utc)
+        limite_republicacao = agora - timedelta(hours=24)
+        limite_tentativa = agora - timedelta(minutes=15)
+
+        ultima_publicacao_em = (
+            select(Publicacao.publicada_em)
+            .where(
+                Publicacao.produto_id == Produto.id,
+                Publicacao.destino_divulgacao_id == destino_id,
+                Publicacao.status_publicacao == "publicada",
+            )
+            .order_by(
+                Publicacao.publicada_em.desc(),
+                Publicacao.id.desc(),
+            )
+            .limit(1)
+            .scalar_subquery()
+        )
+
+        ultimo_desconto_publicado = (
+            select(Publicacao.percentual_desconto_divulgado)
+            .where(
+                Publicacao.produto_id == Produto.id,
+                Publicacao.destino_divulgacao_id == destino_id,
+                Publicacao.status_publicacao == "publicada",
+            )
+            .order_by(
+                Publicacao.publicada_em.desc(),
+                Publicacao.id.desc(),
+            )
+            .limit(1)
+            .scalar_subquery()
+        )
+
+        ultima_tentativa_status = (
+            select(Publicacao.status_publicacao)
+            .where(
+                Publicacao.produto_id == Produto.id,
+                Publicacao.destino_divulgacao_id == destino_id,
+            )
+            .order_by(
+                Publicacao.created_at.desc(),
+                Publicacao.id.desc(),
+            )
+            .limit(1)
+            .scalar_subquery()
+        )
+
+        ultima_tentativa_em = (
+            select(Publicacao.updated_at)
+            .where(
+                Publicacao.produto_id == Produto.id,
+                Publicacao.destino_divulgacao_id == destino_id,
+            )
+            .order_by(
+                Publicacao.created_at.desc(),
+                Publicacao.id.desc(),
+            )
+            .limit(1)
+            .scalar_subquery()
+        )
+
+        ultima_tentativa_quantidade = (
+            select(Publicacao.tentativas)
+            .where(
+                Publicacao.produto_id == Produto.id,
+                Publicacao.destino_divulgacao_id == destino_id,
+            )
+            .order_by(
+                Publicacao.created_at.desc(),
+                Publicacao.id.desc(),
+            )
+            .limit(1)
+            .scalar_subquery()
+        )
+
+        ultimo_desconto_tentativa = (
+            select(Publicacao.percentual_desconto_divulgado)
+            .where(
+                Publicacao.produto_id == Produto.id,
+                Publicacao.destino_divulgacao_id == destino_id,
+            )
+            .order_by(
+                Publicacao.created_at.desc(),
+                Publicacao.id.desc(),
+            )
+            .limit(1)
+            .scalar_subquery()
+        )
+
+        pode_republicar = or_(
+            ultima_publicacao_em.is_(None),
+            ultima_publicacao_em <= limite_republicacao,
+            and_(
+                ultimo_desconto_publicado.is_not(None),
+                Produto.percentual_desconto
+                > ultimo_desconto_publicado,
+            ),
+        )
+
+        tentativa_liberada = or_(
+            ultima_tentativa_status.is_(None),
+            ultima_tentativa_status == "publicada",
+            and_(
+                ultima_tentativa_status == "falhou",
+                ultima_tentativa_quantidade < 3,
+                ultima_tentativa_em <= limite_tentativa,
+            ),
+            and_(
+                ultima_tentativa_status == "falhou",
+                ultima_tentativa_quantidade >= 3,
+                ultimo_desconto_tentativa.is_not(None),
+                Produto.percentual_desconto
+                > ultimo_desconto_tentativa,
+            ),
+        )
+
+        consulta = select(Produto).where(
+            Produto.categoria_id == categoria_id,
+            Produto.disponivel.is_(True),
+            Produto.status_monitoramento == "ativo",
+            Produto.elegivel_divulgacao.is_(True),
+            Produto.status_link_afiliado == "gerado",
+            Produto.url_afiliada.is_not(None),
+            Produto.percentual_desconto.is_not(None),
+            Produto.percentual_desconto >= desconto_minimo_percentual,
+            pode_republicar,
+            tentativa_liberada,
+        )
+
+        if preco_minimo is not None:
+            consulta = consulta.where(
+                Produto.preco_atual >= preco_minimo
+            )
+
+        if preco_maximo is not None:
+            consulta = consulta.where(
+                Produto.preco_atual <= preco_maximo
+            )
+
+        consulta = (
+            consulta
+            .order_by(
+                Produto.posicao_selecao_categoria.asc().nulls_last(),
+                Produto.created_at.asc(),
+                Produto.id.asc(),
+            )
+            .limit(limite)
+        )
 
         return list(session.scalars(consulta).all())

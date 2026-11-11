@@ -54,3 +54,15 @@ class ConfiguracaoSistemaRepository:
         configuracao.agendador_ultimo_sinal_em = horario
         session.flush()
         return configuracao
+
+    def atualizar_status_geral(
+        self,
+        session: Session,
+        configuracao: ConfiguracaoSistema,
+        ativa: bool,
+    ) -> ConfiguracaoSistema:
+        """Ativa ou pausa globalmente as automações."""
+
+        configuracao.automacoes_ativas = ativa
+        session.flush()
+        return configuracao

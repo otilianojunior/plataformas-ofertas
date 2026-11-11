@@ -5,6 +5,11 @@ from datetime import datetime, timezone
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ofertas.db.session import SessionLocal
+
+from ofertas.affiliates.mercado_livre_affiliate_service import (
+    MercadoLivreAffiliateService,
+)
 from ofertas.collectors.mercado_livre_collector import MercadoLivreCollector
 from ofertas.models.execucao_coleta import ExecucaoColeta
 from ofertas.models.plataforma import Plataforma
@@ -24,10 +29,14 @@ class ExecucaoColetaService:
         self,
         collector: MercadoLivreCollector | None = None,
         categoria_repository: CategoriaRepository | None = None,
+        affiliate_service: MercadoLivreAffiliateService | None = None,
     ) -> None:
         self.collector = collector or MercadoLivreCollector()
         self.categoria_repository = (
             categoria_repository or CategoriaRepository()
+        )
+        self.affiliate_service = (
+            affiliate_service or MercadoLivreAffiliateService()
         )
 
     def executar(
@@ -156,3 +165,47 @@ class ExecucaoColetaService:
 
         session.flush()
         return execucao
+
+
+    def gerar_afiliados_pendentes(
+        self,
+        plataforma_id: int,
+    ) -> dict | None:
+        """Gera afiliados em uma transação independente da coleta."""
+
+        with SessionLocal() as session:
+            try:
+                resultado = self.affiliate_service.gerar_pendentes(
+                    session,
+                    plataforma_id,
+                )
+                session.commit()
+
+            except Exception:
+                session.rollback()
+                logger.exception(
+                    "Falha independente na geração de links afiliados "
+                    "da plataforma %s. A coleta já confirmada foi preservada.",
+                    plataforma_id,
+                )
+                return None
+
+        logger.info(
+            "Geração de links afiliados concluída. "
+            "Plataforma: %s | Encontrados: %s | Gerados: %s | "
+            "Erros: %s | Lotes: %s",
+            plataforma_id,
+            resultado["total_encontrados"],
+            resultado["total_gerados"],
+            resultado["total_erros"],
+            resultado["total_lotes"],
+        )
+
+        for erro_afiliado in resultado.get("erros", []):
+            logger.warning(
+                "Falha ao gerar link afiliado. Produto %s: %s",
+                erro_afiliado["produto_id"],
+                erro_afiliado["mensagem"],
+            )
+
+        return resultado

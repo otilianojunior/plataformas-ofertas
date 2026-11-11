@@ -78,3 +78,69 @@ def publicar_produto(
         )
 
     return publicacao
+
+
+@router.post(
+    "/produtos/{produto_id}/destinos/{destino_id}",
+    response_model=PublicacaoResponse,
+    summary="Publicar produto em um grupo específico",
+    description=(
+        "Publica o produto no destino informado, desde que o grupo "
+        "esteja associado à categoria do produto."
+    ),
+    responses={
+        404: {"description": "Produto, categoria ou destino não encontrado."},
+        409: {"description": "Destino não associado ou publicação não permitida."},
+        502: {"description": "Falha no envio ao Telegram."},
+    },
+)
+def publicar_produto_em_destino(
+    produto_id: Annotated[int, Path(gt=0)],
+    destino_id: Annotated[int, Path(gt=0)],
+    db: DbSession,
+) -> Publicacao:
+    try:
+        publicacao = service.publicar_produto(
+            db,
+            produto_id,
+            destino_id=destino_id,
+        )
+
+        db.commit()
+        db.refresh(publicacao)
+
+    except LookupError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A publicação viola uma restrição do banco de dados.",
+        ) from exc
+
+    except Exception:
+        db.rollback()
+        raise
+
+    if publicacao.status_publicacao == "falhou":
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=(
+                "Falha ao publicar no destino informado. "
+                "A tentativa foi registrada no banco."
+            ),
+        )
+
+    return publicacao

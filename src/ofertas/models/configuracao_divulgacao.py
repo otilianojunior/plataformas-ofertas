@@ -77,6 +77,11 @@ class ConfiguracaoDivulgacao(Base):
         server_default=text("0"),
     )
 
+    ultima_execucao_publicacao_em: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
     identificador_rastreamento: Mapped[str | None] = mapped_column(
         String(150),
         nullable=True,

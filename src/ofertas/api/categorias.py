@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ofertas.db.session import get_db
+from ofertas.schemas.destino_divulgacao import DestinoDivulgacaoResponse
 from ofertas.schemas.categoria import (
     CategoriaCreate,
     CategoriaDescontoUpdate,
@@ -234,3 +235,101 @@ def atualizar_destino_divulgacao_categoria(
                 "de divulgação da categoria."
             ),
         ) from erro
+
+
+@router.get(
+    "/{categoria_id}/destinos",
+    response_model=list[DestinoDivulgacaoResponse],
+    summary="Listar grupos associados à categoria",
+    description=(
+        "Retorna os destinos Telegram e WhatsApp associados à categoria, "
+        "incluindo nome, canal e status de cada grupo."
+    ),
+)
+def listar_destinos_categoria(
+    categoria_id: Annotated[int, Path(gt=0)],
+    session: Session = Depends(get_db),
+):
+    try:
+        return service.listar_destinos(session, categoria_id)
+    except LookupError as erro:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(erro),
+        ) from erro
+
+
+@router.post(
+    "/{categoria_id}/destinos/{destino_id}",
+    response_model=list[DestinoDivulgacaoResponse],
+    summary="Associar grupo à categoria",
+    description=(
+        "Adiciona um destino Telegram ou WhatsApp à categoria. "
+        "Os demais grupos associados são preservados."
+    ),
+)
+def associar_destino_categoria(
+    categoria_id: Annotated[int, Path(gt=0)],
+    destino_id: Annotated[int, Path(gt=0)],
+    session: Session = Depends(get_db),
+):
+    try:
+        service.associar_destino(session, categoria_id, destino_id)
+        session.commit()
+        return service.listar_destinos(session, categoria_id)
+
+    except LookupError as erro:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(erro),
+        ) from erro
+
+    except ValueError as erro:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(erro),
+        ) from erro
+
+    except IntegrityError as erro:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A associação viola uma restrição do banco de dados.",
+        ) from erro
+
+    except Exception:
+        session.rollback()
+        raise
+
+
+@router.delete(
+    "/{categoria_id}/destinos/{destino_id}",
+    response_model=list[DestinoDivulgacaoResponse],
+    summary="Desassociar grupo da categoria",
+    description=(
+        "Remove somente o destino informado. Os demais grupos da "
+        "categoria continuam associados."
+    ),
+)
+def desassociar_destino_categoria(
+    categoria_id: Annotated[int, Path(gt=0)],
+    destino_id: Annotated[int, Path(gt=0)],
+    session: Session = Depends(get_db),
+):
+    try:
+        service.desassociar_destino(session, categoria_id, destino_id)
+        session.commit()
+        return service.listar_destinos(session, categoria_id)
+
+    except LookupError as erro:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(erro),
+        ) from erro
+
+    except Exception:
+        session.rollback()
+        raise

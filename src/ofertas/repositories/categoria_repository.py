@@ -3,7 +3,9 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ofertas.models.destino_divulgacao import DestinoDivulgacao
 from ofertas.models.plataforma_categoria import PlataformaCategoria
+from ofertas.models.plataforma_categoria_destino import PlataformaCategoriaDestino
 
 
 class CategoriaRepository:
@@ -31,6 +33,113 @@ class CategoriaRepository:
         consulta = consulta.order_by(PlataformaCategoria.nome_categoria)
 
         return list(session.scalars(consulta).all())
+
+    def listar_por_destino(
+        self,
+        session: Session,
+        destino_id: int,
+    ) -> list[PlataformaCategoria]:
+        """Lista categorias ativas associadas a um destino."""
+
+        consulta = (
+            select(PlataformaCategoria)
+            .join(
+                PlataformaCategoriaDestino,
+                PlataformaCategoriaDestino.categoria_id
+                == PlataformaCategoria.id,
+            )
+            .where(
+                PlataformaCategoriaDestino.destino_divulgacao_id
+                == destino_id,
+                PlataformaCategoria.status_categoria.is_(True),
+            )
+            .order_by(PlataformaCategoria.id)
+        )
+
+        return list(session.scalars(consulta).all())
+
+    def listar_destinos(
+        self,
+        session: Session,
+        categoria_id: int,
+    ) -> list[DestinoDivulgacao]:
+        """Lista os destinos completos associados a uma categoria."""
+
+        consulta = (
+            select(DestinoDivulgacao)
+            .join(
+                PlataformaCategoriaDestino,
+                PlataformaCategoriaDestino.destino_divulgacao_id
+                == DestinoDivulgacao.id,
+            )
+            .where(
+                PlataformaCategoriaDestino.categoria_id == categoria_id
+            )
+            .order_by(DestinoDivulgacao.nome_destino)
+        )
+
+        return list(session.scalars(consulta).all())
+
+    def listar_destinos_ids(
+        self,
+        session: Session,
+        categoria_id: int,
+    ) -> list[int]:
+        """Lista os identificadores dos destinos associados à categoria."""
+
+        consulta = (
+            select(PlataformaCategoriaDestino.destino_divulgacao_id)
+            .where(
+                PlataformaCategoriaDestino.categoria_id == categoria_id
+            )
+            .order_by(PlataformaCategoriaDestino.destino_divulgacao_id)
+        )
+
+        return list(session.scalars(consulta).all())
+
+    def associar_destino(
+        self,
+        session: Session,
+        categoria_id: int,
+        destino_id: int,
+    ) -> PlataformaCategoriaDestino:
+        """Cria a associação entre uma categoria e um destino."""
+
+        associacao = session.get(
+            PlataformaCategoriaDestino,
+            (categoria_id, destino_id),
+        )
+
+        if associacao is not None:
+            return associacao
+
+        associacao = PlataformaCategoriaDestino(
+            categoria_id=categoria_id,
+            destino_divulgacao_id=destino_id,
+        )
+        session.add(associacao)
+        session.flush()
+        return associacao
+
+    def desassociar_destino(
+        self,
+        session: Session,
+        categoria_id: int,
+        destino_id: int,
+    ) -> bool:
+        """Remove a associação entre uma categoria e um destino."""
+
+        associacao = session.get(
+            PlataformaCategoriaDestino,
+            (categoria_id, destino_id),
+        )
+
+        if associacao is None:
+            return False
+
+        session.delete(associacao)
+        session.flush()
+        return True
 
     def buscar_por_id(
         self,

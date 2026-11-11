@@ -72,6 +72,29 @@ def _alterar_status_automacao(
         raise
 
 
+def _alterar_status_geral(
+    db: Session,
+    ativa: bool,
+) -> ConfiguracaoSistemaResponse:
+    try:
+        configuracao = ConfiguracaoSistemaService().atualizar_status_geral(
+            db,
+            ativa,
+        )
+        db.commit()
+        db.refresh(configuracao)
+        return configuracao
+    except LookupError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except Exception:
+        db.rollback()
+        raise
+
+
 @router.get(
     "",
     response_model=ConfiguracaoSistemaResponse,
@@ -172,6 +195,26 @@ def pausar_automacao(
         automacao,
         False,
     )
+
+
+@router.post(
+    "/automacoes/ativar",
+    response_model=ConfiguracaoSistemaResponse,
+)
+def ativar_automacoes(
+    db: DbSession,
+) -> ConfiguracaoSistemaResponse:
+    return _alterar_status_geral(db, True)
+
+
+@router.post(
+    "/automacoes/pausar",
+    response_model=ConfiguracaoSistemaResponse,
+)
+def pausar_automacoes(
+    db: DbSession,
+) -> ConfiguracaoSistemaResponse:
+    return _alterar_status_geral(db, False)
 
 
 # Rotas antigas mantidas durante a transição.

@@ -14,6 +14,7 @@ class StatusColetaResponse(BaseModel):
     ]
 
     coleta_mercado_livre_ativa: bool
+    automacoes_ativas: bool
     agendador_ultimo_sinal_em: datetime | None
 
     ultima_execucao_id: int | None

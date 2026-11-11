@@ -33,12 +33,12 @@ class CategoriaService:
     ) -> PlataformaCategoria | None:
         return self.repository.buscar_por_id(session, categoria_id)
 
-    def _validar_destino_telegram(
+    def _validar_destino_divulgacao(
         self,
         session: Session,
         destino_id: int | None,
     ) -> None:
-        """Valida se o destino informado pertence ao Telegram."""
+        """Valida a existência e o canal suportado pelo destino."""
         if destino_id is None:
             return
 
@@ -59,9 +59,9 @@ class CategoriaService:
                 "Canal de divulgação do destino não encontrado."
             )
 
-        if plataforma.codigo.lower() != "telegram":
+        if plataforma.codigo.lower() not in {"telegram", "whatsapp"}:
             raise ValueError(
-                "A categoria só pode ser associada a um destino do Telegram."
+                "O destino precisa pertencer ao Telegram ou WhatsApp."
             )
 
     def criar(
@@ -76,7 +76,7 @@ class CategoriaService:
                 f"Plataforma de ID '{dados.plataforma_id}' não encontrada."
             )
 
-        self._validar_destino_telegram(
+        self._validar_destino_divulgacao(
             session,
             dados.destino_divulgacao_id,
         )
@@ -106,7 +106,7 @@ class CategoriaService:
                 f"A categoria '{id_externo}' já está cadastrada nesta plataforma."
             )
 
-        return self.repository.criar(
+        categoria = self.repository.criar(
             session,
             plataforma_id=dados.plataforma_id,
             id_categoria_plataforma=id_externo,
@@ -116,6 +116,15 @@ class CategoriaService:
             destino_divulgacao_id=dados.destino_divulgacao_id,
             status_categoria=dados.status_categoria,
         )
+
+        if dados.destino_divulgacao_id is not None:
+            self.repository.associar_destino(
+                session,
+                categoria.id,
+                dados.destino_divulgacao_id,
+            )
+
+        return categoria
 
     def atualizar_status(
         self,
@@ -178,6 +187,7 @@ class CategoriaService:
         categoria_id: int,
         destino_id: int | None,
     ) -> PlataformaCategoria:
+        """Atualiza o destino principal legado sem apagar outros vínculos."""
         categoria = self.repository.buscar_por_id(session, categoria_id)
 
         if categoria is None:
@@ -185,14 +195,108 @@ class CategoriaService:
                 f"Categoria de ID '{categoria_id}' não encontrada."
             )
 
-        self._validar_destino_telegram(session, destino_id)
+        self._validar_destino_divulgacao(session, destino_id)
 
-        return self.repository.atualizar_destino_divulgacao(
+        destino_anterior = categoria.destino_divulgacao_id
+
+        if destino_anterior != destino_id and destino_anterior is not None:
+            self.repository.desassociar_destino(
+                session,
+                categoria_id,
+                destino_anterior,
+            )
+
+        categoria = self.repository.atualizar_destino_divulgacao(
             session,
             categoria,
             destino_id,
         )
 
+        if destino_id is not None:
+            self.repository.associar_destino(
+                session,
+                categoria_id,
+                destino_id,
+            )
+
+        return categoria
+
+    def listar_destinos(
+        self,
+        session: Session,
+        categoria_id: int,
+    ) -> list[DestinoDivulgacao]:
+        """Lista os destinos completos vinculados a uma categoria."""
+        categoria = self.repository.buscar_por_id(session, categoria_id)
+
+        if categoria is None:
+            raise LookupError(
+                f"Categoria de ID '{categoria_id}' não encontrada."
+            )
+
+        return self.repository.listar_destinos(session, categoria_id)
+
+    def associar_destino(
+        self,
+        session: Session,
+        categoria_id: int,
+        destino_id: int,
+    ) -> PlataformaCategoria:
+        """Associa um grupo Telegram ou WhatsApp à categoria."""
+        categoria = self.repository.buscar_por_id(session, categoria_id)
+
+        if categoria is None:
+            raise LookupError(
+                f"Categoria de ID '{categoria_id}' não encontrada."
+            )
+
+        self._validar_destino_divulgacao(session, destino_id)
+        self.repository.associar_destino(session, categoria_id, destino_id)
+
+        if categoria.destino_divulgacao_id is None:
+            categoria = self.repository.atualizar_destino_divulgacao(
+                session,
+                categoria,
+                destino_id,
+            )
+
+        return categoria
+
+    def desassociar_destino(
+        self,
+        session: Session,
+        categoria_id: int,
+        destino_id: int,
+    ) -> PlataformaCategoria:
+        """Remove um grupo da categoria sem afetar os demais destinos."""
+        categoria = self.repository.buscar_por_id(session, categoria_id)
+
+        if categoria is None:
+            raise LookupError(
+                f"Categoria de ID '{categoria_id}' não encontrada."
+            )
+
+        self.repository.desassociar_destino(
+            session,
+            categoria_id,
+            destino_id,
+        )
+
+        if categoria.destino_divulgacao_id == destino_id:
+            destinos_restantes = self.repository.listar_destinos_ids(
+                session,
+                categoria_id,
+            )
+            proximo_destino = (
+                destinos_restantes[0] if destinos_restantes else None
+            )
+            categoria = self.repository.atualizar_destino_divulgacao(
+                session,
+                categoria,
+                proximo_destino,
+            )
+
+        return categoria
 
     TAMANHO_LOTE_SELECAO = 10
     PERIODO_RENOVACAO_DIAS = 7

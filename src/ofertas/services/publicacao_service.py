@@ -3,11 +3,17 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
+from ofertas.models.configuracao_divulgacao import ConfiguracaoDivulgacao
+from ofertas.models.destino_divulgacao import DestinoDivulgacao
+from ofertas.models.plataforma_divulgacao import PlataformaDivulgacao
 from ofertas.models.plataforma_categoria import PlataformaCategoria
 from ofertas.models.produto import Produto
 from ofertas.models.publicacao import Publicacao
 from ofertas.publishers.telegram import TelegramPublisher
 from ofertas.repositories.categoria_repository import CategoriaRepository
+from ofertas.repositories.configuracao_divulgacao_repository import (
+    ConfiguracaoDivulgacaoRepository,
+)
 from ofertas.repositories.produto_repository import ProdutoRepository
 from ofertas.repositories.publicacao_repository import (
     PublicacaoRepository,
@@ -18,8 +24,6 @@ class PublicacaoService:
     """Coordena a publicação e aplica as regras de negócio."""
 
     INTERVALO_REPUBLICACAO_HORAS = 24
-    INTERVALO_ENTRE_PUBLICACOES_MINUTOS = 30
-    LIMITE_PUBLICACOES_24_HORAS = 12
     INTERVALO_NOVA_TENTATIVA_MINUTOS = 15
     MAX_TENTATIVAS = 3
 
@@ -28,6 +32,7 @@ class PublicacaoService:
         produto_repository: ProdutoRepository | None = None,
         categoria_repository: CategoriaRepository | None = None,
         publicacao_repository: PublicacaoRepository | None = None,
+        configuracao_repository: ConfiguracaoDivulgacaoRepository | None = None,
         telegram_publisher: TelegramPublisher | None = None,
     ) -> None:
         self.produto_repository = (
@@ -38,6 +43,9 @@ class PublicacaoService:
         )
         self.publicacao_repository = (
             publicacao_repository or PublicacaoRepository()
+        )
+        self.configuracao_repository = (
+            configuracao_repository or ConfiguracaoDivulgacaoRepository()
         )
         self.telegram_publisher = (
             telegram_publisher or TelegramPublisher()
@@ -73,18 +81,81 @@ class PublicacaoService:
                 "A categoria está inativa e não pode ser divulgada."
             )
 
-        if categoria.destino_divulgacao_id is None:
+        return categoria
+
+    def _resolver_destino(
+        self,
+        session: Session,
+        categoria: PlataformaCategoria,
+        destino_id: int | None,
+    ) -> int:
+        """Resolve e valida um destino associado à categoria."""
+
+        destinos_ids = self.categoria_repository.listar_destinos_ids(
+            session,
+            categoria.id,
+        )
+
+        if destino_id is None:
+            destino_legado = categoria.destino_divulgacao_id
+
+            if destino_legado in destinos_ids:
+                destino_id = destino_legado
+            elif len(destinos_ids) == 1:
+                destino_id = destinos_ids[0]
+            elif len(destinos_ids) > 1:
+                raise ValueError(
+                    "A categoria possui vários destinos. "
+                    "Informe explicitamente o destino da publicação."
+                )
+            else:
+                raise ValueError(
+                    "A categoria não possui destinos de divulgação associados."
+                )
+
+        if destino_id not in destinos_ids:
             raise ValueError(
-                "A categoria não possui um destino de divulgação associado."
+                "O destino informado não está associado à categoria do produto."
             )
 
-        return categoria
+        destino = session.get(DestinoDivulgacao, destino_id)
+
+        if destino is None:
+            raise LookupError("Destino de divulgação não encontrado.")
+
+        if not destino.status_destino:
+            raise ValueError("O destino de divulgação está inativo.")
+
+        plataforma = session.get(
+            PlataformaDivulgacao,
+            destino.plataforma_divulgacao_id,
+        )
+
+        if plataforma is None:
+            raise LookupError("Canal de divulgação não encontrado.")
+
+        if not plataforma.status_plataforma:
+            raise ValueError("O canal de divulgação está inativo.")
+
+        if plataforma.codigo.lower() != "telegram":
+            raise ValueError(
+                "O destino pertence ao WhatsApp, mas o publicador "
+                "desse canal ainda não foi implementado."
+            )
+
+        return destino_id
 
     def _validar_elegibilidade(
         self,
         produto: Produto,
         categoria: PlataformaCategoria,
+        configuracao: ConfiguracaoDivulgacao,
     ) -> None:
+        if not produto.elegivel_divulgacao:
+            raise ValueError(
+                "O produto não está marcado como elegível para divulgação."
+            )
+
         if not produto.disponivel:
             raise ValueError(
                 "O produto está indisponível."
@@ -108,12 +179,33 @@ class PublicacaoService:
                 "O produto não possui percentual de desconto calculado."
             )
 
+        desconto_minimo = max(
+            categoria.desconto_minimo_percentual,
+            configuracao.desconto_minimo_percentual,
+        )
+
+        if produto.percentual_desconto < desconto_minimo:
+            raise ValueError(
+                "O desconto do produto está abaixo do mínimo exigido "
+                "pela categoria ou pelo destino."
+            )
+
         if (
-            produto.percentual_desconto
-            < categoria.desconto_minimo_percentual
+            configuracao.preco_minimo is not None
+            and produto.preco_atual < configuracao.preco_minimo
         ):
             raise ValueError(
-                "O desconto do produto está abaixo do mínimo da categoria."
+                "O preço do produto está abaixo do mínimo configurado "
+                "para este destino."
+            )
+
+        if (
+            configuracao.preco_maximo is not None
+            and produto.preco_atual > configuracao.preco_maximo
+        ):
+            raise ValueError(
+                "O preço do produto está acima do máximo configurado "
+                "para este destino."
             )
 
     def _desconto_aumentou(
@@ -159,51 +251,6 @@ class PublicacaoService:
             "O produto já foi publicado neste grupo há menos de "
             "24 horas e não apresentou aumento no desconto."
         )
-
-    def _validar_limites_destino(
-        self,
-        session: Session,
-        destino_id: int,
-        agora: datetime,
-    ) -> None:
-        ultima_publicacao = (
-            self.publicacao_repository.buscar_ultima_publicada_destino(
-                session,
-                destino_id,
-            )
-        )
-
-        if ultima_publicacao is not None:
-            horario = (
-                ultima_publicacao.publicada_em
-                or ultima_publicacao.created_at
-            )
-
-            intervalo_minimo = timedelta(
-                minutes=self.INTERVALO_ENTRE_PUBLICACOES_MINUTOS
-            )
-
-            if agora - horario < intervalo_minimo:
-                raise ValueError(
-                    "O grupo ainda está dentro do intervalo mínimo "
-                    "entre publicações de 30 minutos."
-                )
-
-        inicio_periodo = agora - timedelta(hours=24)
-
-        quantidade = (
-            self.publicacao_repository.contar_publicadas_desde(
-                session,
-                destino_id,
-                inicio_periodo,
-            )
-        )
-
-        if quantidade >= self.LIMITE_PUBLICACOES_24_HORAS:
-            raise ValueError(
-                "O grupo atingiu o limite de 12 publicações "
-                "nas últimas 24 horas."
-            )
 
     def _preparar_publicacao(
         self,
@@ -270,8 +317,9 @@ class PublicacaoService:
         self,
         session: Session,
         produto_id: int,
+        destino_id: int | None = None,
     ) -> Publicacao:
-        """Publica um produto no grupo associado à sua categoria."""
+        """Publica um produto em um destino associado à sua categoria."""
 
         produto = self.produto_repository.buscar_por_id(
             session,
@@ -288,12 +336,32 @@ class PublicacaoService:
             produto,
         )
 
+        destino_id = self._resolver_destino(
+            session,
+            categoria,
+            destino_id,
+        )
+
+        configuracao = self.configuracao_repository.buscar_por_destino(
+            session,
+            destino_id,
+        )
+
+        if configuracao is None:
+            raise ValueError(
+                "O destino não possui configuração de divulgação."
+            )
+
+        if not configuracao.status_configuracao:
+            raise ValueError(
+                "A configuração de divulgação deste destino está inativa."
+            )
+
         self._validar_elegibilidade(
             produto,
             categoria,
+            configuracao,
         )
-
-        destino_id = categoria.destino_divulgacao_id
 
         agora = datetime.now(timezone.utc)
 
@@ -308,12 +376,6 @@ class PublicacaoService:
         self._validar_republicacao(
             produto,
             ultima_publicacao,
-            agora,
-        )
-
-        self._validar_limites_destino(
-            session,
-            destino_id,
             agora,
         )
 

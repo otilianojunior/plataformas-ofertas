@@ -33,6 +33,13 @@ class ConfiguracaoSistema(Base):
         server_default=text("1"),
     )
 
+    automacoes_ativas: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default=text("true"),
+    )
+
     intervalo_coleta_minutos: Mapped[int] = mapped_column(
         Integer,
         nullable=False,

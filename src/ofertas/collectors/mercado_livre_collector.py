@@ -1,4 +1,3 @@
-
 import logging
 from decimal import Decimal, InvalidOperation
 
@@ -8,7 +7,6 @@ from sqlalchemy.orm import Session
 
 from ofertas.collectors.mercado_livre_client import MercadoLivreClient
 from ofertas.models.plataforma_categoria import PlataformaCategoria
-from ofertas.services.categoria_service import CategoriaService
 from ofertas.services.produto_service import ProdutoService
 
 
@@ -18,18 +16,15 @@ logger = logging.getLogger(__name__)
 class MercadoLivreCollector:
     """Executa a coleta e o monitoramento de produtos do Mercado Livre."""
 
-    TAMANHO_PAGINA = 50
-    LIMITE_MAXIMO_SELECAO = 1000
+    SITE_URL = "https://www.mercadolivre.com.br"
 
     def __init__(
         self,
         client: MercadoLivreClient | None = None,
         produto_service: ProdutoService | None = None,
-        categoria_service: CategoriaService | None = None,
     ) -> None:
         self.client = client or MercadoLivreClient()
         self.produto_service = produto_service or ProdutoService()
-        self.categoria_service = categoria_service or CategoriaService()
 
     def coletar_categoria(
         self,
@@ -44,131 +39,111 @@ class MercadoLivreCollector:
                 "erros": [],
             }
 
-        categoria = self.categoria_service.preparar_selecao_coleta(
-            session,
-            categoria,
-        )
-
         plataforma_id = categoria.plataforma_id
 
-        anuncios, total_resultados = self._buscar_anuncios_categoria(
+        destaques = self.client.buscar_destaques(
             session,
             plataforma_id,
             categoria.id_categoria_plataforma,
-            categoria.limite_produtos_selecao,
         )
 
+        produtos = destaques.get("content", [])
         processadas = 0
         ignoradas = 0
-        ids_processados: set[str] = set()
-        posicoes: dict[int, int] = {}
-        erros: list[str] = []
+        ids_processados = set()
+        erros = []
 
-        for posicao, anuncio_busca in enumerate(anuncios, start=1):
-            item_id = "desconhecido"
+        for destaque in produtos:
+            product_id = destaque.get("id")
+            tipo = destaque.get("type") or "SEM_TIPO"
+
+            if not product_id or product_id in ids_processados:
+                ignoradas += 1
+                continue
+
+            ids_processados.add(product_id)
+
+            if tipo == "USER_PRODUCT":
+                ignoradas += 1
+                mensagem = (
+                    f"USER_PRODUCT {product_id}: tipo ainda não processado. "
+                    "Os três exemplos consultados em categorias distintas "
+                    "retornaram HTTP 403."
+                )
+                erros.append(mensagem)
+                logger.warning(
+                    "%s Categoria: %s.",
+                    mensagem,
+                    categoria.nome_categoria,
+                )
+                continue
+
+            if tipo not in {"PRODUCT", "ITEM"}:
+                ignoradas += 1
+                mensagem = (
+                    f"Destaque {product_id}: tipo não suportado ({tipo})."
+                )
+                erros.append(mensagem)
+                logger.warning(
+                    "%s Categoria: %s.",
+                    mensagem,
+                    categoria.nome_categoria,
+                )
+                continue
 
             try:
-                if not isinstance(anuncio_busca, dict):
-                    ignoradas += 1
-
-                    mensagem = (
-                        f"Anúncio na posição {posicao}: "
-                        "resposta com estrutura inválida."
-                    )
-                    erros.append(mensagem)
-
-                    logger.warning(
-                        "%s Categoria: %s.",
-                        mensagem,
-                        categoria.nome_categoria,
-                    )
-                    continue
-
-                item_id = anuncio_busca.get("id")
-
-                if not item_id:
-                    ignoradas += 1
-
-                    mensagem = (
-                        f"Anúncio na posição {posicao}: ID não informado."
-                    )
-                    erros.append(mensagem)
-
-                    logger.warning(
-                        "%s Categoria: %s.",
-                        mensagem,
-                        categoria.nome_categoria,
-                    )
-                    continue
-
-                item_id = str(item_id).strip()
-
-                if not item_id:
-                    ignoradas += 1
-                    continue
-
-                if item_id in ids_processados:
-                    ignoradas += 1
-                    continue
-
-                ids_processados.add(item_id)
-
-                detalhes = self.client.buscar_item(
-                    session,
-                    plataforma_id,
-                    item_id,
-                )
-
-                if not isinstance(detalhes, dict):
-                    raise RuntimeError(
-                        f"Resposta inválida ao consultar o anúncio {item_id}."
+                if tipo == "PRODUCT":
+                    detalhes = self.client.buscar_detalhes_produto(
+                        session,
+                        plataforma_id,
+                        product_id,
                     )
 
-                anuncio = {
-                    **anuncio_busca,
-                    **{
-                        campo: valor
-                        for campo, valor in detalhes.items()
-                        if valor is not None
-                    },
-                }
+                    anuncios = self.client.buscar_anuncios_produto(
+                        session,
+                        plataforma_id,
+                        product_id,
+                    )
 
-                dados = self._preparar_produto(
-                    categoria,
-                    anuncio,
-                )
+                    resultados = anuncios.get("results", [])
+
+                    if not resultados:
+                        ignoradas += 1
+                        continue
+
+                    dados = self._preparar_produto(
+                        categoria,
+                        detalhes,
+                        resultados[0],
+                    )
+
+                else:
+                    anuncio = self.client.buscar_item(
+                        session,
+                        plataforma_id,
+                        product_id,
+                    )
+                    dados = self._preparar_item(categoria, anuncio)
 
                 if dados is None:
                     ignoradas += 1
-
-                    mensagem = (
-                        f"Anúncio {item_id}: dados insuficientes "
-                        "ou inválidos para cadastro."
-                    )
-                    erros.append(mensagem)
-
-                    logger.warning(
-                        "%s Categoria: %s.",
-                        mensagem,
-                        categoria.nome_categoria,
-                    )
                     continue
 
-                produto = self.produto_service.registrar_coleta(
+                self.produto_service.registrar_coleta(
                     session,
                     dados,
                 )
-
-                posicoes[produto.id] = posicao
                 processadas += 1
 
             except httpx.HTTPStatusError as erro:
                 codigo_http = erro.response.status_code
 
-                if codigo_http == 404:
+                if codigo_http in (403, 404):
                     ignoradas += 1
-
-                    mensagem = f"Anúncio {item_id}: HTTP 404."
+                    mensagem = (
+                        f"{tipo} {product_id}: HTTP {codigo_http} - "
+                        f"{erro.response.text[:300]}"
+                    )
                     erros.append(mensagem)
 
                     logger.warning(
@@ -178,184 +153,113 @@ class MercadoLivreCollector:
                     )
                     continue
 
-                if codigo_http == 403:
-                    logger.error(
-                        "Acesso negado ao consultar anúncio %s "
-                        "na categoria %s.",
-                        item_id,
-                        categoria.nome_categoria,
-                    )
-                    raise
-
                 logger.exception(
-                    "Falha HTTP ao consultar anúncio %s na categoria %s.",
-                    item_id,
+                    "Falha HTTP ao processar destaque %s (%s) "
+                    "na categoria %s.",
+                    product_id,
+                    tipo,
                     categoria.nome_categoria,
                 )
                 raise
 
             except SQLAlchemyError:
                 logger.exception(
-                    "Falha de banco ao processar anúncio %s na categoria %s.",
-                    item_id,
+                    "Falha de banco ao processar destaque %s "
+                    "na categoria %s.",
+                    product_id,
                     categoria.nome_categoria,
                 )
                 raise
+
+            except (
+                KeyError,
+                TypeError,
+                ValueError,
+                InvalidOperation,
+                AttributeError,
+            ) as erro:
+                ignoradas += 1
+                mensagem = (
+                    f"{tipo} {product_id}: "
+                    f"{type(erro).__name__}: {erro}"
+                )
+                erros.append(mensagem)
+
+                logger.warning(
+                    "Erro ao processar destaque na categoria %s: %s",
+                    categoria.nome_categoria,
+                    mensagem,
+                    exc_info=True,
+                )
 
             except Exception:
                 logger.exception(
-                    "Erro inesperado ao processar anúncio %s na categoria %s.",
-                    item_id,
+                    "Erro inesperado ao processar destaque %s "
+                    "na categoria %s.",
+                    product_id,
                     categoria.nome_categoria,
                 )
                 raise
 
-        if anuncios and processadas == 0:
-            raise RuntimeError(
-                f"Nenhum anúncio foi processado na categoria "
-                f"{categoria.nome_categoria}. "
-                "A seleção anterior será preservada."
-            )
-
-        self.produto_service.atualizar_posicoes_selecao_categoria(
-            session,
-            categoria.id,
-            posicoes,
-        )
-
-        self.categoria_service.avancar_selecao_coleta(
-            session,
-            categoria,
-            total_resultados,
-        )
-
         return {
-            "encontradas": len(anuncios),
+            "encontradas": len(produtos),
             "processadas": processadas,
             "ignoradas": ignoradas,
             "erros": erros,
         }
 
-    def _buscar_anuncios_categoria(
-        self,
-        session: Session,
-        plataforma_id: int,
-        categoria_id: str,
-        limite: int,
-    ) -> tuple[list[dict], int]:
-        """Busca os primeiros anúncios da categoria usando paginação."""
-
-        if not 1 <= limite <= self.LIMITE_MAXIMO_SELECAO:
-            raise ValueError(
-                "O limite de seleção deve estar entre 1 e 1000."
-            )
-
-        primeira_pagina = self.client.buscar_itens_categoria(
-            session,
-            plataforma_id,
-            categoria_id,
-            limite=min(self.TAMANHO_PAGINA, limite),
-            offset=0,
-        )
-
-        if not isinstance(primeira_pagina, dict):
-            raise ValueError(
-                "Resposta inválida da busca de anúncios do Mercado Livre."
-            )
-
-        resultados = primeira_pagina.get("results")
-        paginacao = primeira_pagina.get("paging")
-
-        if not isinstance(resultados, list):
-            raise ValueError(
-                "A resposta do Mercado Livre não contém uma lista de anúncios."
-            )
-
-        if not isinstance(paginacao, dict):
-            raise ValueError(
-                "A resposta do Mercado Livre não contém os dados de paginação."
-            )
-
-        try:
-            total_resultados = int(paginacao["total"])
-        except (KeyError, TypeError, ValueError) as erro:
-            raise ValueError(
-                "Não foi possível identificar o total de anúncios da categoria."
-            ) from erro
-
-        if total_resultados < 0:
-            raise ValueError(
-                "O total de anúncios retornado pela API é inválido."
-            )
-
-        quantidade_desejada = min(limite, total_resultados)
-
-        if quantidade_desejada > 0 and not resultados:
-            raise RuntimeError(
-                "A API informou anúncios disponíveis, "
-                "mas retornou uma primeira página vazia."
-            )
-
-        anuncios = resultados[:quantidade_desejada]
-        offset = len(resultados)
-
-        while len(anuncios) < quantidade_desejada:
-            restante = quantidade_desejada - len(anuncios)
-            limite_pagina = min(self.TAMANHO_PAGINA, restante)
-
-            pagina = self.client.buscar_itens_categoria(
-                session,
-                plataforma_id,
-                categoria_id,
-                limite=limite_pagina,
-                offset=offset,
-            )
-
-            if not isinstance(pagina, dict):
-                raise ValueError(
-                    "Resposta inválida durante a paginação dos anúncios."
-                )
-
-            resultados_pagina = pagina.get("results")
-
-            if not isinstance(resultados_pagina, list):
-                raise ValueError(
-                    "A resposta paginada não contém uma lista de anúncios."
-                )
-
-            if not resultados_pagina:
-                raise RuntimeError(
-                    "A paginação terminou antes de obter todos os "
-                    "anúncios esperados."
-                )
-
-            anuncios.extend(resultados_pagina[:restante])
-            offset += len(resultados_pagina)
-
-        return anuncios, total_resultados
-
-    def _preparar_produto(
+    def _preparar_item(
         self,
         categoria: PlataformaCategoria,
         anuncio: dict,
     ) -> dict | None:
-        """Converte os dados de um anúncio para o cadastro de produto."""
+        """Converte um anúncio ITEM para o formato interno de produto."""
 
-        item_id = anuncio.get("id")
-        titulo = anuncio.get("title")
-
-        if not item_id or not isinstance(titulo, str):
+        if not isinstance(anuncio, dict):
             return None
 
-        item_id = str(item_id).strip()
-        titulo = titulo.strip()
+        detalhes = {
+            "id": anuncio.get("catalog_product_id"),
+            "name": anuncio.get("title"),
+            "status": anuncio.get("status"),
+            "pictures": anuncio.get("pictures") or [],
+        }
 
-        if not item_id or not titulo:
+        dados_anuncio = {
+            "item_id": anuncio.get("id"),
+            "price": anuncio.get("price"),
+            "original_price": anuncio.get("original_price"),
+            "available_quantity": anuncio.get("available_quantity"),
+        }
+
+        return self._preparar_produto(
+            categoria,
+            detalhes,
+            dados_anuncio,
+            url_anuncio=anuncio.get("permalink"),
+        )
+
+    def _preparar_produto(
+        self,
+        categoria: PlataformaCategoria,
+        detalhes: dict,
+        anuncio: dict,
+        *,
+        url_anuncio: str | None = None,
+    ) -> dict | None:
+        """Converte dados de catálogo ou anúncio para o formato interno."""
+
+        if not isinstance(detalhes, dict) or not isinstance(anuncio, dict):
             return None
 
-        url = anuncio.get("permalink")
+        product_id = detalhes.get("id")
+        item_id = anuncio.get("item_id")
+        titulo = detalhes.get("name") or detalhes.get("title")
 
-        if not isinstance(url, str) or not url.strip():
+        if not item_id or not isinstance(titulo, str) or not titulo.strip():
+            return None
+
+        if detalhes.get("status") != "active":
             return None
 
         try:
@@ -382,57 +286,56 @@ class MercadoLivreCollector:
                 desconto = (
                     (preco_original - preco) / preco_original
                 ) * Decimal("100")
-
                 desconto = desconto.quantize(Decimal("0.01"))
             else:
                 preco_original = None
 
         quantidade_disponivel = anuncio.get("available_quantity")
 
-        disponivel = anuncio.get("status") == "active"
-
-        if quantidade_disponivel is not None:
+        if quantidade_disponivel is None:
+            disponivel = True
+        else:
             try:
                 quantidade_disponivel = int(quantidade_disponivel)
             except (TypeError, ValueError):
                 return None
 
-            disponivel = (
-                disponivel
-                and quantidade_disponivel > 0
-            )
+            disponivel = quantidade_disponivel > 0
 
-        imagens = anuncio.get("pictures")
+        imagens = detalhes.get("pictures") or []
         if not isinstance(imagens, list):
             imagens = []
 
         primeira_imagem = imagens[0] if imagens else {}
+        imagem_url = None
 
-        imagem_url = (
-            anuncio.get("secure_thumbnail")
-            or anuncio.get("thumbnail")
-        )
-
-        if not imagem_url and isinstance(primeira_imagem, dict):
+        if isinstance(primeira_imagem, dict):
             imagem_url = (
                 primeira_imagem.get("secure_url")
                 or primeira_imagem.get("url")
             )
 
-        catalog_product_id = anuncio.get("catalog_product_id")
+        url = url_anuncio.strip() if isinstance(url_anuncio, str) else ""
+
+        if not url and product_id:
+            url = (
+                f"{self.SITE_URL}/p/{product_id}"
+                f"?pdp_filters=item_id%3A{item_id}&wid={item_id}"
+            )
+
+        if not url or not url.startswith(("https://", "http://")):
+            return None
 
         return {
             "plataforma_id": categoria.plataforma_id,
             "categoria_id": categoria.id,
             "id_produto_plataforma": (
-                str(catalog_product_id)
-                if catalog_product_id
-                else None
+                str(product_id) if product_id else None
             ),
-            "id_item_plataforma": item_id,
-            "titulo": titulo,
+            "id_item_plataforma": str(item_id),
+            "titulo": titulo.strip(),
             "descricao": None,
-            "url": url.strip(),
+            "url": url,
             "imagem_url": str(imagem_url) if imagem_url else None,
             "preco_atual": preco,
             "preco_original": preco_original,

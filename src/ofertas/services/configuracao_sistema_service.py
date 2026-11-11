@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from ofertas.models.configuracao_sistema import ConfiguracaoSistema
 from ofertas.models.execucao_coleta import ExecucaoColeta
+from ofertas.models.plataforma import Plataforma
 from ofertas.repositories.configuracao_sistema_repository import (
     ConfiguracaoSistemaRepository,
 )
@@ -142,14 +143,30 @@ class ConfiguracaoSistemaService:
             )
         )
 
-        ultima_execucao = session.scalar(
-            select(ExecucaoColeta)
-            .order_by(
-                ExecucaoColeta.iniciada_em.desc(),
-                ExecucaoColeta.id.desc(),
+        plataforma_mercado_livre = session.scalar(
+            select(Plataforma).where(
+                Plataforma.codigo == "mercado_livre"
             )
-            .limit(1)
         )
+
+        ultima_execucao = None
+
+        if (
+            plataforma_mercado_livre is not None
+            and plataforma_mercado_livre.status_plataforma
+        ):
+            ultima_execucao = session.scalar(
+                select(ExecucaoColeta)
+                .where(
+                    ExecucaoColeta.plataforma_id
+                    == plataforma_mercado_livre.id
+                )
+                .order_by(
+                    ExecucaoColeta.iniciada_em.desc(),
+                    ExecucaoColeta.id.desc(),
+                )
+                .limit(1)
+            )
 
         proxima_execucao = None
 
@@ -167,7 +184,12 @@ class ConfiguracaoSistemaService:
                 minutes=configuracao.intervalo_coleta_minutos
             )
 
-        if not configuracao.coleta_mercado_livre_ativa:
+        if (
+            plataforma_mercado_livre is None
+            or not plataforma_mercado_livre.status_plataforma
+            or not configuracao.automacoes_ativas
+            or not configuracao.coleta_mercado_livre_ativa
+        ):
             status_coleta = "pausada"
             proxima_execucao = None
 
@@ -197,6 +219,7 @@ class ConfiguracaoSistemaService:
             "coleta_mercado_livre_ativa": (
                 configuracao.coleta_mercado_livre_ativa
             ),
+            "automacoes_ativas": configuracao.automacoes_ativas,
             "agendador_ultimo_sinal_em": ultimo_sinal,
             "ultima_execucao_id": (
                 ultima_execucao.id
@@ -220,3 +243,24 @@ class ConfiguracaoSistemaService:
             ),
             "proxima_execucao_em": proxima_execucao,
         }
+
+    def atualizar_status_geral(
+        self,
+        session: Session,
+        ativa: bool,
+    ) -> ConfiguracaoSistema:
+        """Ativa ou pausa globalmente as automações."""
+
+        configuracao = self.buscar(session)
+
+        return self.repository.atualizar_status_geral(
+            session,
+            configuracao,
+            ativa,
+        )
+
+    def ativar_automacoes(self, session: Session) -> ConfiguracaoSistema:
+        return self.atualizar_status_geral(session, True)
+
+    def pausar_automacoes(self, session: Session) -> ConfiguracaoSistema:
+        return self.atualizar_status_geral(session, False)

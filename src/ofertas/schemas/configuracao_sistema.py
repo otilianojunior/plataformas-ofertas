@@ -11,6 +11,7 @@ class ConfiguracaoSistemaResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    automacoes_ativas: bool
     intervalo_coleta_minutos: int
     coleta_mercado_livre_ativa: bool
     coleta_shopee_ativa: bool

@@ -31,12 +31,17 @@ def executar_coleta_mercado_livre(
     plataforma_id: Annotated[int, Path(gt=0)],
     db: DbSession,
 ) -> ExecucaoColetaResponse:
+    servico = ExecucaoColetaService()
+
     try:
-        execucao = ExecucaoColetaService().executar(
+        execucao = servico.executar(
             db,
             plataforma_id,
         )
         db.commit()
+
+        servico.gerar_afiliados_pendentes(plataforma_id)
+
         db.refresh(execucao)
         return execucao
 
