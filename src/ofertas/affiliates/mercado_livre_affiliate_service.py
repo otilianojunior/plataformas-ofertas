@@ -3,7 +3,7 @@ from collections import defaultdict, deque
 from collections.abc import Sequence
 from datetime import datetime, timezone
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from sqlalchemy.orm import Session
 
@@ -203,6 +203,34 @@ class MercadoLivreAffiliateService:
 
         return None
 
+    @staticmethod
+    def _extrair_id_anuncio(url: str) -> str | None:
+        """Extrai o identificador do anúncio dos parâmetros da URL."""
+
+        try:
+            parametros = parse_qs(urlsplit(url).query)
+        except (TypeError, ValueError):
+            return None
+
+        identificadores = list(parametros.get("wid", []))
+        identificadores.extend(parametros.get("item_id", []))
+
+        for filtro in parametros.get("pdp_filters", []):
+            for parte in filtro.split("|"):
+                chave, separador, valor = parte.partition(":")
+                if separador and chave.strip() == "item_id":
+                    identificadores.append(valor)
+
+        for valor in identificadores:
+            identificador = valor.strip().upper().replace("-", "")
+            if (
+                identificador.startswith("MLB")
+                and identificador[3:].isdigit()
+            ):
+                return identificador
+
+        return None
+
     def _processar_resposta(
         self,
         session: Session,
@@ -248,18 +276,16 @@ class MercadoLivreAffiliateService:
             return
 
         produtos_por_url = defaultdict(deque)
-        produtos_por_catalogo = defaultdict(list)
-        resultados_por_catalogo = defaultdict(int)
+        produtos_por_item = defaultdict(deque)
+        resultados_por_item = defaultdict(int)
 
         for produto, categoria in lote:
             url = produto.url.strip()
-
             produtos_por_url[url].append((produto, categoria))
 
-            identificador = self._extrair_id_produto_catalogo(url)
-
+            identificador = produto.id_item_plataforma.strip().upper()
             if identificador:
-                produtos_por_catalogo[identificador].append(
+                produtos_por_item[identificador].append(
                     (produto, categoria)
                 )
 
@@ -268,14 +294,10 @@ class MercadoLivreAffiliateService:
                 continue
 
             url_original = item.get("origin_url")
-
             if isinstance(url_original, str):
-                identificador = (
-                    self._extrair_id_produto_catalogo(url_original)
-                )
-
+                identificador = self._extrair_id_anuncio(url_original)
                 if identificador:
-                    resultados_por_catalogo[identificador] += 1
+                    resultados_por_item[identificador] += 1
 
         produtos_atribuidos = set()
 
@@ -302,30 +324,26 @@ class MercadoLivreAffiliateService:
                     correspondencia = fila.popleft()
 
             if correspondencia is None:
-                identificador = (
-                    self._extrair_id_produto_catalogo(url_original)
-                )
-
-                candidatos = [
-                    par
-                    for par in produtos_por_catalogo.get(
-                        identificador,
-                        [],
-                    )
-                    if par[0].id not in produtos_atribuidos
-                ]
+                identificador = self._extrair_id_anuncio(url_original)
+                fila_item = produtos_por_item.get(identificador)
 
                 if (
                     identificador
-                    and len(candidatos) == 1
-                    and resultados_por_catalogo[identificador] == 1
+                    and fila_item
+                    and resultados_por_item[identificador] == 1
                 ):
-                    correspondencia = candidatos[0]
+                    while (
+                        fila_item
+                        and fila_item[0][0].id in produtos_atribuidos
+                    ):
+                        fila_item.popleft()
 
-                    logger.info(
-                        "Produto associado pelo ID de catálogo: %s",
-                        identificador,
-                    )
+                    if fila_item:
+                        correspondencia = fila_item.popleft()
+                        logger.info(
+                            "Produto associado pelo ID do anúncio: %s",
+                            identificador,
+                        )
 
             if correspondencia is None:
                 logger.warning(

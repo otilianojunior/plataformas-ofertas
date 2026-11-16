@@ -20,6 +20,8 @@ class ShopeeClient:
 
     API_URL = "https://open-api.affiliate.shopee.com.br/graphql"
     TIMEOUT = 20.0
+    MAX_RETRIES = 3
+    RETRYABLE_HTTP_STATUS = {429, 500, 502, 503, 504}
 
     PRODUCT_OFFER_QUERY = """
         query ProductOfferList(
@@ -124,6 +126,34 @@ class ShopeeClient:
             origem.encode("utf-8")
         ).hexdigest()
 
+    @staticmethod
+    def _tempo_espera(
+        resposta: httpx.Response | None,
+        tentativa: int,
+    ) -> float:
+        if resposta is not None:
+            try:
+                valor = float(resposta.headers["Retry-After"])
+                return min(max(valor, 1.0), 30.0)
+            except (KeyError, TypeError, ValueError):
+                pass
+
+        return min(2 ** (tentativa + 1), 30.0)
+
+    @staticmethod
+    def _erro_graphql_retentavel(erros: list) -> bool:
+        for item in erros:
+            mensagem = (
+                item.get("message", "")
+                if isinstance(item, dict)
+                else str(item)
+            )
+
+            if "[10000]" in str(mensagem).casefold():
+                return True
+
+        return False
+
     def _executar_query(
         self,
         session: Session,
@@ -132,11 +162,8 @@ class ShopeeClient:
         operation_name: str | None = None,
     ) -> dict:
         app_id, app_secret = self._obter_credenciais(session)
-        timestamp = int(self.timestamp_provider())
 
-        corpo = {
-            "query": query,
-        }
+        corpo = {"query": query}
 
         if variables is not None:
             corpo["variables"] = variables
@@ -150,72 +177,134 @@ class ShopeeClient:
             separators=(",", ":"),
         )
 
-        assinatura = self._gerar_assinatura(
-            app_id,
-            timestamp,
-            payload,
-            app_secret,
-        )
+        with httpx.Client(timeout=self.timeout) as cliente:
+            for tentativa in range(self.MAX_RETRIES + 1):
+                timestamp = int(self.timestamp_provider())
 
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": (
-                f"SHA256 Credential={app_id}, "
-                f"Timestamp={timestamp}, "
-                f"Signature={assinatura}"
-            ),
-        }
-
-        try:
-            with httpx.Client(timeout=self.timeout) as cliente:
-                resposta = cliente.post(
-                    self.API_URL,
-                    content=payload,
-                    headers=headers,
+                assinatura = self._gerar_assinatura(
+                    app_id,
+                    timestamp,
+                    payload,
+                    app_secret,
                 )
 
-            resposta.raise_for_status()
+                headers = {
+                    "Content-Type": "application/json",
+                    "Authorization": (
+                        f"SHA256 Credential={app_id}, "
+                        f"Timestamp={timestamp}, "
+                        f"Signature={assinatura}"
+                    ),
+                }
 
-        except httpx.HTTPStatusError as erro:
-            raise ShopeeAPIError(
-                f"A Shopee retornou HTTP "
-                f"{erro.response.status_code}: "
-                f"{erro.response.text[:500]}"
-            ) from erro
+                try:
+                    resposta = cliente.post(
+                        self.API_URL,
+                        content=payload,
+                        headers=headers,
+                    )
 
-        except httpx.TransportError as erro:
-            raise ShopeeAPIError(
-                f"Falha de comunicação com a Shopee: {erro}"
-            ) from erro
+                except httpx.TransportError as erro:
+                    if tentativa >= self.MAX_RETRIES:
+                        raise ShopeeAPIError(
+                            f"Falha de comunicação com a Shopee: {erro}"
+                        ) from erro
 
-        try:
-            resultado = resposta.json()
+                    espera = self._tempo_espera(None, tentativa)
 
-        except ValueError as erro:
-            raise ShopeeAPIError(
-                "A Shopee retornou uma resposta que não é JSON válido."
-            ) from erro
+                    logger.warning(
+                        "Falha de comunicação com a Shopee. "
+                        "Tentativa %s/%s em %.1f segundos.",
+                        tentativa + 1,
+                        self.MAX_RETRIES,
+                        espera,
+                    )
 
-        if not isinstance(resultado, dict):
-            raise ShopeeAPIError(
-                "A Shopee retornou uma estrutura de resposta inválida."
-            )
+                    time.sleep(espera)
+                    continue
 
-        erros = resultado.get("errors")
+                if resposta.status_code in self.RETRYABLE_HTTP_STATUS:
+                    if tentativa >= self.MAX_RETRIES:
+                        raise ShopeeAPIError(
+                            f"A Shopee retornou HTTP "
+                            f"{resposta.status_code}: "
+                            f"{resposta.text[:500]}"
+                        )
 
-        if erros:
-            mensagens = [
-                item.get("message", str(item))
-                if isinstance(item, dict)
-                else str(item)
-                for item in erros
-            ]
+                    espera = self._tempo_espera(resposta, tentativa)
 
-            raise ShopeeAPIError(
-                "Erro GraphQL da Shopee: " + "; ".join(mensagens)
-            )
+                    logger.warning(
+                        "Shopee retornou HTTP %s. "
+                        "Tentativa %s/%s em %.1f segundos.",
+                        resposta.status_code,
+                        tentativa + 1,
+                        self.MAX_RETRIES,
+                        espera,
+                    )
 
-        return resultado
+                    time.sleep(espera)
+                    continue
+
+                if not resposta.is_success:
+                    raise ShopeeAPIError(
+                        f"A Shopee retornou HTTP "
+                        f"{resposta.status_code}: "
+                        f"{resposta.text[:500]}"
+                    )
+
+                try:
+                    resultado = resposta.json()
+                except ValueError as erro:
+                    raise ShopeeAPIError(
+                        "A Shopee retornou uma resposta "
+                        "que não é JSON válido."
+                    ) from erro
+
+                if not isinstance(resultado, dict):
+                    raise ShopeeAPIError(
+                        "A Shopee retornou uma estrutura "
+                        "de resposta inválida."
+                    )
+
+                erros = resultado.get("errors")
+
+                if erros:
+                    mensagens = [
+                        item.get("message", str(item))
+                        if isinstance(item, dict)
+                        else str(item)
+                        for item in erros
+                    ]
+
+                    mensagem = (
+                        "Erro GraphQL da Shopee: "
+                        + "; ".join(mensagens)
+                    )
+
+                    if (
+                        self._erro_graphql_retentavel(erros)
+                        and tentativa < self.MAX_RETRIES
+                    ):
+                        espera = self._tempo_espera(None, tentativa)
+
+                        logger.warning(
+                            "Shopee retornou erro GraphQL temporário. "
+                            "Tentativa %s/%s em %.1f segundos.",
+                            tentativa + 1,
+                            self.MAX_RETRIES,
+                            espera,
+                        )
+
+                        time.sleep(espera)
+                        continue
+
+                    raise ShopeeAPIError(mensagem)
+
+                return resultado
+
+        raise ShopeeAPIError(
+            "Não foi possível concluir a requisição à Shopee."
+        )
 
     @staticmethod
     def _validar_paginacao(
