@@ -1,4 +1,3 @@
-
 import logging
 from datetime import datetime, timezone
 
@@ -10,7 +9,11 @@ from ofertas.db.session import SessionLocal
 from ofertas.affiliates.mercado_livre_affiliate_service import (
     MercadoLivreAffiliateService,
 )
+from ofertas.affiliates.shopee_affiliate_service import (
+    ShopeeAffiliateService,
+)
 from ofertas.collectors.mercado_livre_collector import MercadoLivreCollector
+from ofertas.collectors.shopee_collector import ShopeeCollector
 from ofertas.models.execucao_coleta import ExecucaoColeta
 from ofertas.models.plataforma import Plataforma
 from ofertas.repositories.categoria_repository import CategoriaRepository
@@ -20,9 +23,10 @@ logger = logging.getLogger(__name__)
 
 
 class ExecucaoColetaService:
-    """Coordena e registra as execuções de coleta."""
+    """Coordena e registra as execuções de coleta dos marketplaces."""
 
-    CODIGO_PLATAFORMA = "mercado_livre"
+    CODIGO_MERCADO_LIVRE = "mercado_livre"
+    CODIGO_SHOPEE = "shopee"
     LOCK_NAMESPACE = 20261104
 
     def __init__(
@@ -30,19 +34,55 @@ class ExecucaoColetaService:
         collector: MercadoLivreCollector | None = None,
         categoria_repository: CategoriaRepository | None = None,
         affiliate_service: MercadoLivreAffiliateService | None = None,
+        shopee_collector: ShopeeCollector | None = None,
+        shopee_affiliate_service: ShopeeAffiliateService | None = None,
     ) -> None:
         self.collector = collector or MercadoLivreCollector()
+        self.shopee_collector = shopee_collector or ShopeeCollector()
         self.categoria_repository = (
             categoria_repository or CategoriaRepository()
         )
         self.affiliate_service = (
             affiliate_service or MercadoLivreAffiliateService()
         )
+        self.shopee_affiliate_service = (
+            shopee_affiliate_service or ShopeeAffiliateService()
+        )
 
     def executar(
         self,
         session: Session,
         plataforma_id: int,
+    ) -> ExecucaoColeta:
+        """Executa a coleta do Mercado Livre."""
+
+        return self._executar(
+            session,
+            plataforma_id,
+            self.CODIGO_MERCADO_LIVRE,
+            self.collector,
+        )
+
+    def executar_shopee(
+        self,
+        session: Session,
+        plataforma_id: int,
+    ) -> ExecucaoColeta:
+        """Executa a coleta da Shopee."""
+
+        return self._executar(
+            session,
+            plataforma_id,
+            self.CODIGO_SHOPEE,
+            self.shopee_collector,
+        )
+
+    def _executar(
+        self,
+        session: Session,
+        plataforma_id: int,
+        codigo_plataforma: str,
+        collector,
     ) -> ExecucaoColeta:
         lock_adquirido = session.scalar(
             select(
@@ -65,9 +105,10 @@ class ExecucaoColetaService:
                 f"Plataforma de ID '{plataforma_id}' não encontrada."
             )
 
-        if plataforma.codigo != self.CODIGO_PLATAFORMA:
+        if plataforma.codigo != codigo_plataforma:
             raise ValueError(
-                "Este serviço aceita somente a plataforma Mercado Livre."
+                f"Este serviço aceita somente a plataforma "
+                f"{codigo_plataforma}."
             )
 
         if not plataforma.status_plataforma:
@@ -98,7 +139,7 @@ class ExecucaoColetaService:
             for categoria in categorias:
                 try:
                     with session.begin_nested():
-                        resultado = self.collector.coletar_categoria(
+                        resultado = collector.coletar_categoria(
                             session,
                             categoria,
                         )
@@ -166,16 +207,34 @@ class ExecucaoColetaService:
         session.flush()
         return execucao
 
-
     def gerar_afiliados_pendentes(
         self,
         plataforma_id: int,
     ) -> dict | None:
-        """Gera afiliados em uma transação independente da coleta."""
+        """Gera links afiliados conforme a plataforma cadastrada."""
 
         with SessionLocal() as session:
             try:
-                resultado = self.affiliate_service.gerar_pendentes(
+                plataforma = session.get(Plataforma, plataforma_id)
+
+                if plataforma is None:
+                    raise LookupError(
+                        f"Plataforma de ID '{plataforma_id}' não encontrada."
+                    )
+
+                if plataforma.codigo == self.CODIGO_MERCADO_LIVRE:
+                    servico_afiliado = self.affiliate_service
+
+                elif plataforma.codigo == self.CODIGO_SHOPEE:
+                    servico_afiliado = self.shopee_affiliate_service
+
+                else:
+                    raise ValueError(
+                        f"Não existe serviço de afiliados para a plataforma "
+                        f"'{plataforma.codigo}'."
+                    )
+
+                resultado = servico_afiliado.gerar_pendentes(
                     session,
                     plataforma_id,
                 )
@@ -193,12 +252,13 @@ class ExecucaoColetaService:
         logger.info(
             "Geração de links afiliados concluída. "
             "Plataforma: %s | Encontrados: %s | Gerados: %s | "
-            "Erros: %s | Lotes: %s",
+            "Erros: %s | Lotes: %s | Tentativas: %s",
             plataforma_id,
-            resultado["total_encontrados"],
-            resultado["total_gerados"],
-            resultado["total_erros"],
-            resultado["total_lotes"],
+            resultado.get("total_encontrados", 0),
+            resultado.get("total_gerados", 0),
+            resultado.get("total_erros", 0),
+            resultado.get("total_lotes", 0),
+            resultado.get("total_tentativas", 0),
         )
 
         for erro_afiliado in resultado.get("erros", []):

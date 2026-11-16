@@ -69,6 +69,58 @@ def executar_coleta_mercado_livre(
     except Exception:
         db.rollback()
         raise
+
+@router.post(
+    "/shopee/{plataforma_id}",
+    response_model=ExecucaoColetaResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        404: {"description": "Plataforma não encontrada."},
+        409: {"description": "Plataforma inativa ou conflito na coleta."},
+    },
+)
+def executar_coleta_shopee(
+    plataforma_id: Annotated[int, Path(gt=0)],
+    db: DbSession,
+) -> ExecucaoColetaResponse:
+    servico = ExecucaoColetaService()
+
+    try:
+        execucao = servico.executar_shopee(
+            db,
+            plataforma_id,
+        )
+        db.commit()
+
+        servico.gerar_afiliados_pendentes(plataforma_id)
+
+        db.refresh(execucao)
+        return execucao
+
+    except LookupError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A coleta violou uma restrição do banco de dados.",
+        ) from exc
+
+    except Exception:
+        db.rollback()
+        raise
     
 @router.get(
     "/status",

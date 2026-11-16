@@ -1,11 +1,8 @@
 import logging
 from datetime import datetime, timedelta, timezone
-
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from ofertas.db.session import SessionLocal
-from ofertas.models.configuracao_sistema import ConfiguracaoSistema
 from ofertas.models.execucao_coleta import ExecucaoColeta
 from ofertas.models.plataforma import Plataforma
 from ofertas.models.plataforma_divulgacao import PlataformaDivulgacao
@@ -28,6 +25,7 @@ class AutomacaoService:
     """Coordena as automações executadas dentro da API."""
 
     CODIGO_MERCADO_LIVRE = "mercado_livre"
+    CODIGO_SHOPEE = "shopee"
     CODIGO_TELEGRAM = "telegram"
 
     def __init__(
@@ -86,136 +84,167 @@ class AutomacaoService:
                     "Erro ao atualizar o sinal de vida das automações."
                 )
 
+    
     def executar_coletas_liberadas(self) -> None:
-        """Executa as coletas do Mercado Livre quando o intervalo vencer."""
+        """Executa as coletas dos marketplaces conforme suas configurações."""
 
-        with SessionLocal() as session:
-            try:
-                configuracao = self.configuracao_sistema_service.buscar(
-                    session
-                )
+        marketplaces = (
+            (
+                self.CODIGO_MERCADO_LIVRE,
+                "coleta_mercado_livre_ativa",
+                self.execucao_coleta_service.executar,
+            ),
+            (
+                self.CODIGO_SHOPEE,
+                "coleta_shopee_ativa",
+                self.execucao_coleta_service.executar_shopee,
+            ),
+        )
 
-                if not configuracao.automacoes_ativas or not configuracao.coleta_mercado_livre_ativa:
-                    return
-
-                intervalo_minutos = (
-                    configuracao.intervalo_coleta_minutos
-                )
-
-                plataforma_ids = session.scalars(
-                    select(Plataforma.id).where(
-                        Plataforma.codigo == self.CODIGO_MERCADO_LIVRE,
-                        Plataforma.status_plataforma.is_(True),
-                    )
-                ).all()
-
-            except Exception:
-                logger.exception(
-                    "Erro ao consultar as plataformas para coleta."
-                )
-                return
-
-        if not plataforma_ids:
-            logger.warning(
-                "Nenhuma plataforma Mercado Livre ativa para coleta."
-            )
-            return
-
-        for plataforma_id in plataforma_ids:
+        for codigo, atributo_ativo, executar in marketplaces:
             with SessionLocal() as session:
                 try:
-                    configuracao_atual = (
-                        self.configuracao_sistema_service.buscar(session)
-                    )
-
-                    if not configuracao_atual.automacoes_ativas or not configuracao_atual.coleta_mercado_livre_ativa:
-                        logger.info(
-                            "Coleta do Mercado Livre pausada."
-                        )
-                        break
-
-                    plataforma = session.get(
-                        Plataforma,
-                        plataforma_id,
+                    configuracao = self.configuracao_sistema_service.buscar(
+                        session
                     )
 
                     if (
-                        plataforma is None
-                        or not plataforma.status_plataforma
+                        not configuracao.automacoes_ativas
+                        or not getattr(configuracao, atributo_ativo)
                     ):
                         continue
 
-                    ultima_execucao = session.scalar(
-                        select(ExecucaoColeta)
-                        .where(
-                            ExecucaoColeta.plataforma_id == plataforma_id
+                    intervalo_minutos = (
+                        configuracao.intervalo_coleta_minutos
+                    )
+
+                    plataforma_ids = session.scalars(
+                        select(Plataforma.id).where(
+                            Plataforma.codigo == codigo,
+                            Plataforma.status_plataforma.is_(True),
                         )
-                        .order_by(
-                            ExecucaoColeta.iniciada_em.desc(),
-                            ExecucaoColeta.id.desc(),
-                        )
-                        .limit(1)
-                    )
-
-                    if (
-                        ultima_execucao is not None
-                        and ultima_execucao.status == "em_andamento"
-                    ):
-                        continue
-
-                    referencia = None
-
-                    if ultima_execucao is not None:
-                        referencia = (
-                            ultima_execucao.finalizada_em
-                            or ultima_execucao.iniciada_em
-                        )
-
-                    agora = datetime.now(timezone.utc)
-
-                    if not self._intervalo_concluido(
-                        referencia,
-                        intervalo_minutos,
-                        agora,
-                    ):
-                        continue
-
-                    execucao = self.execucao_coleta_service.executar(
-                        session,
-                        plataforma_id,
-                    )
-
-                    session.commit()
-
-                    self.execucao_coleta_service.gerar_afiliados_pendentes(
-                        plataforma_id
-                    )
-
-                    logger.info(
-                        "Coleta automática finalizada. "
-                        "Execução: %s | Plataforma: %s | Status: %s | "
-                        "Processados: %s | Ignorados: %s",
-                        execucao.id,
-                        plataforma_id,
-                        execucao.status,
-                        execucao.quantidade_processada,
-                        execucao.quantidade_ignorada,
-                    )
-
-                except ValueError as erro:
-                    session.rollback()
-                    logger.info(
-                        "Coleta da plataforma %s não iniciada: %s",
-                        plataforma_id,
-                        erro,
-                    )
+                    ).all()
 
                 except Exception:
-                    session.rollback()
                     logger.exception(
-                        "Erro na coleta automática da plataforma %s.",
-                        plataforma_id,
+                        "Erro ao consultar plataformas para coleta: %s.",
+                        codigo,
                     )
+                    continue
+
+            if not plataforma_ids:
+                logger.warning(
+                    "Nenhuma plataforma %s ativa para coleta.",
+                    codigo,
+                )
+                continue
+
+            for plataforma_id in plataforma_ids:
+                with SessionLocal() as session:
+                    try:
+                        configuracao_atual = (
+                            self.configuracao_sistema_service.buscar(session)
+                        )
+
+                        if (
+                            not configuracao_atual.automacoes_ativas
+                            or not getattr(
+                                configuracao_atual,
+                                atributo_ativo,
+                            )
+                        ):
+                            logger.info(
+                                "Coleta de %s pausada.",
+                                codigo,
+                            )
+                            break
+
+                        plataforma = session.get(
+                            Plataforma,
+                            plataforma_id,
+                        )
+
+                        if (
+                            plataforma is None
+                            or not plataforma.status_plataforma
+                        ):
+                            continue
+
+                        ultima_execucao = session.scalar(
+                            select(ExecucaoColeta)
+                            .where(
+                                ExecucaoColeta.plataforma_id
+                                == plataforma_id
+                            )
+                            .order_by(
+                                ExecucaoColeta.iniciada_em.desc(),
+                                ExecucaoColeta.id.desc(),
+                            )
+                            .limit(1)
+                        )
+
+                        if (
+                            ultima_execucao is not None
+                            and ultima_execucao.status == "em_andamento"
+                        ):
+                            continue
+
+                        referencia = None
+
+                        if ultima_execucao is not None:
+                            referencia = (
+                                ultima_execucao.finalizada_em
+                                or ultima_execucao.iniciada_em
+                            )
+
+                        agora = datetime.now(timezone.utc)
+
+                        if not self._intervalo_concluido(
+                            referencia,
+                            intervalo_minutos,
+                            agora,
+                        ):
+                            continue
+
+                        execucao = executar(
+                            session,
+                            plataforma_id,
+                        )
+
+                        session.commit()
+
+                        self.execucao_coleta_service.gerar_afiliados_pendentes(
+                            plataforma_id
+                        )
+
+                        logger.info(
+                            "Coleta automática finalizada. "
+                            "Marketplace: %s | Execução: %s | "
+                            "Plataforma: %s | Status: %s | "
+                            "Processados: %s | Ignorados: %s",
+                            codigo,
+                            execucao.id,
+                            plataforma_id,
+                            execucao.status,
+                            execucao.quantidade_processada,
+                            execucao.quantidade_ignorada,
+                        )
+
+                    except ValueError as erro:
+                        session.rollback()
+                        logger.info(
+                            "Coleta da plataforma %s não iniciada: %s",
+                            plataforma_id,
+                            erro,
+                        )
+
+                    except Exception:
+                        session.rollback()
+                        logger.exception(
+                            "Erro na coleta automática da plataforma %s.",
+                            plataforma_id,
+                        )
+
 
     def listar_destinos_publicacao_liberados(self) -> list[int]:
         """Retorna os destinos Telegram cujo intervalo de ciclo venceu."""
@@ -228,7 +257,10 @@ class AutomacaoService:
                 self.configuracao_sistema_service.buscar(session)
             )
 
-            if not configuracao_sistema.automacoes_ativas or not configuracao_sistema.publicacao_telegram_ativa:
+            if (
+                not configuracao_sistema.automacoes_ativas
+                or not configuracao_sistema.publicacao_telegram_ativa
+            ):
                 return []
 
             configuracoes = (

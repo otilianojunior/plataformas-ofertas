@@ -30,7 +30,6 @@ class PublicacaoLoteService:
     LIMITE_PRODUTOS_POR_CATEGORIA = 10
     LOCK_NAMESPACE = 20261110
     INTERVALO_ENTRE_MENSAGENS_SEGUNDOS = 20
-    CODIGO_MERCADO_LIVRE = "mercado_livre"
     CODIGO_TELEGRAM = "telegram"
 
     def __init__(
@@ -133,7 +132,6 @@ class PublicacaoLoteService:
             if (
                 plataforma is None
                 or not plataforma.status_plataforma
-                or plataforma.codigo != self.CODIGO_MERCADO_LIVRE
             ):
                 continue
 
