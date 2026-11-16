@@ -16,6 +16,7 @@ dependencies = [
     "pydantic-settings",
     "cryptography",
     "httpx",
+    "playwright",
 ]
 
 [tool.setuptools.packages.find]
