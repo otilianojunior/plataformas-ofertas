@@ -66,9 +66,10 @@ class MercadoLivreCollector:
             if tipo == "USER_PRODUCT":
                 ignoradas += 1
                 mensagem = (
-                    f"USER_PRODUCT {product_id}: tipo ainda não processado. "
-                    "Os três exemplos consultados em categorias distintas "
-                    "retornaram HTTP 403."
+                    f"USER_PRODUCT {product_id}: coleta ainda não "
+                    "implementada para o modelo User Products. "
+                    "Este identificador requer um fluxo específico, "
+                    "diferente das consultas de ITEM e PRODUCT."
                 )
                 erros.append(mensagem)
                 logger.warning(
@@ -140,9 +141,18 @@ class MercadoLivreCollector:
 
                 if codigo_http in (403, 404):
                     ignoradas += 1
+
+                    if codigo_http == 403:
+                        motivo = (
+                            "Acesso negado pela API. Verificar permissões, "
+                            "escopos e autorização do usuário para o recurso."
+                        )
+                    else:
+                        motivo = "Recurso não encontrado na API."
+
                     mensagem = (
                         f"{tipo} {product_id}: HTTP {codigo_http} - "
-                        f"{erro.response.text[:300]}"
+                        f"{motivo} Resposta: {erro.response.text[:300]}"
                     )
                     erros.append(mensagem)
 
