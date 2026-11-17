@@ -182,3 +182,41 @@ def test_encerramento_antes_do_ciclo_nao_publica(servico):
 
     assert resultado["status"] == "interrompido"
     servico.publicacao_service.publicar_produto.assert_not_called()
+
+
+def test_coleta_para_entre_categorias_no_encerramento():
+    """Salva o que já foi coletado e não começa a próxima categoria."""
+    import threading
+
+    from ofertas.models.plataforma import Plataforma
+
+    encerrando = threading.Event()
+    categorias = [Mock(id=i, nome_categoria=f"Cat {i}") for i in (1, 2, 3)]
+
+    def coletar(_session, categoria):
+        encerrando.set()  # a API começa a parar durante a 1ª categoria
+        return {"encontradas": 5, "processadas": 4, "ignoradas": 1, "erros": []}
+
+    collector = Mock()
+    collector.coletar_categoria.side_effect = coletar
+    categoria_repository = Mock()
+    categoria_repository.listar.return_value = categorias
+
+    servico = ExecucaoColetaService.__new__(ExecucaoColetaService)
+    servico.categoria_repository = categoria_repository
+
+    session = MagicMock()
+    session.scalar.return_value = True  # lock adquirido
+    session.get.return_value = Plataforma(id=1, codigo="shopee", status_plataforma=True)
+    # simula os valores padrão que o banco atribui no flush
+    session.add.side_effect = lambda obj: [
+        setattr(obj, campo, 0)
+        for campo in ("quantidade_encontrada", "quantidade_processada", "quantidade_ignorada")
+    ]
+
+    execucao = servico._executar(session, 1, "shopee", collector, encerrando)
+
+    assert collector.coletar_categoria.call_count == 1
+    assert execucao.status == "parcial"
+    assert execucao.quantidade_processada == 4
+    assert "encerramento da API" in execucao.erro

@@ -1,4 +1,5 @@
 import logging
+import threading
 from datetime import datetime, timezone
 
 from sqlalchemy import func, select
@@ -53,6 +54,7 @@ class ExecucaoColetaService:
         self,
         session: Session,
         plataforma_id: int,
+        encerrando: threading.Event | None = None,
     ) -> ExecucaoColeta:
         """Executa a coleta do Mercado Livre."""
 
@@ -61,12 +63,14 @@ class ExecucaoColetaService:
             plataforma_id,
             self.CODIGO_MERCADO_LIVRE,
             self.collector,
+            encerrando,
         )
 
     def executar_shopee(
         self,
         session: Session,
         plataforma_id: int,
+        encerrando: threading.Event | None = None,
     ) -> ExecucaoColeta:
         """Executa a coleta da Shopee."""
 
@@ -75,6 +79,7 @@ class ExecucaoColetaService:
             plataforma_id,
             self.CODIGO_SHOPEE,
             self.shopee_collector,
+            encerrando,
         )
 
     @staticmethod
@@ -98,6 +103,7 @@ class ExecucaoColetaService:
         plataforma_id: int,
         codigo_plataforma: str,
         collector,
+        encerrando: threading.Event | None = None,
     ) -> ExecucaoColeta:
         lock_adquirido = session.scalar(
             select(
@@ -153,6 +159,14 @@ class ExecucaoColetaService:
                 )
 
             for categoria in categorias:
+                # Encerramento da API: salva o que já foi coletado e para.
+                if encerrando is not None and encerrando.is_set():
+                    falhas.append(
+                        "Coleta interrompida pelo encerramento da API antes "
+                        f"da categoria '{categoria.nome_categoria}'."
+                    )
+                    break
+
                 try:
                     with session.begin_nested():
                         resultado = collector.coletar_categoria(

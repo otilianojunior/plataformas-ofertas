@@ -228,6 +228,7 @@ class AutomacaoService:
                         execucao = executar(
                             session,
                             plataforma_id,
+                            encerrando=self.encerrando,
                         )
 
                         session.commit()
