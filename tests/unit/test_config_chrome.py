@@ -49,3 +49,13 @@ def test_sem_chrome_instalado_explica_o_que_fazer():
     with patch("shutil.which", return_value=None):
         with pytest.raises(FileNotFoundError, match="MERCADO_LIVRE_CHROME_PATH"):
             navegador._localizar_chrome()
+
+
+def test_versao_e_a_mesma_no_pacote_e_no_pyproject():
+    import tomllib
+
+    from ofertas import __version__
+    from ofertas.main import app
+
+    pyproject = tomllib.loads((RAIZ_PROJETO / "pyproject.toml").read_text())
+    assert __version__ == pyproject["project"]["version"] == app.version == "0.9.0"

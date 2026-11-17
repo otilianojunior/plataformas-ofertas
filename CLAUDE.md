@@ -124,6 +124,14 @@ Pontos importantes:
 
 ## Convenções
 
+- Versão: `src/ofertas/__init__.py` (`__version__`) e `pyproject.toml` (iguais; há teste).
+  Versão atual 0.9.0; 1.0.0 no merge de `develop` em `main` (Etapa 6). Marcar com tag git.
+- Migrações: `0001_estrutura_inicial_v0_9_0` é a base (squash das 25 antigas, que
+  ficam no histórico do git). Daqui em diante, uma migração por mudança; nunca
+  editar uma migração já aplicada. Migrações vão para o git, nunca para o `.gitignore`.
+- Logs: `httpx`/`httpcore` ficam em WARNING de propósito. A URL da API do Telegram
+  contém o token do bot e o httpx a registra em INFO (há teste).
+
 - Código, nomes e mensagens em português.
 - Commits: Conventional Commits em português (`feat:`, `fix:`, `build:`, `docs:`).
 - Trabalho na branch `develop`; integração em `main` via PR ao final.
