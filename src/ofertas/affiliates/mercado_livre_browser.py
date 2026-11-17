@@ -1,218 +1,31 @@
 import logging
-import shutil
-import subprocess
-import time
-from collections.abc import Iterator
-from contextlib import contextmanager
-from pathlib import Path
-from urllib.parse import urlsplit
 
-import httpx
-from playwright.sync_api import BrowserContext, sync_playwright
-
+from ofertas.core.chrome_dedicado import ChromeDedicado, ChromeDedicadoError
 from ofertas.core.config import Settings, get_settings
 
 
 logger = logging.getLogger(__name__)
 
+# Mantido por compatibilidade: quem captura o erro do Chrome do ML.
+MercadoLivreBrowserError = ChromeDedicadoError
 
-class MercadoLivreBrowserError(RuntimeError):
-    """Erro na inicialização ou comunicação com o Chrome."""
 
-
-class MercadoLivreLoginRequiredError(MercadoLivreBrowserError):
+class MercadoLivreLoginRequiredError(ChromeDedicadoError):
     """Indica que a sessão do Mercado Livre não está autenticada."""
 
 
-class MercadoLivreBrowser:
-    """Gerencia o Chrome persistente com a sessão do Mercado Livre."""
+class MercadoLivreBrowser(ChromeDedicado):
+    """Chrome persistente com a sessão do Mercado Livre."""
 
     HOME_URL = "https://www.mercadolivre.com.br/"
 
-    TEMPO_LIMITE_INICIALIZACAO = 30
-    TIMEOUT_CDP = 2
-    TIMEOUT_CONEXAO_PLAYWRIGHT = 15_000
-    TIMEOUT_NAVEGACAO = 30_000
-
-    def __init__(
-        self,
-        settings: Settings | None = None,
-    ) -> None:
+    def __init__(self, settings: Settings | None = None) -> None:
         self.settings = settings or get_settings()
-
-    def _validar_configuracao_cdp(self) -> int:
-        try:
-            parsed = urlsplit(
-                self.settings.mercado_livre_chrome_cdp_url
-            )
-            porta = parsed.port
-
-        except ValueError as erro:
-            raise MercadoLivreBrowserError(
-                "Endereço CDP inválido."
-            ) from erro
-
-        if parsed.scheme != "http":
-            raise MercadoLivreBrowserError(
-                "O endereço CDP deve utilizar HTTP."
-            )
-
-        if parsed.hostname not in {"127.0.0.1", "localhost", "::1"}:
-            raise MercadoLivreBrowserError(
-                "O Chrome CDP deve estar acessível somente localmente."
-            )
-
-        if porta is None:
-            raise MercadoLivreBrowserError(
-                "A porta do Chrome CDP não foi configurada."
-            )
-
-        return porta
-
-    def _endpoint_cdp(self) -> str:
-        return (
-            self.settings.mercado_livre_chrome_cdp_url.rstrip("/")
-            + "/json/version"
+        super().__init__(
+            perfil=self.settings.mercado_livre_chrome_profile_dir,
+            cdp_url=self.settings.mercado_livre_chrome_cdp_url,
+            chrome_path=self.settings.mercado_livre_chrome_path,
         )
-
-    def _cdp_disponivel(self) -> bool:
-        try:
-            response = httpx.get(
-                self._endpoint_cdp(),
-                timeout=self.TIMEOUT_CDP,
-            )
-            return response.is_success
-
-        except httpx.HTTPError:
-            return False
-
-    CANDIDATOS_CHROME = (
-        "google-chrome",
-        "google-chrome-stable",
-        "chromium",
-        "chromium-browser",
-    )
-
-    def _localizar_chrome(self) -> str:
-        """Usa MERCADO_LIVRE_CHROME_PATH ou detecta o Chrome instalado."""
-
-        configurado = self.settings.mercado_livre_chrome_path
-        candidatos = (configurado,) if configurado else self.CANDIDATOS_CHROME
-
-        for candidato in candidatos:
-            executavel = shutil.which(candidato)
-
-            if executavel is not None:
-                return executavel
-
-        raise FileNotFoundError(
-            "Executável do Chrome não encontrado "
-            f"(procurado: {', '.join(candidatos)}). "
-            "Instale o Google Chrome ou defina MERCADO_LIVRE_CHROME_PATH."
-        )
-
-    def caminho_perfil(self) -> Path:
-        return Path(self.settings.mercado_livre_chrome_profile_dir)
-
-    def esta_aberto(self) -> bool:
-        """Indica se há um Chrome respondendo na porta CDP configurada."""
-
-        return self._cdp_disponivel()
-
-    def abrir(self) -> None:
-        """Abre o Chrome do projeto (ou reaproveita um já aberto)."""
-
-        self._validar_configuracao_cdp()
-        self._iniciar_chrome()
-
-    def fechar(self) -> bool:
-        """Fecha o Chrome do projeto pelo CDP. Retorna False se já estava fechado."""
-
-        if not self._cdp_disponivel():
-            return False
-
-        with sync_playwright() as playwright:
-            browser = playwright.chromium.connect_over_cdp(
-                self.settings.mercado_livre_chrome_cdp_url,
-                timeout=self.TIMEOUT_CONEXAO_PLAYWRIGHT,
-            )
-            sessao = browser.new_browser_cdp_session()
-            sessao.send("Browser.close")
-
-        return True
-
-    def _iniciar_chrome(self) -> None:
-        if self._cdp_disponivel():
-            logger.info("Chrome CDP já está disponível.")
-            return
-
-        porta = self._validar_configuracao_cdp()
-        chrome = self._localizar_chrome()
-
-        perfil = self.caminho_perfil()
-
-        perfil.mkdir(parents=True, exist_ok=True)
-
-        logger.info("Iniciando Chrome com o perfil persistente do projeto.")
-
-        subprocess.Popen(
-            [
-                chrome,
-                f"--user-data-dir={perfil}",
-                "--profile-directory=Default",
-                "--remote-debugging-address=127.0.0.1",
-                f"--remote-debugging-port={porta}",
-                "--no-first-run",
-                "--no-default-browser-check",
-                self.HOME_URL,
-            ],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-        )
-
-        inicio = time.monotonic()
-
-        while (
-            time.monotonic() - inicio
-            < self.TEMPO_LIMITE_INICIALIZACAO
-        ):
-            if self._cdp_disponivel():
-                logger.info("Chrome CDP disponível.")
-                return
-
-            time.sleep(1)
-
-        raise MercadoLivreBrowserError(
-            "O Chrome foi iniciado, mas o CDP não ficou disponível "
-            "dentro do tempo limite."
-        )
-
-    @contextmanager
-    def connect(self) -> Iterator[BrowserContext]:
-        """Conecta ao Chrome e disponibiliza o contexto autenticado."""
-
-        self._validar_configuracao_cdp()
-        self._iniciar_chrome()
-
-        with sync_playwright() as playwright:
-            browser = playwright.chromium.connect_over_cdp(
-                self.settings.mercado_livre_chrome_cdp_url,
-                timeout=self.TIMEOUT_CONEXAO_PLAYWRIGHT,
-            )
-
-            try:
-                if not browser.contexts:
-                    raise MercadoLivreBrowserError(
-                        "Nenhum contexto de navegador foi encontrado."
-                    )
-
-                yield browser.contexts[0]
-
-            finally:
-                # Desconecta o Playwright sem encerrar o Chrome remoto.
-                browser.close()
 
     def verificar_sessao(self) -> dict:
         """Verifica se o perfil persistente mantém a sessão autenticada."""

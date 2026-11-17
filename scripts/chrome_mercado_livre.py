@@ -32,7 +32,7 @@ def _status(navegador: MercadoLivreBrowser) -> int:
 
     print(f"Chrome:  {chrome}")
     print(f"Perfil:  {perfil} ({'existe' if perfil.exists() else 'será criado'})")
-    print(f"CDP:     {navegador.settings.mercado_livre_chrome_cdp_url}")
+    print(f"CDP:     {navegador.cdp_url}")
     print(f"Aberto:  {'sim' if navegador.esta_aberto() else 'não'}")
     return 0
 
