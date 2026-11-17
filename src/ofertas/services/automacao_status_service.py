@@ -59,11 +59,17 @@ class AutomacaoStatusService:
         cls,
         primeira_data: datetime,
         janelas_ativas: list,
+        agora: datetime,
     ) -> datetime | None:
-        """Encontra o próximo instante permitido no horário de Brasília."""
+        """Encontra o próximo instante permitido no horário de Brasília.
 
-        primeira_data_local = cls._normalizar_data(
-            primeira_data
+        Uma execução atrasada (data prevista no passado) é considerada a
+        partir de agora, para nunca apontar para uma janela que já passou.
+        """
+
+        primeira_data_local = max(
+            cls._normalizar_data(primeira_data),
+            cls._normalizar_data(agora),
         ).astimezone(FUSO_HORARIO)
 
         if not janelas_ativas:
@@ -228,6 +234,7 @@ class AutomacaoStatusService:
                 proxima_execucao = self._proxima_data_permitida(
                     primeira_data,
                     janelas_ativas,
+                    agora_local,
                 )
 
             if plataforma is None:
@@ -358,6 +365,7 @@ class AutomacaoStatusService:
                         self._proxima_data_permitida(
                             primeira_data,
                             janelas_ativas,
+                            agora_local,
                         )
                     )
 

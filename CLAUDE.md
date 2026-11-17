@@ -17,10 +17,16 @@ source .venv/bin/activate
 uvicorn ofertas.main:app --reload          # API (pacote instalado em modo editável)
 alembic upgrade head                        # aplicar migrações
 alembic revision --autogenerate -m "..."    # nova migração (revisar o arquivo gerado)
-python -m unittest tests/unit/test_*.py     # testes (pytest não está instalado;
-                                            # tests/ não tem __init__.py, então discover não funciona)
+pip install -e ".[dev]"                     # dependências de desenvolvimento (pytest)
+python -m pytest                            # todos os testes
+python -m pytest tests/unit                 # só unitários (sem banco)
 python -m compileall -q src                 # checagem rápida de sintaxe
 ```
+
+Testes de integração (`tests/integration/`) usam o PostgreSQL do `.env` dentro
+de uma transação desfeita ao final (nada é gravado) e não executam o `lifespan`.
+Não suba a API só para testar: os monitores disparam coletas e publicações reais
+no Telegram. O usuário do banco não tem permissão `CREATEDB`.
 
 Variáveis de ambiente: ver `.env.example` e `src/ofertas/core/config.py`.
 Nunca versionar `.env` nem exibir credenciais/tokens.
@@ -45,7 +51,8 @@ Pontos importantes:
   `automacoes_ativas`, flags por automação, `intervalo_coleta_minutos`,
   `limite_produtos_por_categoria`.
 - `janelas_execucao`: janelas diárias no fuso `America/Sao_Paulo`, sem atravessar
-  a meia-noite, sem sobreposição entre janelas ativas. Sem nenhuma janela ativa,
+  a meia-noite, sem sobreposição entre janelas ativas. Horários sem fuso;
+  início inclusivo, fim exclusivo (para ir até o fim do dia use `23:59:59`). Sem nenhuma janela ativa,
   a execução fica liberada 24h.
 - Locks com `pg_advisory_xact_lock` evitam ciclos concorrentes (publicação por
   destino, alterações de janelas).
@@ -60,8 +67,7 @@ Pontos importantes:
 
 ## Roadmap
 
-1. Validar configurações globais e janelas (GET/PATCH, limite 5, sobreposição,
-   horários consecutivos, CRUD, bloqueio fora da janela, `/automacoes/status`).
+1. ~~Validar configurações globais e janelas~~ (concluída: testes em `tests/`).
 2. Monitoramento: últimas execuções ML/Shopee, ciclos por destino, persistir o
    estado da publicação em andamento, decidir se execuções manuais obedecem às janelas.
 3. Documentação e infra: README, variáveis de ambiente, Makefile, Docker Compose
