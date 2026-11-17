@@ -198,13 +198,18 @@ def test_limite_global_e_aplicado_a_cada_categoria():
         produto_repository=produto_repository,
         publicacao_service=Mock(),
         janela_execucao_service=Mock(),
+        publicacao_repository=Mock(listar_publicadas_recentes=Mock(return_value=[])),
     )
 
     servico._selecionar_candidatos(session, destino_id=1)
 
     chamadas = produto_repository.listar_candidatos_publicacao.call_args_list
     assert [c.kwargs["categoria_id"] for c in chamadas] == [1, 2, 3]
-    assert all(c.kwargs["limite"] == 5 for c in chamadas)
+    # busca folga (5 x 4) para repor produtos barrados pela duplicidade
+    assert all(
+        c.kwargs["limite"] == 5 * PublicacaoLoteService.FATOR_CANDIDATOS_EXTRAS
+        for c in chamadas
+    )
 
 
 def test_coletas_nao_iniciam_durante_o_encerramento():

@@ -1,9 +1,13 @@
+from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ofertas.models.plataforma import Plataforma
+from ofertas.models.produto import Produto
 from ofertas.models.publicacao import Publicacao
+from ofertas.core.similaridade_produto import PublicacaoRecente
 
 
 class PublicacaoRepository:
@@ -49,30 +53,39 @@ class PublicacaoRepository:
         return session.scalars(consulta).first()
 
 
-    def buscar_ultima_publicada_produto_destino(
+    def listar_publicadas_recentes(
         self,
         session: Session,
-        produto_id: int,
         destino_id: int,
-    ) -> Publicacao | None:
-        """Busca a última publicação bem-sucedida do produto no destino."""
+        desde: datetime,
+    ) -> list[PublicacaoRecente]:
+        """Publicações confirmadas no grupo a partir de `desde`."""
 
-        consulta = (
-            select(Publicacao)
+        linhas = session.execute(
+            select(
+                Publicacao.produto_id,
+                Produto.titulo,
+                Publicacao.preco_divulgado,
+                Plataforma.nome,
+            )
+            .join(Produto, Produto.id == Publicacao.produto_id)
+            .join(Plataforma, Plataforma.id == Produto.plataforma_id)
             .where(
-                Publicacao.produto_id == produto_id,
                 Publicacao.destino_divulgacao_id == destino_id,
                 Publicacao.status_publicacao == "publicada",
+                Publicacao.publicada_em >= desde,
             )
-            .order_by(
-                Publicacao.publicada_em.desc(),
-                Publicacao.id.desc(),
+        ).all()
+
+        return [
+            PublicacaoRecente(
+                produto_id=produto_id,
+                titulo=titulo,
+                preco=preco,
+                loja=loja,
             )
-            .limit(1)
-        )
-
-        return session.scalars(consulta).first()
-
+            for produto_id, titulo, preco, loja in linhas
+        ]
 
     def criar(
         self,

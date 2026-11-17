@@ -193,8 +193,8 @@ class ProdutoRepository:
             .scalar_subquery()
         )
 
-        ultimo_desconto_publicado = (
-            select(Publicacao.percentual_desconto_divulgado)
+        ultimo_preco_publicado = (
+            select(Publicacao.preco_divulgado)
             .where(
                 Publicacao.produto_id == Produto.id,
                 Publicacao.destino_divulgacao_id == destino_id,
@@ -267,11 +267,9 @@ class ProdutoRepository:
         pode_republicar = or_(
             ultima_publicacao_em.is_(None),
             ultima_publicacao_em <= limite_republicacao,
-            and_(
-                ultimo_desconto_publicado.is_not(None),
-                Produto.percentual_desconto
-                > ultimo_desconto_publicado,
-            ),
+            # Dentro das 24h, só volta com preço menor. Produtos iguais de
+            # outra loja/anúncio são filtrados depois, pelo título.
+            Produto.preco_atual < ultimo_preco_publicado,
         )
 
         tentativa_liberada = or_(

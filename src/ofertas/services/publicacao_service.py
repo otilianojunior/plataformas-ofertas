@@ -10,6 +10,7 @@ from ofertas.models.plataforma_divulgacao import PlataformaDivulgacao
 from ofertas.models.plataforma_categoria import PlataformaCategoria
 from ofertas.models.produto import Produto
 from ofertas.models.publicacao import Publicacao
+from ofertas.publishers.mensagem import formatar_preco
 from ofertas.publishers.telegram import TelegramPublisher
 from ofertas.repositories.categoria_repository import CategoriaRepository
 from ofertas.repositories.configuracao_divulgacao_repository import (
@@ -17,6 +18,7 @@ from ofertas.repositories.configuracao_divulgacao_repository import (
 )
 from ofertas.repositories.produto_repository import ProdutoRepository
 from ofertas.schemas.publicacao import PublicacaoResponse
+from ofertas.core.similaridade_produto import bloqueio_republicacao
 from ofertas.repositories.publicacao_repository import (
     PublicacaoRepository,
 )
@@ -219,32 +221,33 @@ class PublicacaoService:
 
     def _validar_republicacao(
         self,
+        session: Session,
         produto: Produto,
-        ultima_publicacao: Publicacao | None,
+        destino_id: int,
         agora: datetime,
     ) -> None:
-        if ultima_publicacao is None:
-            return
+        """Mesmo produto (de qualquer loja) só volta em 24h com preço menor."""
 
-        horario = (
-            ultima_publicacao.publicada_em
-            or ultima_publicacao.created_at
+        recentes = self.publicacao_repository.listar_publicadas_recentes(
+            session,
+            destino_id,
+            agora - timedelta(hours=self.INTERVALO_REPUBLICACAO_HORAS),
         )
 
-        intervalo = timedelta(
-            hours=self.INTERVALO_REPUBLICACAO_HORAS
+        bloqueio = bloqueio_republicacao(
+            produto.id,
+            produto.titulo,
+            produto.preco_atual,
+            recentes,
         )
 
-        if agora - horario >= intervalo:
-            return
-
-        if self._desconto_aumentou(produto, ultima_publicacao):
-            return
-
-        raise ValueError(
-            "O produto já foi publicado neste grupo há menos de "
-            "24 horas e não apresentou aumento no desconto."
-        )
+        if bloqueio is not None:
+            raise ValueError(
+                "Um produto igual já foi publicado neste grupo há menos de "
+                f"24 horas por {formatar_preco(bloqueio.preco)} "
+                f"({bloqueio.loja}: {bloqueio.titulo[:80]}). "
+                "Só pode ser publicado de novo com preço menor."
+            )
 
     def _preparar_publicacao(
         self,
@@ -359,17 +362,10 @@ class PublicacaoService:
 
         agora = datetime.now(timezone.utc)
 
-        ultima_publicacao = (
-            self.publicacao_repository.buscar_ultima_publicada_produto_destino(
-                session,
-                produto.id,
-                destino_id,
-            )
-        )
-
         self._validar_republicacao(
+            session,
             produto,
-            ultima_publicacao,
+            destino_id,
             agora,
         )
 

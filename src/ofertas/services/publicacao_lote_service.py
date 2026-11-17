@@ -1,7 +1,7 @@
 import logging
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
@@ -21,7 +21,13 @@ from ofertas.repositories.destino_divulgacao_repository import (
 from ofertas.repositories.ciclo_publicacao_repository import (
     CicloPublicacaoRepository,
 )
+from ofertas.core.similaridade_produto import (
+    PublicacaoRecente,
+    bloqueio_republicacao,
+    mesmo_produto,
+)
 from ofertas.repositories.produto_repository import ProdutoRepository
+from ofertas.repositories.publicacao_repository import PublicacaoRepository
 from ofertas.services.publicacao_service import PublicacaoService
 from ofertas.services.janela_execucao_service import (
     JanelaExecucaoService,
@@ -36,6 +42,7 @@ class PublicacaoLoteService:
 
     LOCK_NAMESPACE = 20261110
     INTERVALO_ENTRE_MENSAGENS_SEGUNDOS = 20
+    FATOR_CANDIDATOS_EXTRAS = 4
     CODIGO_TELEGRAM = "telegram"
 
     def __init__(
@@ -47,6 +54,7 @@ class PublicacaoLoteService:
         publicacao_service: PublicacaoService | None = None,
         janela_execucao_service: JanelaExecucaoService | None = None,
         ciclo_repository: CicloPublicacaoRepository | None = None,
+        publicacao_repository: PublicacaoRepository | None = None,
     ) -> None:
         self.configuracao_repository = (
             configuracao_repository or ConfiguracaoDivulgacaoRepository()
@@ -68,6 +76,9 @@ class PublicacaoLoteService:
         )
         self.ciclo_repository = (
             ciclo_repository or CicloPublicacaoRepository()
+        )
+        self.publicacao_repository = (
+            publicacao_repository or PublicacaoRepository()
         )
         # Sinalizado no encerramento da API: interrompe o ciclo entre um
         # envio e outro, sem esperar os 20s de intervalo.
@@ -152,7 +163,15 @@ class PublicacaoLoteService:
             destino_id,
         )
 
-        candidatos = []
+        recentes = self.publicacao_repository.listar_publicadas_recentes(
+            session,
+            destino_id,
+            datetime.now(timezone.utc)
+            - timedelta(hours=PublicacaoService.INTERVALO_REPUBLICACAO_HORAS),
+        )
+
+        # Seleção do ciclo: (categoria_id, nome_categoria, produto) por vaga.
+        selecionados: list[list] = []
 
         for categoria in categorias:
             plataforma = session.get(
@@ -178,19 +197,76 @@ class PublicacaoLoteService:
                 desconto_minimo_percentual=desconto_minimo,
                 preco_minimo=configuracao.preco_minimo,
                 preco_maximo=configuracao.preco_maximo,
-                limite=limite_produtos_por_categoria,
+                # Busca mais que o limite: produtos barrados pela regra de
+                # duplicidade dão lugar aos próximos da lista.
+                limite=limite_produtos_por_categoria
+                * self.FATOR_CANDIDATOS_EXTRAS,
             )
 
-            for produto in produtos:
-                candidatos.append(
-                    (
-                        categoria.id,
-                        categoria.nome_categoria,
-                        produto.id,
-                    )
-                )
+            vagas = limite_produtos_por_categoria
 
-        return candidatos
+            for produto in produtos:
+                if vagas == 0:
+                    break
+
+                if self._adicionar_candidato(
+                    selecionados,
+                    recentes,
+                    categoria,
+                    produto,
+                    vagas,
+                ):
+                    vagas -= 1
+
+        return [
+            (categoria_id, nome_categoria, produto.id)
+            for categoria_id, nome_categoria, produto in selecionados
+        ]
+
+    @staticmethod
+    def _adicionar_candidato(
+        selecionados: list[list],
+        recentes: list[PublicacaoRecente],
+        categoria,
+        produto,
+        vagas_da_categoria: int,
+    ) -> bool:
+        """Aplica a regra de duplicidade. Retorna True se ocupou uma vaga nova.
+
+        - Igual a um produto publicado nas últimas 24h (qualquer loja): só
+          entra com preço menor.
+        - Igual a outro já escolhido neste ciclo: fica o mais barato.
+        """
+
+        if bloqueio_republicacao(
+            produto.id,
+            produto.titulo,
+            produto.preco_atual,
+            recentes,
+        ):
+            return False
+
+        for vaga in selecionados:
+            escolhido = vaga[2]
+
+            if not mesmo_produto(escolhido.titulo, produto.titulo):
+                continue
+
+            # Troca pelo mais barato, sem estourar o limite da categoria
+            # dele: a vaga passa para a categoria do produto escolhido.
+            if produto.preco_atual < escolhido.preco_atual and (
+                vaga[0] == categoria.id or vagas_da_categoria > 0
+            ):
+                trocou_de_categoria = vaga[0] != categoria.id
+                vaga[:] = [categoria.id, categoria.nome_categoria, produto]
+                return trocou_de_categoria
+
+            return False
+
+        selecionados.append(
+            [categoria.id, categoria.nome_categoria, produto]
+        )
+        return True
 
     def _registrar_execucao(self, destino_id: int) -> None:
         with SessionLocal() as session:
