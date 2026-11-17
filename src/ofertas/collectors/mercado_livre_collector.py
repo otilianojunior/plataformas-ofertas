@@ -43,13 +43,24 @@ class MercadoLivreCollector:
 
         plataforma_id = categoria.plataforma_id
 
-        destaques = self.client.buscar_destaques(
-            session,
-            plataforma_id,
-            categoria.id_categoria_plataforma,
-        )
-
-        produtos = destaques.get("content", [])
+        if categoria.termo_busca:
+            busca = self.client.buscar_produtos_catalogo(
+                session,
+                plataforma_id,
+                categoria.termo_busca,
+            )
+            produtos = [
+                {"id": resultado["id"], "type": "PRODUCT"}
+                for resultado in busca.get("results", [])
+                if resultado.get("id")
+            ]
+        else:
+            destaques = self.client.buscar_destaques(
+                session,
+                plataforma_id,
+                categoria.id_categoria_plataforma,
+            )
+            produtos = destaques.get("content", [])
         processadas = 0
         ignoradas = 0
         ids_processados = set()
@@ -151,6 +162,11 @@ class MercadoLivreCollector:
 
                 if codigo_http in (403, 404):
                     ignoradas += 1
+
+                    # Na busca por termo é comum o produto de catálogo não
+                    # ter anúncio ativo: descarta sem poluir os avisos.
+                    if categoria.termo_busca and codigo_http == 404:
+                        continue
 
                     if codigo_http == 403:
                         motivo = (

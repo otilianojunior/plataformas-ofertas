@@ -154,12 +154,16 @@ class CategoriaRepository:
         session: Session,
         plataforma_id: int,
         id_categoria_plataforma: str,
+        termo_busca: str | None = None,
     ) -> PlataformaCategoria | None:
-        """Busca uma categoria pelo ID externo dentro da plataforma."""
+        """Busca uma categoria pelo ID externo (e termo) dentro da plataforma."""
         consulta = select(PlataformaCategoria).where(
             PlataformaCategoria.plataforma_id == plataforma_id,
             PlataformaCategoria.id_categoria_plataforma
             == id_categoria_plataforma,
+            PlataformaCategoria.termo_busca.is_(None)
+            if termo_busca is None
+            else PlataformaCategoria.termo_busca == termo_busca,
         )
         return session.scalars(consulta).one_or_none()
 
@@ -172,6 +176,7 @@ class CategoriaRepository:
         nome_categoria: str,
         desconto_minimo_percentual: Decimal,
         etiqueta_afiliado: str | None = None,
+        termo_busca: str | None = None,
         status_categoria: bool = True,
     ) -> PlataformaCategoria:
         """Adiciona uma categoria à sessão atual."""
@@ -181,6 +186,7 @@ class CategoriaRepository:
             nome_categoria=nome_categoria,
             desconto_minimo_percentual=desconto_minimo_percentual,
             etiqueta_afiliado=etiqueta_afiliado,
+            termo_busca=termo_busca,
             status_categoria=status_categoria,
         )
         session.add(categoria)

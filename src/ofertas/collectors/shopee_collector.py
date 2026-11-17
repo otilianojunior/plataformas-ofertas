@@ -132,6 +132,7 @@ class ShopeeCollector:
                         sort_type,
                         page=pagina,
                         limit=self.page_size,
+                        termo_busca=categoria.termo_busca,
                     )
 
                 except ShopeeAPIError as erro:

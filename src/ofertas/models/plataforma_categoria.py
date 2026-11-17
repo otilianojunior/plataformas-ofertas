@@ -21,10 +21,14 @@ class PlataformaCategoria(Base):
     __tablename__ = "plataforma_categoria"
 
     __table_args__ = (
+        # A mesma categoria da loja pode aparecer várias vezes com termos de
+        # busca diferentes (ex.: Fones + "headset razer"), mas não repetida.
         UniqueConstraint(
             "plataforma_id",
             "id_categoria_plataforma",
+            "termo_busca",
             name="uq_categoria_plataforma_id_externo",
+            postgresql_nulls_not_distinct=True,
         ),
         UniqueConstraint(
             "id",
@@ -54,6 +58,13 @@ class PlataformaCategoria(Base):
     nome_categoria: Mapped[str] = mapped_column(
         String(150),
         nullable=False,
+    )
+
+    # Quando preenchido, a coleta busca por este termo (ex.: "headset razer")
+    # em vez de usar só os destaques/listagem da categoria.
+    termo_busca: Mapped[str | None] = mapped_column(
+        String(150),
+        nullable=True,
     )
 
     etiqueta_afiliado: Mapped[str | None] = mapped_column(

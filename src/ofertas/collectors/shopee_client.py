@@ -445,12 +445,13 @@ class ShopeeClient:
         *,
         page: int = 1,
         limit: int = 10,
+        termo_busca: str | None = None,
     ) -> dict:
-        """Busca uma página de ofertas de uma categoria da Shopee."""
+        """Busca uma página de ofertas da categoria (opcionalmente por termo)."""
 
         return self._buscar_ofertas(
             session,
-            keyword=None,
+            keyword=termo_busca,
             categoria_id=categoria_id,
             sort_type=sort_type,
             page=page,

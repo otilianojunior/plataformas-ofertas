@@ -141,6 +141,35 @@ class MercadoLivreClient:
         )
 
 
+    def buscar_produtos_catalogo(
+        self,
+        session: Session,
+        plataforma_id: int,
+        termo: str,
+        limite: int = 50,
+    ) -> dict:
+        """Busca produtos de catálogo por termo (ex.: "headset razer").
+
+        A busca de anúncios (/sites/MLB/search) é negada (403) para o app;
+        a de catálogo funciona, mas ignora o filtro de categoria e traz
+        produtos sem anúncio ativo, que a coleta descarta.
+        """
+
+        if not termo.strip():
+            raise ValueError("O termo de busca é obrigatório.")
+
+        return self._request(
+            session,
+            plataforma_id,
+            "/products/search",
+            params={
+                "site_id": "MLB",
+                "q": termo.strip(),
+                "status": "active",
+                "limit": limite,
+            },
+        )
+
     def buscar_item(
         self,
         session: Session,

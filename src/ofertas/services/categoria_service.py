@@ -86,6 +86,12 @@ class CategoriaService:
             else None
         )
 
+        termo = (
+            " ".join(dados.termo_busca.split()).casefold()
+            if dados.termo_busca and dados.termo_busca.strip()
+            else None
+        )
+
         if not id_externo or not nome:
             raise ValueError(
                 "O identificador externo e o nome da categoria "
@@ -96,11 +102,14 @@ class CategoriaService:
             session,
             dados.plataforma_id,
             id_externo,
+            termo,
         )
 
         if existente is not None:
             raise ValueError(
-                f"A categoria '{id_externo}' já está cadastrada nesta plataforma."
+                f"A categoria '{id_externo}'"
+                + (f" com o termo '{termo}'" if termo else "")
+                + " já está cadastrada nesta plataforma."
             )
 
         categoria = self.repository.criar(
@@ -110,6 +119,7 @@ class CategoriaService:
             nome_categoria=nome,
             desconto_minimo_percentual=dados.desconto_minimo_percentual,
             etiqueta_afiliado=etiqueta,
+            termo_busca=termo,
             status_categoria=dados.status_categoria,
         )
 

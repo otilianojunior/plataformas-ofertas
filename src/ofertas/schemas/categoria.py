@@ -9,6 +9,14 @@ class CategoriaCreate(BaseModel):
     id_categoria_plataforma: str = Field(min_length=1, max_length=100)
     nome_categoria: str = Field(min_length=1, max_length=150)
     etiqueta_afiliado: str | None = Field(default=None, max_length=150)
+    termo_busca: str | None = Field(
+        default=None,
+        max_length=150,
+        description=(
+            "Opcional. Coleta por busca (ex.: 'headset razer') dentro da "
+            "categoria da loja, em vez de só os destaques da categoria."
+        ),
+    )
     grupos_ids: list[int] = Field(
         default_factory=list,
         description="Grupos que vão receber as publicações da categoria.",
@@ -32,6 +40,7 @@ class CategoriaResponse(BaseModel):
     plataforma_id: int
     id_categoria_plataforma: str
     nome_categoria: str
+    termo_busca: str | None
     etiqueta_afiliado: str | None
     desconto_minimo_percentual: Decimal
     status_categoria: bool

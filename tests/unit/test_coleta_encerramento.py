@@ -10,7 +10,7 @@ from ofertas.collectors.shopee_collector import ShopeeCollector
 def _categoria():
     return Mock(
         id=1, plataforma_id=2, nome_categoria="Coolers",
-        id_categoria_plataforma="101949", status_categoria=True,
+        id_categoria_plataforma="101949", status_categoria=True, termo_busca=None,
     )
 
 
