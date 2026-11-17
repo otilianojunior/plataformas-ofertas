@@ -172,6 +172,7 @@ class ExecucaoColetaService:
                         resultado = collector.coletar_categoria(
                             session,
                             categoria,
+                            encerrando=encerrando,
                         )
 
                     categorias_com_sucesso += 1
@@ -245,6 +246,7 @@ class ExecucaoColetaService:
     def gerar_afiliados_pendentes(
         self,
         plataforma_id: int,
+        encerrando: threading.Event | None = None,
     ) -> dict | None:
         """Gera links afiliados conforme a plataforma cadastrada."""
 
@@ -272,6 +274,7 @@ class ExecucaoColetaService:
                 resultado = servico_afiliado.gerar_pendentes(
                     session,
                     plataforma_id,
+                    encerrando=encerrando,
                 )
                 session.commit()
 

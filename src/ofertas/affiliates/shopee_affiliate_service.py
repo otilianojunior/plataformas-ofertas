@@ -1,4 +1,5 @@
 import logging
+import threading
 from collections.abc import Sequence
 from datetime import datetime, timezone
 from typing import Any
@@ -37,6 +38,7 @@ class ShopeeAffiliateService:
         session: Session,
         plataforma_id: int,
         produto_ids: Sequence[int] | None = None,
+        encerrando: threading.Event | None = None,
     ) -> dict[str, Any]:
         """Gera links afiliados para produtos pendentes da Shopee."""
 
@@ -67,6 +69,11 @@ class ShopeeAffiliateService:
         }
 
         for produto, categoria in produtos:
+            # Encerramento da API: os restantes ficam pendentes para a
+            # próxima geração.
+            if encerrando is not None and encerrando.is_set():
+                break
+
             if categoria is None:
                 mensagem = "Produto sem categoria associada."
                 self._registrar_erro(produto, None, mensagem)

@@ -193,7 +193,7 @@ def test_coleta_para_entre_categorias_no_encerramento():
     encerrando = threading.Event()
     categorias = [Mock(id=i, nome_categoria=f"Cat {i}") for i in (1, 2, 3)]
 
-    def coletar(_session, categoria):
+    def coletar(_session, categoria, encerrando=None):
         encerrando.set()  # a API começa a parar durante a 1ª categoria
         return {"encontradas": 5, "processadas": 4, "ignoradas": 1, "erros": []}
 

@@ -1,4 +1,5 @@
 import logging
+import threading
 from decimal import Decimal, InvalidOperation
 
 import httpx
@@ -30,6 +31,7 @@ class MercadoLivreCollector:
         self,
         session: Session,
         categoria: PlataformaCategoria,
+        encerrando: threading.Event | None = None,
     ) -> dict:
         if not categoria.status_categoria:
             return {
@@ -54,6 +56,14 @@ class MercadoLivreCollector:
         erros = []
 
         for destaque in produtos:
+            # Encerramento da API: mantém o que já foi salvo e para.
+            if encerrando is not None and encerrando.is_set():
+                erros.append(
+                    f"Coleta da categoria {categoria.nome_categoria} "
+                    "interrompida pelo encerramento da API."
+                )
+                break
+
             product_id = destaque.get("id")
             tipo = destaque.get("type") or "SEM_TIPO"
 

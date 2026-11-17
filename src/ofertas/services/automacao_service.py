@@ -234,7 +234,8 @@ class AutomacaoService:
                         session.commit()
 
                         self.execucao_coleta_service.gerar_afiliados_pendentes(
-                            plataforma_id
+                            plataforma_id,
+                            encerrando=self.encerrando,
                         )
 
                         logger.info(

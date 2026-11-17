@@ -1,4 +1,5 @@
 import logging
+import threading
 from collections import defaultdict, deque
 from collections.abc import Sequence
 from datetime import datetime, timezone
@@ -44,6 +45,7 @@ class MercadoLivreAffiliateService:
         session: Session,
         plataforma_id: int,
         produto_ids: Sequence[int] | None = None,
+        encerrando: threading.Event | None = None,
     ) -> dict[str, Any]:
         """Gera links afiliados para produtos pendentes do Mercado Livre."""
 
@@ -123,6 +125,10 @@ class MercadoLivreAffiliateService:
 
         for etiqueta, itens in grupos.items():
             for inicio in range(0, len(itens), self.tamanho_lote):
+                # Encerramento da API: os lotes restantes ficam pendentes.
+                if encerrando is not None and encerrando.is_set():
+                    break
+
                 lote = itens[
                     inicio:inicio + self.tamanho_lote
                 ]

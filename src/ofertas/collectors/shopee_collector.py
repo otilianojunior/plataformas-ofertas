@@ -1,4 +1,5 @@
 import logging
+import threading
 from decimal import Decimal, InvalidOperation
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -75,6 +76,7 @@ class ShopeeCollector:
         self,
         session: Session,
         categoria: PlataformaCategoria,
+        encerrando: threading.Event | None = None,
     ) -> dict:
         if not categoria.status_categoria:
             return {
@@ -105,10 +107,24 @@ class ShopeeCollector:
         ofertas_por_id = {}
         consultas_com_sucesso = 0
 
+        interrompida = False
+
         for sort_type in self.sort_types:
+            if interrompida:
+                break
+
             pagina = 1
 
             while pagina <= self.max_pages:
+                # Encerramento da API: processa o que já veio e para.
+                if encerrando is not None and encerrando.is_set():
+                    interrompida = True
+                    erros.append(
+                        f"Coleta da categoria {categoria.nome_categoria} "
+                        "interrompida pelo encerramento da API."
+                    )
+                    break
+
                 try:
                     resultado = self.client.buscar_ofertas_categoria(
                         session,
@@ -182,7 +198,7 @@ class ShopeeCollector:
 
                 pagina += 1
 
-        if consultas_com_sucesso == 0:
+        if consultas_com_sucesso == 0 and not interrompida:
             detalhes = "; ".join(erros) or (
                 "Nenhuma consulta foi concluída."
             )
