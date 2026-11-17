@@ -4,7 +4,9 @@ from html import escape
 from urllib.parse import urlparse
 
 
-RODAPE_PUBLICACAO = "⚠️ Oferta por tempo limitado. Os preços podem mudar."
+RODAPE_PUBLICACAO = (
+    "⏳ Oferta por tempo limitado: confira no link, o preço pode ter mudado."
+)
 
 
 def formatar_preco(valor: Decimal) -> str:
@@ -63,8 +65,8 @@ def formatar_mensagem(produto, nome_plataforma: str) -> str:
     preposicao = "no" if plataforma.casefold() == "mercado livre" else "na"
 
     partes.append(
-        f'🛒 Link do produto {preposicao} <b>{plataforma}</b>:\n'
-        f'<a href="{escape(link_afiliado, quote=True)}">Comprar produto</a>'
+        f"🛒 Compre {preposicao} <b>{plataforma}</b>: "
+        f'<a href="{escape(link_afiliado, quote=True)}">Ver oferta</a>'
     )
 
     partes.append("")
