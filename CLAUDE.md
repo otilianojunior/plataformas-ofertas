@@ -50,7 +50,18 @@ Camadas, sempre nesta direção: `api/` → `services/` → `repositories/` → 
 - `main.py`: o `lifespan` sobe os monitores internos (sinal de vida, coletas,
   publicações por destino) com `asyncio.to_thread`.
 
+Rotas (nomes do domínio): `/lojas` (de onde vêm as ofertas), `/canais-divulgacao`
+(Telegram, WhatsApp), `/grupos` (onde se publica; no código e no banco ainda se
+chamam `destinos_divulgacao`/`destino_id`), `/grupos/{grupo_id}/configuracao`,
+`/categorias/{id}/grupos`, `/coletas/mercado-livre` e `/coletas/shopee` (sem ID).
+O router de configurações de divulgação é incluído antes do de grupos para
+`/grupos/configuracoes` não ser lido como `/grupos/{grupo_id}`.
+
 Pontos importantes:
+- Categoria ↔ grupos só pela tabela `plataforma_categoria_destino` (vários grupos
+  por categoria). Não existe mais "destino principal" nem seleção por categoria;
+  o limite de produtos é o global.
+- Fuso horário e normalização de datas: `core/tempo.py` (`FUSO_HORARIO`, `garantir_utc`).
 - `configuracoes_sistema` é uma linha única (id=1) com os controles globais:
   `automacoes_ativas`, flags por automação, `intervalo_coleta_minutos`,
   `limite_produtos_por_categoria`.
