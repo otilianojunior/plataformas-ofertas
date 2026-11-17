@@ -23,7 +23,9 @@ def test_marcar_interrompidos_fecha_ciclos_orfaos(db_session, destino_id):
     repo = CicloPublicacaoRepository()
     orfao = repo.iniciar(db_session, destino_id, 3)
 
-    assert repo.marcar_interrompidos(db_session, destino_id) == 1
+    # >= 1: com a API rodando pode existir também um ciclo real em andamento
+    # (a alteração é desfeita no fim do teste).
+    assert repo.marcar_interrompidos(db_session, destino_id) >= 1
 
     db_session.refresh(orfao)
     assert orfao.status == "interrompido"

@@ -15,7 +15,9 @@ SP = ZoneInfo("America/Sao_Paulo")
 STATUS_COLETA_ANTERIORES = {
     "plataforma_nao_cadastrada", "executando", "pausada", "plataforma_inativa",
 }
-STATUS_DESTINO_ANTERIORES = {"pausada", "destino_inativo"}
+# "publicando" também vem antes da janela: com a API rodando, pode haver um
+# ciclo real em andamento.
+STATUS_DESTINO_ANTERIORES = {"pausada", "destino_inativo", "publicando"}
 
 pytestmark = pytest.mark.usefixtures("sem_janelas")
 
