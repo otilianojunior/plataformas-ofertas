@@ -1,6 +1,7 @@
 
 import hashlib
 import json
+import logging
 import time
 
 import httpx
@@ -9,6 +10,9 @@ from sqlalchemy.orm import Session
 from ofertas.services.credencial_plataforma_service import (
     CredencialPlataformaService,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class ShopeeAPIError(RuntimeError):
