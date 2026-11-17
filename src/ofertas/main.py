@@ -5,6 +5,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from ofertas import __version__
+
 from ofertas.api.plataformas import router as plataformas_router
 from ofertas.api.produtos import router as produtos_router
 from ofertas.api.categorias import router as categorias_router
@@ -33,6 +35,11 @@ logging.basicConfig(
     level=get_settings().log_level.upper(),
     format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
 )
+
+# O httpx registra a URL de cada requisição em INFO, e a URL da API do
+# Telegram contém o token do bot (/bot<token>/...). Nunca baixe para INFO.
+for _biblioteca in ("httpx", "httpcore"):
+    logging.getLogger(_biblioteca).setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
@@ -182,7 +189,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(
     title="Plataformas de Ofertas",
     description="API para coleta, armazenamento e distribuição de produtos e ofertas.",
-    version="0.1.0",
+    version=__version__,
     lifespan=lifespan,
 )
 

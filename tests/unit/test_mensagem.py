@@ -47,3 +47,13 @@ def test_sem_preco_original_nao_mostra_de():
 def test_sem_link_afiliado_nao_publica():
     with pytest.raises(ValueError, match="link de afiliado"):
         formatar_mensagem(_produto(url_afiliada=None), "Shopee")
+
+
+def test_logs_do_httpx_nao_expoem_o_token_do_telegram():
+    """A URL do Telegram contém o token do bot; o httpx a registra em INFO."""
+    import logging
+
+    import ofertas.main  # noqa: F401  (aplica a configuração de logs)
+
+    for nome in ("httpx", "httpcore"):
+        assert not logging.getLogger(nome).isEnabledFor(logging.INFO)
