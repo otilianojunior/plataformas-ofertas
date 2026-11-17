@@ -200,6 +200,7 @@ def pausar_automacao(
 @router.post(
     "/automacoes/ativar",
     response_model=ConfiguracaoSistemaResponse,
+    responses={404: {"description": "Configuração global não encontrada."}},
 )
 def ativar_automacoes(
     db: DbSession,
@@ -210,6 +211,7 @@ def ativar_automacoes(
 @router.post(
     "/automacoes/pausar",
     response_model=ConfiguracaoSistemaResponse,
+    responses={404: {"description": "Configuração global não encontrada."}},
 )
 def pausar_automacoes(
     db: DbSession,
@@ -222,6 +224,11 @@ def pausar_automacoes(
 
 @router.post(
     "/coleta-automatica/iniciar",
+    deprecated=True,
+    description=(
+        "Obsoleta: use POST /configuracoes-sistema/automacoes/"
+        "coleta_mercado_livre/ativar."
+    ),
     response_model=ConfiguracaoSistemaResponse,
     responses={404: {"description": "Configuração global não encontrada."}},
 )
@@ -237,6 +244,11 @@ def iniciar_coleta_automatica(
 
 @router.post(
     "/coleta-automatica/pausar",
+    deprecated=True,
+    description=(
+        "Obsoleta: use POST /configuracoes-sistema/automacoes/"
+        "coleta_mercado_livre/pausar."
+    ),
     response_model=ConfiguracaoSistemaResponse,
     responses={404: {"description": "Configuração global não encontrada."}},
 )

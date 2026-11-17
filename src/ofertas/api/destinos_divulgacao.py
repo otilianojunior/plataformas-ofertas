@@ -33,6 +33,7 @@ def listar_destinos(
 @router.get(
     "/{destino_id}",
     response_model=DestinoDivulgacaoResponse,
+    responses={404: {"description": "Destino de divulgação não encontrado."}},
 )
 def buscar_destino(
     destino_id: Annotated[int, Path(gt=0)],
@@ -96,6 +97,7 @@ def criar_destino(
 @router.patch(
     "/{destino_id}/status",
     response_model=DestinoDivulgacaoResponse,
+    responses={404: {"description": "Destino de divulgação não encontrado."}},
 )
 def atualizar_status_destino(
     destino_id: Annotated[int, Path(gt=0)],

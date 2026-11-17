@@ -33,7 +33,16 @@ autenticacao_service = AutenticacaoOAuthService(
 )
 
 
-@router.get("/autorizar")
+@router.get(
+    "/autorizar",
+    summary="Iniciar a autorização OAuth do Mercado Livre",
+    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+    responses={
+        307: {"description": "Redireciona para a tela de login do Mercado Livre."},
+        404: {"description": "Plataforma Mercado Livre não cadastrada."},
+        409: {"description": "Plataforma inativa ou credenciais OAuth ausentes/duplicadas."},
+    },
+)
 def autorizar_mercado_livre(
     session: Session = Depends(get_db),
 ):
@@ -94,8 +103,8 @@ def autorizar_mercado_livre(
     except (LookupError, ValueError) as exc:
         session.rollback()
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(exc),
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Configuração do Mercado Livre incompleta: {exc}",
         ) from exc
     except SQLAlchemyError as exc:
         session.rollback()
@@ -105,7 +114,16 @@ def autorizar_mercado_livre(
         ) from exc
 
 
-@router.get("/callback")
+@router.get(
+    "/callback",
+    summary="Receber o retorno da autorização OAuth do Mercado Livre",
+    responses={
+        400: {"description": "State inválido/expirado, autorização recusada ou código ausente."},
+        404: {"description": "Plataforma Mercado Livre não cadastrada."},
+        409: {"description": "Credenciais OAuth ausentes ou duplicadas."},
+        502: {"description": "Falha na comunicação com o Mercado Livre."},
+    },
+)
 def callback_mercado_livre(
     code: str | None = Query(default=None),
     state: str = Query(...),
@@ -208,8 +226,8 @@ def callback_mercado_livre(
     except (LookupError, ValueError) as exc:
         session.rollback()
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(exc),
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Configuração do Mercado Livre incompleta: {exc}",
         ) from exc
     except SQLAlchemyError as exc:
         session.rollback()

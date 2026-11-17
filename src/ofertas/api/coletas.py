@@ -125,7 +125,10 @@ def executar_coleta_shopee(
 @router.get(
     "/status",
     response_model=StatusColetaResponse,
-    summary="Consultar status da coleta automática",
+    summary="Consultar status da coleta automática (obsoleta)",
+    description="Obsoleta: cobre só o Mercado Livre. Use GET /automacoes/status.",
+    deprecated=True,
+    responses={404: {"description": "Configuração global não encontrada."}},
 )
 def consultar_status_coleta(
     db: DbSession,

@@ -21,7 +21,7 @@ router = APIRouter(prefix="/categorias", tags=["Ofertas e categorias"])
 service = CategoriaService()
 
 
-@router.get("/", response_model=list[CategoriaResponse])
+@router.get("", response_model=list[CategoriaResponse])
 def listar_categorias(
     plataforma_id: int | None = Query(default=None, gt=0),
     session: Session = Depends(get_db),
@@ -29,7 +29,11 @@ def listar_categorias(
     return service.listar(session, plataforma_id)
 
 
-@router.get("/{categoria_id}", response_model=CategoriaResponse)
+@router.get(
+    "/{categoria_id}",
+    response_model=CategoriaResponse,
+    responses={404: {"description": "Categoria não encontrada."}},
+)
 def buscar_categoria(
     categoria_id: Annotated[int, Path(gt=0)],
     session: Session = Depends(get_db),
@@ -46,9 +50,13 @@ def buscar_categoria(
 
 
 @router.post(
-    "/",
+    "",
     response_model=CategoriaResponse,
     status_code=status.HTTP_201_CREATED,
+    responses={
+        404: {"description": "Plataforma ou destino não encontrado."},
+        409: {"description": "Categoria duplicada ou conflito com o banco."},
+    },
 )
 def criar_categoria(
     dados: CategoriaCreate,
@@ -88,6 +96,10 @@ def criar_categoria(
 @router.patch(
     "/{categoria_id}/status",
     response_model=CategoriaResponse,
+    responses={
+        404: {"description": "Categoria não encontrada."},
+        409: {"description": "Conflito com as regras ou o banco de dados."},
+    },
 )
 def atualizar_status_categoria(
     categoria_id: Annotated[int, Path(gt=0)],
@@ -122,6 +134,10 @@ def atualizar_status_categoria(
 @router.patch(
     "/{categoria_id}/desconto-minimo",
     response_model=CategoriaResponse,
+    responses={
+        404: {"description": "Categoria não encontrada."},
+        409: {"description": "Conflito com as regras ou o banco de dados."},
+    },
 )
 def atualizar_desconto_minimo_categoria(
     categoria_id: Annotated[int, Path(gt=0)],
@@ -159,6 +175,10 @@ def atualizar_desconto_minimo_categoria(
 @router.patch(
     "/{categoria_id}/etiqueta-afiliado",
     response_model=CategoriaResponse,
+    responses={
+        404: {"description": "Categoria não encontrada."},
+        409: {"description": "Conflito com as regras ou o banco de dados."},
+    },
 )
 def atualizar_etiqueta_afiliado_categoria(
     categoria_id: Annotated[int, Path(gt=0)],
@@ -196,6 +216,16 @@ def atualizar_etiqueta_afiliado_categoria(
 @router.patch(
     "/{categoria_id}/destino-divulgacao",
     response_model=CategoriaResponse,
+    summary="Definir destino principal da categoria (obsoleta)",
+    description=(
+        "Obsoleta: a categoria agora aceita vários grupos. Use "
+        "POST/DELETE /categorias/{categoria_id}/destinos/{destino_id}."
+    ),
+    deprecated=True,
+    responses={
+        404: {"description": "Categoria ou destino não encontrado."},
+        409: {"description": "Conflito com as regras ou o banco de dados."},
+    },
 )
 def atualizar_destino_divulgacao_categoria(
     categoria_id: Annotated[int, Path(gt=0)],
@@ -240,6 +270,7 @@ def atualizar_destino_divulgacao_categoria(
 @router.get(
     "/{categoria_id}/destinos",
     response_model=list[DestinoDivulgacaoResponse],
+    responses={404: {"description": "Categoria não encontrada."}},
     summary="Listar grupos associados à categoria",
     description=(
         "Retorna os destinos Telegram e WhatsApp associados à categoria, "
@@ -263,6 +294,10 @@ def listar_destinos_categoria(
     "/{categoria_id}/destinos/{destino_id}",
     response_model=list[DestinoDivulgacaoResponse],
     summary="Associar grupo à categoria",
+    responses={
+        404: {"description": "Categoria ou destino não encontrado."},
+        409: {"description": "Associação inválida ou já existente."},
+    },
     description=(
         "Adiciona um destino Telegram ou WhatsApp à categoria. "
         "Os demais grupos associados são preservados."
@@ -308,6 +343,9 @@ def associar_destino_categoria(
     "/{categoria_id}/destinos/{destino_id}",
     response_model=list[DestinoDivulgacaoResponse],
     summary="Desassociar grupo da categoria",
+    responses={
+        404: {"description": "Categoria não encontrada ou grupo não associado."},
+    },
     description=(
         "Remove somente o destino informado. Os demais grupos da "
         "categoria continuam associados."

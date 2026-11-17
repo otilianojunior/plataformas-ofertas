@@ -1,6 +1,6 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from ofertas.db.session import get_db
@@ -21,7 +21,10 @@ router = APIRouter(
 service = CredencialPlataformaService()
 
 
-@router.get("", response_model=list[CredencialPlataformaResponse])
+@router.get(
+    "",
+    responses={404: {"description": "Plataforma não encontrado(a)."}},
+    response_model=list[CredencialPlataformaResponse])
 def listar_credenciais(
     plataforma_id: int | None = Query(default=None, gt=0),
     session: Session = Depends(get_db),
@@ -37,6 +40,7 @@ def listar_credenciais(
 
 @router.get(
     "/{credencial_id}",
+    responses={404: {"description": "Credencial não encontrada."}},
     response_model=CredencialPlataformaResponse,
 )
 def buscar_credencial(
@@ -54,6 +58,10 @@ def buscar_credencial(
 
 @router.post(
     "",
+    responses={
+        404: {"description": "Plataforma não encontrado(a)."},
+        409: {"description": "Regra de negócio violada (ex.: canal inativo ou credencial ativa duplicada)."},
+    },
     response_model=CredencialPlataformaResponse,
     status_code=status.HTTP_201_CREATED,
 )
@@ -80,8 +88,14 @@ def criar_credencial(
     except ValueError as exc:
         session.rollback()
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_409_CONFLICT,
             detail=str(exc),
+        ) from exc
+    except IntegrityError as exc:
+        session.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="A credencial viola uma restrição do banco de dados.",
         ) from exc
     except SQLAlchemyError as exc:
         session.rollback()
@@ -93,6 +107,10 @@ def criar_credencial(
 
 @router.patch(
     "/{credencial_id}/status",
+    responses={
+        404: {"description": "Credencial não encontrada."},
+        409: {"description": "Já existe outra credencial ativa do mesmo tipo."},
+    },
     response_model=CredencialPlataformaResponse,
 )
 def atualizar_status_credencial(
@@ -118,8 +136,14 @@ def atualizar_status_credencial(
     except ValueError as exc:
         session.rollback()
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_409_CONFLICT,
             detail=str(exc),
+        ) from exc
+    except IntegrityError as exc:
+        session.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="A credencial viola uma restrição do banco de dados.",
         ) from exc
     except SQLAlchemyError as exc:
         session.rollback()

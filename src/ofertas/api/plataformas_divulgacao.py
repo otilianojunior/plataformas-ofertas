@@ -33,6 +33,7 @@ def listar_plataformas_divulgacao(
 @router.get(
     "/{codigo}",
     response_model=PlataformaDivulgacaoResponse,
+    responses={404: {"description": "Canal de divulgação não encontrado."}},
 )
 def buscar_plataforma_divulgacao(
     codigo: str,
@@ -56,6 +57,7 @@ def buscar_plataforma_divulgacao(
     "",
     response_model=PlataformaDivulgacaoResponse,
     status_code=status.HTTP_201_CREATED,
+    responses={409: {"description": "Já existe um canal com esse código."}},
 )
 def criar_plataforma_divulgacao(
     dados: PlataformaDivulgacaoCreate,
@@ -86,6 +88,7 @@ def criar_plataforma_divulgacao(
 @router.patch(
     "/{codigo}/status",
     response_model=PlataformaDivulgacaoResponse,
+    responses={404: {"description": "Canal de divulgação não encontrado."}},
 )
 def atualizar_status_plataforma_divulgacao(
     codigo: str,

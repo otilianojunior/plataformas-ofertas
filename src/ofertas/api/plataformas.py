@@ -22,7 +22,11 @@ def listar_plataformas(db: DbSession) -> list[PlataformaResponse]:
     return PlataformaService().listar(db)
 
 
-@router.get("/{codigo}", response_model=PlataformaResponse)
+@router.get(
+    "/{codigo}",
+    response_model=PlataformaResponse,
+    responses={404: {"description": "Plataforma não encontrada."}},
+)
 def buscar_plataforma(
     codigo: str,
     db: DbSession,
@@ -42,6 +46,7 @@ def buscar_plataforma(
     "",
     response_model=PlataformaResponse,
     status_code=status.HTTP_201_CREATED,
+    responses={409: {"description": "Já existe uma plataforma com esse código."}},
 )
 def criar_plataforma(
     dados: PlataformaCreate,
@@ -64,9 +69,16 @@ def criar_plataforma(
             status_code=status.HTTP_409_CONFLICT,
             detail="Já existe uma plataforma com esse código.",
         ) from exc
+    except Exception:
+        db.rollback()
+        raise
 
 
-@router.patch("/{codigo}/status", response_model=PlataformaResponse)
+@router.patch(
+    "/{codigo}/status",
+    response_model=PlataformaResponse,
+    responses={404: {"description": "Plataforma não encontrada."}},
+)
 def atualizar_status_plataforma(
     codigo: str,
     dados: PlataformaStatusUpdate,

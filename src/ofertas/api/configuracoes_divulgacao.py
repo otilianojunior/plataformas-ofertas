@@ -36,6 +36,7 @@ def listar_configuracoes(
 @router.get(
     "/{destino_id}",
     response_model=ConfiguracaoDivulgacaoResponse,
+    responses={404: {"description": "Configuração de divulgação não encontrada."}},
 )
 def buscar_configuracao(
     destino_id: Annotated[int, Path(gt=0)],

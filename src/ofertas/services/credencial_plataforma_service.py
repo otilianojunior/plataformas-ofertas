@@ -115,6 +115,8 @@ class CredencialPlataformaService:
                 "Não é possível cadastrar credenciais em uma plataforma inativa."
             )
 
+        self._validar_unica_ativa(session, plataforma_id, tipo_credencial)
+
         valor_criptografado = criptografar_credencial(valor)
 
         return self.credencial_repository.criar(
@@ -123,6 +125,29 @@ class CredencialPlataformaService:
             tipo_credencial=tipo_credencial,
             valor_criptografado=valor_criptografado,
         )
+
+    def _validar_unica_ativa(
+        self,
+        session: Session,
+        plataforma_id: int,
+        tipo_credencial: str,
+    ) -> None:
+        """Impede duas credenciais ativas do mesmo tipo na mesma loja.
+
+        Com duas ativas, buscar_valor_ativo não sabe qual usar e todas as
+        coletas e gerações de afiliado da loja passam a falhar.
+        """
+
+        if self.credencial_repository.buscar_ativas_por_tipo(
+            session,
+            plataforma_id,
+            tipo_credencial,
+        ):
+            raise ValueError(
+                f"Já existe uma credencial ativa do tipo "
+                f"'{tipo_credencial}' para esta plataforma. "
+                "Inative a atual antes de cadastrar ou ativar outra."
+            )
 
     def atualizar_status(
         self,
@@ -134,6 +159,16 @@ class CredencialPlataformaService:
             raise ValueError("Status inválido.")
 
         credencial = self.buscar_por_id(session, credencial_id)
+
+        if (
+            status_credencial == "ativa"
+            and credencial.status_credencial != "ativa"
+        ):
+            self._validar_unica_ativa(
+                session,
+                credencial.plataforma_id,
+                credencial.tipo_credencial,
+            )
 
         return self.credencial_repository.atualizar_status(
             session,

@@ -276,6 +276,15 @@ class CategoriaService:
                 f"Categoria de ID '{categoria_id}' não encontrada."
             )
 
+        if destino_id not in self.repository.listar_destinos_ids(
+            session,
+            categoria_id,
+        ):
+            raise LookupError(
+                f"O destino de ID '{destino_id}' não está associado "
+                "a esta categoria."
+            )
+
         self.repository.desassociar_destino(
             session,
             categoria_id,
