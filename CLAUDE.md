@@ -36,7 +36,11 @@ Nunca versionar `.env` nem exibir credenciais/tokens.
 Camadas, sempre nesta direção: `api/` → `services/` → `repositories/` → `models/`.
 
 - `api/`: routers FastAPI. Fazem `commit`/`rollback` e convertem exceções:
-  `LookupError` → 404, `ValueError` → 409/400, `IntegrityError` → 409.
+  `LookupError` → 404, `ValueError` (regra de negócio) → 409, `IntegrityError` → 409,
+  falha no envio externo → 502. 422 fica só para validação do Pydantic; 400 só no
+  callback OAuth. Todo erro devolvido deve constar em `responses=` da rota
+  (há teste que exige 404 documentado em rotas com ID). Rotas antigas que têm
+  substituta ficam com `deprecated=True`.
 - `services/`: regras de negócio. Dependências injetáveis pelo `__init__`
   (padrão `x or X()`), o que permite testes com `Mock`.
 - `repositories/`: acesso ao banco; usam `session.flush()`, nunca `commit`.
@@ -62,10 +66,41 @@ Pontos importantes:
 - `ciclos_publicacao`: um registro por ciclo automático de destino, com progresso
   gravado a cada produto. Ciclos que ficaram `em_andamento` (API encerrada no
   meio) viram `interrompido` no próximo ciclo do destino. Consulta: `GET /ciclos-publicacao`.
-- A Shopee devolve `error [10000]: System Error` de forma intermitente; o
-  `ShopeeClient` faz até 3 novas tentativas (2s, 4s, 8s).
+- Publicação manual (`POST /publicacoes/produtos/{id}`): publica em todos os
+  grupos da categoria do produto com canal e grupo ativos, aplicando todas as
+  regras; commit por grupo; não obedece às janelas. 200 se publicou em ao menos
+  um grupo, 502 se só houve falhas de envio, 409 se todos foram ignorados.
 - O intervalo entre mensagens (20s, `PublicacaoLoteService`) é independente do
   intervalo entre ciclos de publicação (por destino, no banco).
+
+## Erros das integrações
+
+**Shopee** (`collectors/shopee_client.py`, API GraphQL de afiliados)
+- `error [10000]: System Error`: intermitente, comum. Até 3 novas tentativas
+  (2s, 4s, 8s). HTTP 429/5xx e falhas de rede seguem o mesmo retry
+  (respeitando `Retry-After`).
+- Outros erros GraphQL (ex.: `[10020]` assinatura inválida) não são retentados.
+- Uma página com falha encerra só aquela ordenação da categoria (vira aviso);
+  a categoria só falha se nenhuma consulta dela der certo.
+
+**Mercado Livre — coleta** (`collectors/mercado_livre_client.py`, API REST)
+- 429/5xx e falhas de rede: até 3 novas tentativas (2s, 4s, 8s ou `Retry-After`).
+- 401: token recusado, sem retry. O token é renovado antes de expirar
+  (`AutenticacaoOAuthService.obter_access_token`); 401 persistente exige refazer
+  `GET /oauth/mercado-livre/autorizar`.
+- 403/404 em um destaque: produto ignorado e registrado como aviso.
+- Destaques `USER_PRODUCT` são ignorados (fluxo de User Products não implementado;
+  `/products/{id}` devolve 403 para eles). Gera vários avisos por coleta.
+- Falha em `/highlights` da categoria: a categoria falha (execução `parcial`/`falhou`).
+
+**Mercado Livre — links afiliados** (`affiliates/`, via Chrome com CDP)
+- Precisa do Chrome aberto com a sessão logada (`MERCADO_LIVRE_CHROME_*`);
+  sem login: `MercadoLivreLoginRequiredError`.
+- Erro de um lote marca todos os produtos do lote com `status_link_afiliado='erro'`
+  e a mensagem em `erro_geracao_link_afiliado`. Produtos com `erro` são
+  retentados a cada coleta, sem limite.
+- `The condition is unknown`: recusa do gerador do ML para o produto; até hoje
+  sempre se repete nas novas tentativas.
 
 ## Convenções
 
