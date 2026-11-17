@@ -86,17 +86,60 @@ class MercadoLivreBrowser:
         except httpx.HTTPError:
             return False
 
+    CANDIDATOS_CHROME = (
+        "google-chrome",
+        "google-chrome-stable",
+        "chromium",
+        "chromium-browser",
+    )
+
     def _localizar_chrome(self) -> str:
-        chrome_path = self.settings.mercado_livre_chrome_path
-        executavel = shutil.which(chrome_path)
+        """Usa MERCADO_LIVRE_CHROME_PATH ou detecta o Chrome instalado."""
 
-        if executavel is None:
-            raise FileNotFoundError(
-                "Executável do Chrome não encontrado. "
-                "Verifique MERCADO_LIVRE_CHROME_PATH."
+        configurado = self.settings.mercado_livre_chrome_path
+        candidatos = (configurado,) if configurado else self.CANDIDATOS_CHROME
+
+        for candidato in candidatos:
+            executavel = shutil.which(candidato)
+
+            if executavel is not None:
+                return executavel
+
+        raise FileNotFoundError(
+            "Executável do Chrome não encontrado "
+            f"(procurado: {', '.join(candidatos)}). "
+            "Instale o Google Chrome ou defina MERCADO_LIVRE_CHROME_PATH."
+        )
+
+    def caminho_perfil(self) -> Path:
+        return Path(self.settings.mercado_livre_chrome_profile_dir)
+
+    def esta_aberto(self) -> bool:
+        """Indica se há um Chrome respondendo na porta CDP configurada."""
+
+        return self._cdp_disponivel()
+
+    def abrir(self) -> None:
+        """Abre o Chrome do projeto (ou reaproveita um já aberto)."""
+
+        self._validar_configuracao_cdp()
+        self._iniciar_chrome()
+
+    def fechar(self) -> bool:
+        """Fecha o Chrome do projeto pelo CDP. Retorna False se já estava fechado."""
+
+        if not self._cdp_disponivel():
+            return False
+
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.connect_over_cdp(
+                self.settings.mercado_livre_chrome_cdp_url,
+                timeout=self.TIMEOUT_CONEXAO_PLAYWRIGHT,
             )
+            sessao = browser.new_browser_cdp_session()
+            sessao.send("Browser.close")
 
-        return executavel
+        return True
 
     def _iniciar_chrome(self) -> None:
         if self._cdp_disponivel():
@@ -106,9 +149,7 @@ class MercadoLivreBrowser:
         porta = self._validar_configuracao_cdp()
         chrome = self._localizar_chrome()
 
-        perfil = Path(
-            self.settings.mercado_livre_chrome_profile_dir
-        ).expanduser()
+        perfil = self.caminho_perfil()
 
         perfil.mkdir(parents=True, exist_ok=True)
 
@@ -173,7 +214,7 @@ class MercadoLivreBrowser:
                 # Desconecta o Playwright sem encerrar o Chrome remoto.
                 browser.close()
 
-    def check_session(self) -> dict:
+    def verificar_sessao(self) -> dict:
         """Verifica se o perfil persistente mantém a sessão autenticada."""
 
         try:
