@@ -56,6 +56,14 @@ Pontos importantes:
   a execução fica liberada 24h.
 - Locks com `pg_advisory_xact_lock` evitam ciclos concorrentes (publicação por
   destino, alterações de janelas).
+- `execucoes_coleta.status`: `concluida`, `parcial` (alguma categoria falhou, outras
+  não) ou `falhou` (nenhuma categoria coletada). O registro só é commitado no fim
+  da coleta, então `em_andamento` não aparece para outras sessões.
+- `ciclos_publicacao`: um registro por ciclo automático de destino, com progresso
+  gravado a cada produto. Ciclos que ficaram `em_andamento` (API encerrada no
+  meio) viram `interrompido` no próximo ciclo do destino. Consulta: `GET /ciclos-publicacao`.
+- A Shopee devolve `error [10000]: System Error` de forma intermitente; o
+  `ShopeeClient` faz até 3 novas tentativas (2s, 4s, 8s).
 - O intervalo entre mensagens (20s, `PublicacaoLoteService`) é independente do
   intervalo entre ciclos de publicação (por destino, no banco).
 
