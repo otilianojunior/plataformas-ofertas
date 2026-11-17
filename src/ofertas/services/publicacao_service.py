@@ -1,6 +1,7 @@
-
+import logging
 from datetime import datetime, timedelta, timezone
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ofertas.models.configuracao_divulgacao import ConfiguracaoDivulgacao
@@ -15,9 +16,13 @@ from ofertas.repositories.configuracao_divulgacao_repository import (
     ConfiguracaoDivulgacaoRepository,
 )
 from ofertas.repositories.produto_repository import ProdutoRepository
+from ofertas.schemas.publicacao import PublicacaoResponse
 from ofertas.repositories.publicacao_repository import (
     PublicacaoRepository,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class PublicacaoService:
@@ -112,6 +117,12 @@ class PublicacaoService:
                 raise ValueError(
                     "A categoria não possui destinos de divulgação associados."
                 )
+
+        if (
+            destino_id not in destinos_ids
+            and session.get(DestinoDivulgacao, destino_id) is None
+        ):
+            raise LookupError("Destino de divulgação não encontrado.")
 
         if destino_id not in destinos_ids:
             raise ValueError(
@@ -391,3 +402,137 @@ class PublicacaoService:
             destino_id,
             publicacao=publicacao,
         )
+
+    def publicar_em_todos_destinos(
+        self,
+        session: Session,
+        produto_id: int,
+    ) -> dict:
+        """Publica o produto em todos os grupos ativos da sua categoria.
+
+        Cada grupo passa por todas as validações de publicar_produto
+        (elegibilidade, link afiliado, desconto, faixa de preço,
+        republicação e tentativas). O resultado de cada grupo é
+        confirmado (commit) logo após o envio, para que uma falha em um
+        grupo não desfaça o registro de uma mensagem já enviada a outro.
+        """
+
+        produto = self.produto_repository.buscar_por_id(
+            session,
+            produto_id,
+        )
+
+        if produto is None:
+            raise LookupError(
+                f"Produto de ID '{produto_id}' não encontrado."
+            )
+
+        categoria = self._buscar_categoria(session, produto)
+        categoria_id = categoria.id
+        nome_categoria = categoria.nome_categoria
+
+        destinos_ids = self.categoria_repository.listar_destinos_ids(
+            session,
+            categoria_id,
+        )
+
+        if not destinos_ids:
+            raise ValueError(
+                "A categoria do produto não possui grupos associados."
+            )
+
+        resultados = []
+
+        for destino_id in destinos_ids:
+            destino = session.get(DestinoDivulgacao, destino_id)
+            canal = (
+                session.get(
+                    PlataformaDivulgacao,
+                    destino.plataforma_divulgacao_id,
+                )
+                if destino is not None
+                else None
+            )
+
+            resultado = {
+                "destino_id": destino_id,
+                "nome_destino": (
+                    destino.nome_destino if destino is not None else "?"
+                ),
+                "codigo_canal": canal.codigo if canal is not None else "?",
+                "status": "ignorada",
+                "motivo": None,
+                "publicacao": None,
+            }
+            resultados.append(resultado)
+
+            if destino is None or canal is None:
+                resultado["motivo"] = "Grupo ou canal não encontrado."
+                continue
+
+            if not canal.status_plataforma:
+                resultado["motivo"] = "O canal de divulgação está inativo."
+                continue
+
+            if not destino.status_destino:
+                resultado["motivo"] = "O grupo está inativo."
+                continue
+
+            try:
+                publicacao = self.publicar_produto(
+                    session,
+                    produto_id,
+                    destino_id=destino_id,
+                )
+                session.commit()
+                session.refresh(publicacao)
+
+            except (ValueError, LookupError) as erro:
+                session.rollback()
+                resultado["motivo"] = str(erro)
+                continue
+
+            except IntegrityError:
+                session.rollback()
+                resultado["motivo"] = (
+                    "Publicação simultânea em andamento para este grupo."
+                )
+                continue
+
+            except Exception as erro:
+                session.rollback()
+                logger.exception(
+                    "Erro inesperado na publicação manual do produto %s "
+                    "no destino %s.",
+                    produto_id,
+                    destino_id,
+                )
+                resultado["status"] = "falhou"
+                resultado["motivo"] = f"{type(erro).__name__}: {erro}"
+                continue
+
+            # Copia os dados já confirmados: um rollback de outro grupo
+            # expiraria o objeto ORM antes da serialização da resposta.
+            resultado["publicacao"] = PublicacaoResponse.model_validate(
+                publicacao
+            )
+
+            if publicacao.status_publicacao == "publicada":
+                resultado["status"] = "publicada"
+            else:
+                resultado["status"] = "falhou"
+                resultado["motivo"] = publicacao.erro
+
+        def contar(status: str) -> int:
+            return sum(1 for r in resultados if r["status"] == status)
+
+        return {
+            "produto_id": produto_id,
+            "categoria_id": categoria_id,
+            "nome_categoria": nome_categoria,
+            "total_destinos": len(resultados),
+            "publicadas": contar("publicada"),
+            "falhas": contar("falhou"),
+            "ignoradas": contar("ignorada"),
+            "resultados": resultados,
+        }

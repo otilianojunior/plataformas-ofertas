@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -20,3 +21,27 @@ class PublicacaoResponse(BaseModel):
     erro: str | None
     created_at: datetime
     updated_at: datetime
+
+
+class ResultadoPublicacaoDestino(BaseModel):
+    """Resultado da publicação manual em um grupo."""
+
+    destino_id: int
+    nome_destino: str
+    codigo_canal: str
+    status: Literal["publicada", "falhou", "ignorada"]
+    motivo: str | None = None
+    publicacao: PublicacaoResponse | None = None
+
+
+class PublicacaoManualResponse(BaseModel):
+    """Resumo da publicação manual em todos os grupos da categoria."""
+
+    produto_id: int
+    categoria_id: int
+    nome_categoria: str
+    total_destinos: int
+    publicadas: int
+    falhas: int
+    ignoradas: int
+    resultados: list[ResultadoPublicacaoDestino]

@@ -7,7 +7,10 @@ from sqlalchemy.orm import Session
 
 from ofertas.db.session import get_db
 from ofertas.models.publicacao import Publicacao
-from ofertas.schemas.publicacao import PublicacaoResponse
+from ofertas.schemas.publicacao import (
+    PublicacaoManualResponse,
+    PublicacaoResponse,
+)
 from ofertas.services.publicacao_service import PublicacaoService
 
 
@@ -23,25 +26,40 @@ service = PublicacaoService()
 
 @router.post(
     "/produtos/{produto_id}",
-    response_model=PublicacaoResponse,
+    response_model=PublicacaoManualResponse,
+    summary="Publicar produto em todos os grupos da categoria",
+    description=(
+        "Publicação manual. Localiza a categoria do produto e tenta "
+        "publicar em cada grupo associado a ela cujo canal e grupo estejam "
+        "ativos, aplicando todas as regras de publicação (elegibilidade, "
+        "link afiliado, desconto mínimo, faixa de preço, republicação e "
+        "tentativas). Não obedece às janelas de execução. O resultado de "
+        "cada grupo vem em `resultados`. Grupos do WhatsApp são ignorados "
+        "até o publisher ser implementado."
+    ),
     responses={
-        404: {"description": "Produto, categoria ou destino não encontrado."},
-        409: {"description": "Publicação não permitida ou duplicada."},
-        502: {"description": "Falha ao publicar no Telegram."},
+        404: {"description": "Produto ou categoria não encontrado."},
+        409: {
+            "description": (
+                "Nenhum grupo pôde receber a publicação (categoria inativa, "
+                "sem grupos ou todos ignorados). O detalhe traz o motivo "
+                "de cada grupo."
+            )
+        },
+        502: {
+            "description": (
+                "Nenhuma publicação concluída e ao menos um envio falhou. "
+                "As tentativas ficam registradas no banco."
+            )
+        },
     },
 )
 def publicar_produto(
     produto_id: Annotated[int, Path(gt=0)],
     db: DbSession,
-) -> Publicacao:
+) -> PublicacaoManualResponse:
     try:
-        publicacao = service.publicar_produto(
-            db,
-            produto_id,
-        )
-
-        db.commit()
-        db.refresh(publicacao)
+        resumo = service.publicar_em_todos_destinos(db, produto_id)
 
     except LookupError as exc:
         db.rollback()
@@ -57,27 +75,27 @@ def publicar_produto(
             detail=str(exc),
         ) from exc
 
-    except IntegrityError as exc:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="A publicação viola uma restrição do banco de dados.",
-        ) from exc
-
     except Exception:
         db.rollback()
         raise
 
-    if publicacao.status_publicacao == "falhou":
+    resposta = PublicacaoManualResponse.model_validate(resumo)
+
+    if resposta.publicadas == 0:
+        codigo = (
+            status.HTTP_502_BAD_GATEWAY
+            if resposta.falhas
+            else status.HTTP_409_CONFLICT
+        )
         raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=(
-                "Falha ao publicar no Telegram. "
-                "A tentativa foi registrada no banco."
-            ),
+            status_code=codigo,
+            detail={
+                "mensagem": "O produto não foi publicado em nenhum grupo.",
+                **resposta.model_dump(mode="json"),
+            },
         )
 
-    return publicacao
+    return resposta
 
 
 @router.post(
