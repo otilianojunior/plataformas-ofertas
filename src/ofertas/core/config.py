@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,6 +23,13 @@ class Settings(BaseSettings):
 
     mercado_livre_chrome_cdp_url: str = "http://127.0.0.1:9222"
 
+    # WhatsApp Web (não oficial): Chrome com perfil próprio, logado por QR
+    # Code. Limites conservadores para reduzir o risco de restrição do número.
+    whatsapp_chrome_profile_dir: Path = Path("data/whatsapp_profile")
+    whatsapp_chrome_cdp_url: str = "http://127.0.0.1:9223"
+    whatsapp_intervalo_minimo_segundos: int = Field(default=120, ge=60)
+    whatsapp_limite_diario: int = Field(default=30, ge=1)
+
     log_level: str = "INFO"
 
     model_config = SettingsConfigDict(
@@ -38,7 +45,11 @@ class Settings(BaseSettings):
             return None
         return valor
 
-    @field_validator("mercado_livre_chrome_profile_dir", mode="after")
+    @field_validator(
+        "mercado_livre_chrome_profile_dir",
+        "whatsapp_chrome_profile_dir",
+        mode="after",
+    )
     @classmethod
     def _resolver_perfil(cls, valor: Path) -> Path:
         valor = valor.expanduser()

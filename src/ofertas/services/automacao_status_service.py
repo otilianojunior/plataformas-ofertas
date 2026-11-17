@@ -18,7 +18,9 @@ from ofertas.repositories.ciclo_publicacao_repository import (
     CicloPublicacaoRepository,
 )
 from ofertas.services.configuracao_sistema_service import (
+    CAMPO_PUBLICACAO_POR_CANAL,
     ConfiguracaoSistemaService,
+    publicacao_do_canal_ativa,
 )
 from ofertas.services.janela_execucao_service import (
     JanelaExecucaoService,
@@ -356,10 +358,10 @@ class AutomacaoStatusService:
             proxima_execucao = None
             habilitada_globalmente = configuracao.automacoes_ativas
 
-            if canal.codigo == "telegram":
-                habilitada_globalmente = (
-                    habilitada_globalmente
-                    and configuracao.publicacao_telegram_ativa
+            if canal.codigo in CAMPO_PUBLICACAO_POR_CANAL:
+                habilitada_globalmente = publicacao_do_canal_ativa(
+                    configuracao,
+                    canal.codigo,
                 )
 
                 pode_executar = (
@@ -409,13 +411,6 @@ class AutomacaoStatusService:
                     status_publicacao = "aguardando_intervalo"
                 else:
                     status_publicacao = "pronta_para_execucao"
-
-            elif canal.codigo == "whatsapp":
-                habilitada_globalmente = (
-                    habilitada_globalmente
-                    and configuracao.publicacao_whatsapp_ativa
-                )
-                status_publicacao = "publisher_nao_implementado"
 
             else:
                 status_publicacao = "canal_nao_suportado"
@@ -469,5 +464,9 @@ class AutomacaoStatusService:
             "publicacao_whatsapp_habilitada": (
                 configuracao.publicacao_whatsapp_ativa
             ),
-            "publicacao_whatsapp_status": "publisher_nao_implementado",
+            "publicacao_whatsapp_status": (
+                "ativa"
+                if publicacao_do_canal_ativa(configuracao, "whatsapp")
+                else "pausada"
+            ),
         }

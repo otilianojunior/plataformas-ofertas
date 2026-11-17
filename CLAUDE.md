@@ -79,6 +79,14 @@ Pontos importantes:
 - Categoria com `termo_busca`: coleta por termo dentro da categoria da loja
   (Shopee: keyword + productCatId; Mercado Livre: `/products/search`, pois
   `/sites/MLB/search` dá 403 — o catálogo traz produtos sem anúncio, descartados).
+- Publishers em `publishers/`: `base.PublisherBase` (validações, registro, falhas)
+  + `telegram.py` (Bot API) e `whatsapp.py` (WhatsApp Web via Playwright/CDP,
+  `whatsapp_web.py`, NÃO oficial). O `PublicacaoService` escolhe pelo código do
+  canal; cada canal liga/desliga por `publicacao_<canal>_ativa`
+  (`publicacao_do_canal_ativa`). WhatsApp: grupo = nome exato, sem credencial;
+  intervalo global e limite diário (settings `WHATSAPP_*`); `WhatsAppSessaoError`
+  (QR/restrição) pausa o canal. Seletores da página só em `SELETORES`.
+  Chrome dedicado genérico em `core/chrome_dedicado.py` (ML: 9222, WhatsApp: 9223).
 - Fuso horário e normalização de datas: `core/tempo.py` (`FUSO_HORARIO`, `garantir_utc`).
 - `configuracoes_sistema` é uma linha única (id=1) com os controles globais:
   `automacoes_ativas`, flags por automação, `intervalo_coleta_minutos`,
@@ -151,6 +159,6 @@ Pontos importantes:
 2. Monitoramento: últimas execuções ML/Shopee, ciclos por destino, persistir o
    estado da publicação em andamento, decidir se execuções manuais obedecem às janelas.
 3. ~~Documentação e infra~~ (concluída: README, Makefile, Docker Compose, systemd).
-4. Publisher WhatsApp (credenciais, destinos/categorias, regras, monitoramento).
+4. ~~Publisher WhatsApp~~ (WhatsApp Web; falta validar os seletores com a sessão real).
 5. Painel administrativo (frontend) sobre as rotas existentes.
 6. Fechamento: auditoria, segurança, erros, dependências, merge develop → main.

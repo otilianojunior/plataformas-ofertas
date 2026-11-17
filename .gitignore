@@ -33,5 +33,8 @@ Thumbs.db
 # Perfil persistente do Chrome (sessão autenticada do Mercado Livre)
 data/chrome_profile/
 
+# Perfil do Chrome do WhatsApp Web (sessão logada)
+data/whatsapp_profile/
+
 # Backups do banco (make db-backup)
 backups/

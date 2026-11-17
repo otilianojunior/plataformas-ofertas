@@ -34,6 +34,46 @@ class DestinoDivulgacaoService:
     ) -> DestinoDivulgacao | None:
         return self.repository.buscar_por_id(session, destino_id)
 
+    @staticmethod
+    def _validar_credencial(
+        session: Session,
+        plataforma,
+        dados: DestinoDivulgacaoCreate,
+    ) -> int | None:
+        """Telegram exige o token do bot; WhatsApp não usa credencial
+        (a sessão fica no Chrome do projeto)."""
+
+        if plataforma.codigo == "whatsapp":
+            return None
+
+        if dados.credencial_divulgacao_id is None:
+            raise ValueError(
+                "Informe a credencial (token do bot) para grupos do Telegram."
+            )
+
+        credencial = session.get(
+            CredencialDivulgacao,
+            dados.credencial_divulgacao_id,
+        )
+
+        if credencial is None:
+            raise LookupError(
+                f"Credencial de divulgação com ID "
+                f"{dados.credencial_divulgacao_id} não encontrada."
+            )
+
+        if credencial.plataforma_divulgacao_id != dados.plataforma_divulgacao_id:
+            raise ValueError(
+                "A credencial informada não pertence à plataforma selecionada."
+            )
+
+        if credencial.status_credencial != "ativa":
+            raise ValueError(
+                "Não é possível cadastrar destinos com uma credencial inativa."
+            )
+
+        return credencial.id
+
     def criar(
         self,
         session: Session,
@@ -64,29 +104,7 @@ class DestinoDivulgacaoService:
                 "de divulgação inativa."
             )
 
-        credencial = session.get(
-            CredencialDivulgacao,
-            dados.credencial_divulgacao_id,
-        )
-
-        if credencial is None:
-            raise LookupError(
-                f"Credencial de divulgação com ID "
-                f"{dados.credencial_divulgacao_id} não encontrada."
-            )
-
-        if (
-            credencial.plataforma_divulgacao_id
-            != dados.plataforma_divulgacao_id
-        ):
-            raise ValueError(
-                "A credencial informada não pertence à plataforma selecionada."
-            )
-
-        if credencial.status_credencial != "ativa":
-            raise ValueError(
-                "Não é possível cadastrar destinos com uma credencial inativa."
-            )
+        credencial_id = self._validar_credencial(session, plataforma, dados)
 
         existente = self.repository.buscar_por_identificador(
             session,
@@ -103,7 +121,7 @@ class DestinoDivulgacaoService:
         return self.repository.criar(
             session,
             plataforma_id=dados.plataforma_divulgacao_id,
-            credencial_id=dados.credencial_divulgacao_id,
+            credencial_id=credencial_id,
             identificador_destino=identificador,
             nome_destino=nome,
             status_destino=dados.status_destino,

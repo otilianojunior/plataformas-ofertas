@@ -8,6 +8,28 @@ from ofertas.repositories.configuracao_sistema_repository import (
 )
 
 
+# Flag de configuracoes_sistema que liga a publicação automática de cada canal.
+CAMPO_PUBLICACAO_POR_CANAL = {
+    "telegram": "publicacao_telegram_ativa",
+    "whatsapp": "publicacao_whatsapp_ativa",
+}
+
+
+def publicacao_do_canal_ativa(
+    configuracao: ConfiguracaoSistema,
+    codigo_canal: str,
+) -> bool:
+    """Automações gerais ligadas e a publicação do canal ligada."""
+
+    campo = CAMPO_PUBLICACAO_POR_CANAL.get(codigo_canal.lower())
+
+    return bool(
+        campo
+        and configuracao.automacoes_ativas
+        and getattr(configuracao, campo)
+    )
+
+
 class ConfiguracaoSistemaService:
     TEMPO_LIMITE_AGENDADOR_MINUTOS = 3
 

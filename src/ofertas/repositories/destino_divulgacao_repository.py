@@ -39,7 +39,7 @@ class DestinoDivulgacaoRepository:
         session: Session,
         *,
         plataforma_id: int,
-        credencial_id: int,
+        credencial_id: int | None,
         identificador_destino: str,
         nome_destino: str,
         status_destino: bool,

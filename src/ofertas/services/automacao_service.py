@@ -16,6 +16,7 @@ from ofertas.repositories.destino_divulgacao_repository import (
 )
 from ofertas.services.configuracao_sistema_service import (
     ConfiguracaoSistemaService,
+    publicacao_do_canal_ativa,
 )
 from ofertas.services.execucao_coleta_service import ExecucaoColetaService
 from ofertas.services.janela_execucao_service import (
@@ -31,7 +32,6 @@ class AutomacaoService:
 
     CODIGO_MERCADO_LIVRE = "mercado_livre"
     CODIGO_SHOPEE = "shopee"
-    CODIGO_TELEGRAM = "telegram"
 
     def __init__(
         self,
@@ -268,7 +268,7 @@ class AutomacaoService:
 
 
     def listar_destinos_publicacao_liberados(self) -> list[int]:
-        """Retorna os destinos Telegram cujo intervalo de ciclo venceu."""
+        """Retorna os grupos (Telegram/WhatsApp) cujo intervalo de ciclo venceu."""
 
         agora = datetime.now(timezone.utc)
         destinos_liberados = []
@@ -280,7 +280,6 @@ class AutomacaoService:
 
             if (
                 not configuracao_sistema.automacoes_ativas
-                or not configuracao_sistema.publicacao_telegram_ativa
                 or not self.janela_execucao_service.esta_em_horario_permitido(
                     session
                 )
@@ -311,7 +310,10 @@ class AutomacaoService:
                 if (
                     plataforma_destino is None
                     or not plataforma_destino.status_plataforma
-                    or plataforma_destino.codigo != self.CODIGO_TELEGRAM
+                    or not publicacao_do_canal_ativa(
+                        configuracao_sistema,
+                        plataforma_destino.codigo,
+                    )
                 ):
                     continue
 

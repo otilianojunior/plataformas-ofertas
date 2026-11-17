@@ -73,3 +73,38 @@ def formatar_mensagem(produto, nome_plataforma: str) -> str:
     partes.append(RODAPE_PUBLICACAO)
 
     return "\n".join(partes)
+
+
+def formatar_mensagem_whatsapp(produto, nome_plataforma: str) -> str:
+    """Gera o texto para o WhatsApp (*negrito*, ~riscado~, link visível)."""
+
+    link_afiliado = validar_link_afiliado(produto.url_afiliada)
+
+    # Asteriscos/tis no título quebrariam a formatação do WhatsApp.
+    titulo = " ".join(produto.titulo.split()).replace("*", "").replace("~", "")
+    plataforma = " ".join(nome_plataforma.split())
+
+    if not titulo:
+        raise ValueError("O título do produto não pode ficar vazio.")
+
+    if not plataforma:
+        raise ValueError("O nome da plataforma não pode ficar vazio.")
+
+    partes = [f"*{titulo}*", ""]
+
+    if (
+        produto.preco_original is not None
+        and produto.preco_original > produto.preco_atual
+    ):
+        partes.append(f"💰 De: ~{formatar_preco(produto.preco_original)}~")
+
+    partes.append(f"🔥 *Por: {formatar_preco(produto.preco_atual)}*")
+    partes.append("")
+
+    preposicao = "no" if plataforma.casefold() == "mercado livre" else "na"
+    partes.append(f"🛒 Compre {preposicao} *{plataforma}*: {link_afiliado}")
+    partes.append("")
+    partes.append(RODAPE_PUBLICACAO)
+
+    return "\n".join(partes)
+

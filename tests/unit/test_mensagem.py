@@ -57,3 +57,20 @@ def test_logs_do_httpx_nao_expoem_o_token_do_telegram():
 
     for nome in ("httpx", "httpcore"):
         assert not logging.getLogger(nome).isEnabledFor(logging.INFO)
+
+
+def test_mensagem_whatsapp():
+    from ofertas.publishers.mensagem import formatar_mensagem_whatsapp
+
+    mensagem = formatar_mensagem_whatsapp(_produto(titulo="Teclado *Gamer* ~RGB~"), "Shopee")
+
+    assert mensagem == (
+        "*Teclado Gamer RGB*\n"
+        "\n"
+        "💰 De: ~R$ 349,90~\n"
+        "🔥 *Por: R$ 199,90*\n"
+        "\n"
+        "🛒 Compre na *Shopee*: https://meli.la/abc?x=1&y=2\n"
+        "\n"
+        f"{RODAPE_PUBLICACAO}"
+    )

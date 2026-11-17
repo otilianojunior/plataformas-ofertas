@@ -23,6 +23,7 @@ from ofertas.api.automacoes import router as automacoes_router
 from ofertas.api.janelas_execucao import router as janelas_execucao_router
 from ofertas.api.ciclos_publicacao import router as ciclos_publicacao_router
 
+from ofertas.publishers.whatsapp_web import WhatsAppWebClient
 from ofertas.services.automacao_service import AutomacaoService
 from ofertas.services.publicacao_lote_service import PublicacaoLoteService
 
@@ -165,6 +166,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         encerrando.set()
         automacao.encerrando.set()
         publicacao_lote.encerrando.set()
+        WhatsAppWebClient.encerrando.set()
 
         await asyncio.gather(
             *tarefas_principais,

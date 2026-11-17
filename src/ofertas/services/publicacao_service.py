@@ -11,7 +11,9 @@ from ofertas.models.plataforma_categoria import PlataformaCategoria
 from ofertas.models.produto import Produto
 from ofertas.models.publicacao import Publicacao
 from ofertas.publishers.mensagem import formatar_preco
+from ofertas.publishers.base import PublisherBase
 from ofertas.publishers.telegram import TelegramPublisher
+from ofertas.publishers.whatsapp import WhatsAppPublisher
 from ofertas.repositories.categoria_repository import CategoriaRepository
 from ofertas.repositories.configuracao_divulgacao_repository import (
     ConfiguracaoDivulgacaoRepository,
@@ -41,6 +43,7 @@ class PublicacaoService:
         publicacao_repository: PublicacaoRepository | None = None,
         configuracao_repository: ConfiguracaoDivulgacaoRepository | None = None,
         telegram_publisher: TelegramPublisher | None = None,
+        whatsapp_publisher: WhatsAppPublisher | None = None,
     ) -> None:
         self.produto_repository = (
             produto_repository or ProdutoRepository()
@@ -56,6 +59,9 @@ class PublicacaoService:
         )
         self.telegram_publisher = (
             telegram_publisher or TelegramPublisher()
+        )
+        self.whatsapp_publisher = (
+            whatsapp_publisher or WhatsAppPublisher()
         )
 
     def _buscar_categoria(
@@ -133,13 +139,24 @@ class PublicacaoService:
         if not plataforma.status_plataforma:
             raise ValueError("O canal de divulgação está inativo.")
 
-        if plataforma.codigo.lower() != "telegram":
-            raise ValueError(
-                "O destino pertence ao WhatsApp, mas o publicador "
-                "desse canal ainda não foi implementado."
-            )
+        self._publisher_do_canal(plataforma.codigo)
 
         return destino_id
+
+    def _publisher_do_canal(self, codigo_canal: str) -> PublisherBase:
+        publishers = {
+            TelegramPublisher.CODIGO_CANAL: self.telegram_publisher,
+            WhatsAppPublisher.CODIGO_CANAL: self.whatsapp_publisher,
+        }
+
+        publisher = publishers.get(codigo_canal.lower())
+
+        if publisher is None:
+            raise ValueError(
+                f"Não há publicador para o canal '{codigo_canal}'."
+            )
+
+        return publisher
 
     def _validar_elegibilidade(
         self,
@@ -375,7 +392,13 @@ class PublicacaoService:
             destino_id,
         )
 
-        return self.telegram_publisher.publicar(
+        destino = session.get(DestinoDivulgacao, destino_id)
+        canal = session.get(
+            PlataformaDivulgacao,
+            destino.plataforma_divulgacao_id,
+        )
+
+        return self._publisher_do_canal(canal.codigo).publicar(
             session,
             produto,
             destino_id,

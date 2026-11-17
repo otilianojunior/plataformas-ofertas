@@ -52,7 +52,7 @@ def test_estrutura_do_status(client):
     assert corpo["horario_permitido"] is True  # sem janelas: 24h liberado
     assert {c["codigo"] for c in corpo["coletas"]} == {"mercado_livre", "shopee"}
     assert corpo["monitor"]["limite_sinal_minutos"] == 3
-    assert corpo["publicacao_whatsapp_status"] == "publisher_nao_implementado"
+    assert corpo["publicacao_whatsapp_status"] in {"ativa", "pausada"}
 
 
 def test_monitor_offline_sem_sinal_recente(client, db_session):

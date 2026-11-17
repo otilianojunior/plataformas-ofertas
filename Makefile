@@ -21,6 +21,7 @@ PSQL_DB = $(COMPOSE) exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$$POSTGRES_US
         db db-parar db-logs db-psql db-backup db-importar \
         migrar testes testes-unit api \
         chrome-login chrome-verificar chrome-status chrome-fechar \
+        whatsapp-login whatsapp-verificar whatsapp-status whatsapp-fechar whatsapp-teste \
         servico-instalar servico-iniciar servico-parar servico-reiniciar \
         servico-status servico-logs servico-desinstalar
 
@@ -104,6 +105,23 @@ chrome-status: ## Mostra o Chrome e o perfil detectados
 
 chrome-fechar: ## Fecha o Chrome do projeto
 	$(PY) -m scripts.chrome_mercado_livre fechar
+
+# ------------------------------------------- WhatsApp Web (não oficial)
+whatsapp-login: ## Abre o Chrome do WhatsApp para ler o QR Code
+	$(PY) -m scripts.whatsapp_web login
+
+whatsapp-verificar: ## Confere se o WhatsApp Web está conectado
+	$(PY) -m scripts.whatsapp_web verificar
+
+whatsapp-status: ## Mostra perfil, porta e limites do WhatsApp
+	$(PY) -m scripts.whatsapp_web status
+
+whatsapp-fechar: ## Fecha o Chrome do WhatsApp
+	$(PY) -m scripts.whatsapp_web fechar
+
+whatsapp-teste: ## Prepara mensagem de teste SEM enviar: make whatsapp-teste GRUPO="Nome" [ENVIAR=1]
+	@test -n "$(GRUPO)" || { echo 'Informe GRUPO="Nome exato do grupo"'; exit 1; }
+	$(PY) -m scripts.whatsapp_web teste "$(GRUPO)" $(if $(ENVIAR),--enviar,)
 
 # ----------------------------------------------------------- serviço systemd
 servico-instalar: ## Instala a API como serviço (sobe junto com a sessão gráfica)

@@ -7,6 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from ofertas.core.config import get_settings
 from ofertas.db.session import SessionLocal, engine
 from ofertas.models.configuracao_sistema import ConfiguracaoSistema
 from ofertas.models.plataforma import Plataforma
@@ -28,6 +29,9 @@ from ofertas.core.similaridade_produto import (
 )
 from ofertas.repositories.produto_repository import ProdutoRepository
 from ofertas.repositories.publicacao_repository import PublicacaoRepository
+from ofertas.services.configuracao_sistema_service import (
+    publicacao_do_canal_ativa,
+)
 from ofertas.services.publicacao_service import PublicacaoService
 from ofertas.services.janela_execucao_service import (
     JanelaExecucaoService,
@@ -43,7 +47,6 @@ class PublicacaoLoteService:
     LOCK_NAMESPACE = 20261110
     INTERVALO_ENTRE_MENSAGENS_SEGUNDOS = 20
     FATOR_CANDIDATOS_EXTRAS = 4
-    CODIGO_TELEGRAM = "telegram"
 
     def __init__(
         self,
@@ -113,7 +116,6 @@ class PublicacaoLoteService:
         if (
             plataforma_destino is None
             or not plataforma_destino.status_plataforma
-            or plataforma_destino.codigo != self.CODIGO_TELEGRAM
         ):
             return None
 
@@ -122,10 +124,9 @@ class PublicacaoLoteService:
             1,
         )
 
-        if (
-            configuracao_sistema is None
-            or not configuracao_sistema.automacoes_ativas
-            or not configuracao_sistema.publicacao_telegram_ativa
+        if configuracao_sistema is None or not publicacao_do_canal_ativa(
+            configuracao_sistema,
+            plataforma_destino.codigo,
         ):
             return None
 
@@ -135,6 +136,22 @@ class PublicacaoLoteService:
             return None
 
         return configuracao
+
+    def _intervalo_entre_mensagens(self, destino_id: int) -> int:
+        """Telegram: 20s. WhatsApp: o intervalo mínimo configurado (≥ 60s)."""
+
+        with SessionLocal() as session:
+            destino = self.destino_repository.buscar_por_id(session, destino_id)
+            canal = (
+                session.get(PlataformaDivulgacao, destino.plataforma_divulgacao_id)
+                if destino is not None
+                else None
+            )
+
+        if canal is not None and canal.codigo == "whatsapp":
+            return get_settings().whatsapp_intervalo_minimo_segundos
+
+        return self.INTERVALO_ENTRE_MENSAGENS_SEGUNDOS
 
     def _selecionar_candidatos(
         self,
@@ -467,6 +484,7 @@ class PublicacaoLoteService:
         ignoradas = 0
         ultima_mensagem_em = None
         status_ciclo = "concluido"
+        intervalo_mensagens = self._intervalo_entre_mensagens(destino_id)
 
         for indice, (categoria_id, nome_categoria, produto_id) in enumerate(
             candidatos
@@ -496,7 +514,7 @@ class PublicacaoLoteService:
 
                 tempo_decorrido = time.monotonic() - ultima_mensagem_em
                 tempo_restante = (
-                    self.INTERVALO_ENTRE_MENSAGENS_SEGUNDOS
+                    intervalo_mensagens
                     - tempo_decorrido
                 )
 

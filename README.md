@@ -1,8 +1,8 @@
 # Plataformas de Ofertas
 
 Coleta ofertas de lojas (Mercado Livre e Shopee), gera links de afiliado e
-publica as melhores ofertas em grupos do Telegram, de forma automática e com
-controle de horários, limites e regras de desconto. O WhatsApp está planejado.
+publica as melhores ofertas em grupos do Telegram e do WhatsApp, de forma
+automática e com controle de horários, limites e regras de desconto.
 
 ## Como funciona
 
@@ -123,6 +123,10 @@ Rode `make` para ver todos. Os principais:
 | `MERCADO_LIVRE_CHROME_PROFILE_DIR` | não | `data/chrome_profile` | perfil do Chrome do projeto (relativo à raiz) |
 | `MERCADO_LIVRE_CHROME_PATH` | não | detectado | executável do Chrome |
 | `MERCADO_LIVRE_CHROME_CDP_URL` | não | `http://127.0.0.1:9222` | porta de depuração do Chrome (só local) |
+| `WHATSAPP_CHROME_PROFILE_DIR` | não | `data/whatsapp_profile` | perfil do Chrome do WhatsApp |
+| `WHATSAPP_CHROME_CDP_URL` | não | `http://127.0.0.1:9223` | porta de depuração do Chrome do WhatsApp |
+| `WHATSAPP_INTERVALO_MINIMO_SEGUNDOS` | não | `120` | intervalo entre mensagens no WhatsApp (mín. 60) |
+| `WHATSAPP_LIMITE_DIARIO` | não | `30` | mensagens por dia no WhatsApp |
 | `LOG_LEVEL` | não | `INFO` | nível dos logs |
 
 Para gerar a chave de criptografia:
@@ -149,6 +153,44 @@ make chrome-verificar  # "Sessão autenticada" = pronto
 Se a pasta for apagada ou a sessão expirar, a geração de links do Mercado Livre
 falha (`MercadoLivreLoginRequiredError`). Basta repetir o `make chrome-login`.
 Não copie o perfil entre computadores: faça o login em cada um.
+
+## WhatsApp (WhatsApp Web, não oficial)
+
+> **Risco:** controlar o WhatsApp Web por automação viola os termos do
+> WhatsApp e o número pode ser **restringido ou banido**. Use um número que
+> você aceite perder e só em grupos seus, cujos participantes aceitaram
+> receber ofertas.
+
+Como o Mercado Livre, usa um Chrome com perfil próprio (`data/whatsapp_profile`,
+porta 9223), logado uma vez por QR Code. O grupo é identificado pelo **nome
+exato** do grupo no WhatsApp, e não precisa de credencial.
+
+```bash
+make whatsapp-login                      # abre o Chrome; leia o QR Code no celular
+make whatsapp-verificar                  # "Sessão conectada" = pronto
+make whatsapp-teste GRUPO="Nome do grupo"            # digita a mensagem SEM enviar
+make whatsapp-teste GRUPO="Nome do grupo" ENVIAR=1   # envia uma mensagem de teste
+```
+
+Cadastre o grupo em `POST /grupos` (canal `whatsapp`, `identificador_destino` =
+nome do grupo), crie a configuração em `POST /grupos/{id}/configuracao`, associe
+as categorias em `POST /categorias/{id}/grupos/{grupo_id}` e ligue com
+`POST /configuracoes-sistema/automacoes/publicacao_whatsapp/ativar`.
+
+Proteções (comportamento conservador, sem disfarçar a automação):
+
+| Proteção | Padrão |
+|---|---|
+| Intervalo mínimo entre quaisquer duas mensagens, somando todos os grupos | `WHATSAPP_INTERVALO_MINIMO_SEGUNDOS=120` (mínimo 60) |
+| Limite diário, somando todos os grupos | `WHATSAPP_LIMITE_DIARIO=30` |
+| Um envio por vez | sempre |
+| Só dentro das janelas de execução | sempre |
+| Confere o nome do grupo aberto antes de enviar | sempre |
+| Pausa automática se a sessão cair (QR Code) ou a conta for restringida | `publicacao_whatsapp_ativa` vira `false` e o log mostra o motivo |
+
+Recomendações: comece com um limite baixo (ex.: 10 por dia na primeira semana),
+use um número com histórico de uso normal, seja administrador dos grupos, não
+adicione pessoas sem consentimento e mantenha o celular conectado à internet.
 
 ## Rotas da API
 

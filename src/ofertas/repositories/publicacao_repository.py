@@ -1,10 +1,12 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ofertas.models.destino_divulgacao import DestinoDivulgacao
 from ofertas.models.plataforma import Plataforma
+from ofertas.models.plataforma_divulgacao import PlataformaDivulgacao
 from ofertas.models.produto import Produto
 from ofertas.models.publicacao import Publicacao
 from ofertas.core.similaridade_produto import PublicacaoRecente
@@ -86,6 +88,32 @@ class PublicacaoRepository:
             )
             for produto_id, titulo, preco, loja in linhas
         ]
+
+    def contar_publicadas_canal_desde(
+        self,
+        session: Session,
+        codigo_canal: str,
+        desde: datetime,
+    ) -> int:
+        """Mensagens confirmadas em todos os grupos de um canal desde `desde`."""
+
+        return session.scalar(
+            select(func.count(Publicacao.id))
+            .join(
+                DestinoDivulgacao,
+                DestinoDivulgacao.id == Publicacao.destino_divulgacao_id,
+            )
+            .join(
+                PlataformaDivulgacao,
+                PlataformaDivulgacao.id
+                == DestinoDivulgacao.plataforma_divulgacao_id,
+            )
+            .where(
+                PlataformaDivulgacao.codigo == codigo_canal,
+                Publicacao.status_publicacao == "publicada",
+                Publicacao.publicada_em >= desde,
+            )
+        ) or 0
 
     def criar(
         self,
