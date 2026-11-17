@@ -1,5 +1,4 @@
 from decimal import Decimal
-from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
 from ofertas.models.destino_divulgacao import DestinoDivulgacao
@@ -76,10 +75,8 @@ class CategoriaService:
                 f"Plataforma de ID '{dados.plataforma_id}' não encontrada."
             )
 
-        self._validar_destino_divulgacao(
-            session,
-            dados.destino_divulgacao_id,
-        )
+        for grupo_id in dados.grupos_ids:
+            self._validar_destino_divulgacao(session, grupo_id)
 
         id_externo = dados.id_categoria_plataforma.strip()
         nome = dados.nome_categoria.strip()
@@ -113,15 +110,14 @@ class CategoriaService:
             nome_categoria=nome,
             desconto_minimo_percentual=dados.desconto_minimo_percentual,
             etiqueta_afiliado=etiqueta,
-            destino_divulgacao_id=dados.destino_divulgacao_id,
             status_categoria=dados.status_categoria,
         )
 
-        if dados.destino_divulgacao_id is not None:
+        for grupo_id in dict.fromkeys(dados.grupos_ids):
             self.repository.associar_destino(
                 session,
                 categoria.id,
-                dados.destino_divulgacao_id,
+                grupo_id,
             )
 
         return categoria
@@ -181,46 +177,6 @@ class CategoriaService:
             etiqueta_normalizada,
         )
 
-    def atualizar_destino_divulgacao(
-        self,
-        session: Session,
-        categoria_id: int,
-        destino_id: int | None,
-    ) -> PlataformaCategoria:
-        """Atualiza o destino principal legado sem apagar outros vínculos."""
-        categoria = self.repository.buscar_por_id(session, categoria_id)
-
-        if categoria is None:
-            raise LookupError(
-                f"Categoria de ID '{categoria_id}' não encontrada."
-            )
-
-        self._validar_destino_divulgacao(session, destino_id)
-
-        destino_anterior = categoria.destino_divulgacao_id
-
-        if destino_anterior != destino_id and destino_anterior is not None:
-            self.repository.desassociar_destino(
-                session,
-                categoria_id,
-                destino_anterior,
-            )
-
-        categoria = self.repository.atualizar_destino_divulgacao(
-            session,
-            categoria,
-            destino_id,
-        )
-
-        if destino_id is not None:
-            self.repository.associar_destino(
-                session,
-                categoria_id,
-                destino_id,
-            )
-
-        return categoria
-
     def listar_destinos(
         self,
         session: Session,
@@ -253,13 +209,6 @@ class CategoriaService:
         self._validar_destino_divulgacao(session, destino_id)
         self.repository.associar_destino(session, categoria_id, destino_id)
 
-        if categoria.destino_divulgacao_id is None:
-            categoria = self.repository.atualizar_destino_divulgacao(
-                session,
-                categoria,
-                destino_id,
-            )
-
         return categoria
 
     def desassociar_destino(
@@ -291,80 +240,4 @@ class CategoriaService:
             destino_id,
         )
 
-        if categoria.destino_divulgacao_id == destino_id:
-            destinos_restantes = self.repository.listar_destinos_ids(
-                session,
-                categoria_id,
-            )
-            proximo_destino = (
-                destinos_restantes[0] if destinos_restantes else None
-            )
-            categoria = self.repository.atualizar_destino_divulgacao(
-                session,
-                categoria,
-                proximo_destino,
-            )
-
         return categoria
-
-    TAMANHO_LOTE_SELECAO = 10
-    PERIODO_RENOVACAO_DIAS = 7
-    LIMITE_MAXIMO_SELECAO = 1000
-
-    def preparar_selecao_coleta(
-        self,
-        session: Session,
-        categoria: PlataformaCategoria,
-    ) -> PlataformaCategoria:
-        """Reinicia a seleção quando completar sete dias."""
-
-        agora = datetime.now(timezone.utc)
-        renovacao = categoria.selecao_renovada_em
-
-        if renovacao is not None and renovacao.tzinfo is None:
-            renovacao = renovacao.replace(tzinfo=timezone.utc)
-
-        precisa_renovar = (
-            renovacao is None
-            or agora - renovacao
-            >= timedelta(days=self.PERIODO_RENOVACAO_DIAS)
-        )
-
-        if not precisa_renovar:
-            return categoria
-
-        return self.repository.atualizar_selecao(
-            session,
-            categoria,
-            limite_produtos_selecao=self.TAMANHO_LOTE_SELECAO,
-            selecao_renovada_em=agora,
-        )
-
-    def avancar_selecao_coleta(
-        self,
-        session: Session,
-        categoria: PlataformaCategoria,
-        total_resultados: int,
-    ) -> PlataformaCategoria:
-        """Amplia a seleção em até dez produtos quando há mais resultados."""
-
-        limite_atual = categoria.limite_produtos_selecao
-
-        if total_resultados <= limite_atual:
-            return categoria
-
-        proximo_limite = min(
-            limite_atual + self.TAMANHO_LOTE_SELECAO,
-            total_resultados,
-            self.LIMITE_MAXIMO_SELECAO,
-        )
-
-        if proximo_limite <= limite_atual:
-            return categoria
-
-        return self.repository.atualizar_selecao(
-            session,
-            categoria,
-            limite_produtos_selecao=proximo_limite,
-            selecao_renovada_em=categoria.selecao_renovada_em,
-        )

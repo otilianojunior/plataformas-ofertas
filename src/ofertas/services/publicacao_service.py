@@ -88,35 +88,18 @@ class PublicacaoService:
 
         return categoria
 
-    def _resolver_destino(
+    def _validar_destino(
         self,
         session: Session,
         categoria: PlataformaCategoria,
-        destino_id: int | None,
+        destino_id: int,
     ) -> int:
-        """Resolve e valida um destino associado à categoria."""
+        """Valida que o grupo existe, está ativo e pertence à categoria."""
 
         destinos_ids = self.categoria_repository.listar_destinos_ids(
             session,
             categoria.id,
         )
-
-        if destino_id is None:
-            destino_legado = categoria.destino_divulgacao_id
-
-            if destino_legado in destinos_ids:
-                destino_id = destino_legado
-            elif len(destinos_ids) == 1:
-                destino_id = destinos_ids[0]
-            elif len(destinos_ids) > 1:
-                raise ValueError(
-                    "A categoria possui vários destinos. "
-                    "Informe explicitamente o destino da publicação."
-                )
-            else:
-                raise ValueError(
-                    "A categoria não possui destinos de divulgação associados."
-                )
 
         if (
             destino_id not in destinos_ids
@@ -328,7 +311,7 @@ class PublicacaoService:
         self,
         session: Session,
         produto_id: int,
-        destino_id: int | None = None,
+        destino_id: int,
     ) -> Publicacao:
         """Publica um produto em um destino associado à sua categoria."""
 
@@ -347,7 +330,7 @@ class PublicacaoService:
             produto,
         )
 
-        destino_id = self._resolver_destino(
+        self._validar_destino(
             session,
             categoria,
             destino_id,

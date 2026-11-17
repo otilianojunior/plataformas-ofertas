@@ -1,11 +1,14 @@
 from datetime import datetime, timedelta, timezone
-from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ofertas.core.tempo import (
+    FUSO_HORARIO,
+    NOME_FUSO_HORARIO,
+    garantir_utc,
+)
 from ofertas.models.configuracao_divulgacao import ConfiguracaoDivulgacao
-from ofertas.models.configuracao_sistema import ConfiguracaoSistema
 from ofertas.models.destino_divulgacao import DestinoDivulgacao
 from ofertas.models.execucao_coleta import ExecucaoColeta
 from ofertas.models.plataforma import Plataforma
@@ -21,8 +24,6 @@ from ofertas.services.janela_execucao_service import (
     JanelaExecucaoService,
 )
 
-
-FUSO_HORARIO = ZoneInfo("America/Sao_Paulo")
 
 
 class AutomacaoStatusService:
@@ -55,12 +56,6 @@ class AutomacaoStatusService:
             ciclo_repository or CicloPublicacaoRepository()
         )
 
-    @staticmethod
-    def _normalizar_data(data: datetime) -> datetime:
-        if data.tzinfo is None:
-            return data.replace(tzinfo=timezone.utc)
-        return data
-
     @classmethod
     def _proxima_data_permitida(
         cls,
@@ -75,8 +70,8 @@ class AutomacaoStatusService:
         """
 
         primeira_data_local = max(
-            cls._normalizar_data(primeira_data),
-            cls._normalizar_data(agora),
+            garantir_utc(primeira_data),
+            garantir_utc(agora),
         ).astimezone(FUSO_HORARIO)
 
         if not janelas_ativas:
@@ -152,8 +147,10 @@ class AutomacaoStatusService:
 
         if ultimo_sinal is not None:
             monitor_online = (
-                agora_utc - self._normalizar_data(ultimo_sinal)
-                <= timedelta(minutes=3)
+                agora_utc - garantir_utc(ultimo_sinal)
+                <= timedelta(
+                    minutes=self.configuracao_sistema_service.TEMPO_LIMITE_AGENDADOR_MINUTOS
+                )
             )
 
         janelas = self.janela_execucao_service.listar(session)
@@ -172,7 +169,9 @@ class AutomacaoStatusService:
             "status": "online" if monitor_online else "offline",
             "online": monitor_online,
             "ultimo_sinal_em": ultimo_sinal,
-            "limite_sinal_minutos": 3,
+            "limite_sinal_minutos": (
+                self.configuracao_sistema_service.TEMPO_LIMITE_AGENDADOR_MINUTOS
+            ),
         }
 
         # Status individual das coletas de cada marketplace.
@@ -232,7 +231,7 @@ class AutomacaoStatusService:
                         or ultima.iniciada_em
                     )
                     primeira_data = (
-                        self._normalizar_data(referencia)
+                        garantir_utc(referencia)
                         + timedelta(
                             minutes=configuracao.intervalo_coleta_minutos
                         )
@@ -376,7 +375,7 @@ class AutomacaoStatusService:
                         agora_local
                         if ultima_execucao_ciclo is None
                         else (
-                            self._normalizar_data(
+                            garantir_utc(
                                 ultima_execucao_ciclo
                             )
                             + timedelta(
@@ -460,7 +459,7 @@ class AutomacaoStatusService:
 
         return {
             "consultado_em": agora_local,
-            "fuso_horario": "America/Sao_Paulo",
+            "fuso_horario": NOME_FUSO_HORARIO,
             "horario_permitido": horario_permitido,
             "configuracoes_sistema": configuracao,
             "monitor": monitor,

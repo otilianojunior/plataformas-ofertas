@@ -99,7 +99,7 @@ def publicar_produto(
 
 
 @router.post(
-    "/produtos/{produto_id}/destinos/{destino_id}",
+    "/produtos/{produto_id}/grupos/{grupo_id}",
     response_model=PublicacaoResponse,
     summary="Publicar produto em um grupo específico",
     description=(
@@ -112,16 +112,16 @@ def publicar_produto(
         502: {"description": "Falha no envio ao Telegram."},
     },
 )
-def publicar_produto_em_destino(
+def publicar_produto_em_grupo(
     produto_id: Annotated[int, Path(gt=0)],
-    destino_id: Annotated[int, Path(gt=0)],
+    grupo_id: Annotated[int, Path(gt=0)],
     db: DbSession,
 ) -> Publicacao:
     try:
         publicacao = service.publicar_produto(
             db,
             produto_id,
-            destino_id=destino_id,
+            destino_id=grupo_id,
         )
 
         db.commit()

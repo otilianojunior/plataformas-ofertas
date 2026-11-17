@@ -5,7 +5,6 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class ConfiguracaoDivulgacaoCreate(BaseModel):
-    destino_divulgacao_id: int = Field(gt=0)
     desconto_minimo_percentual: Decimal = Field(
         default=Decimal("0"),
         ge=0,

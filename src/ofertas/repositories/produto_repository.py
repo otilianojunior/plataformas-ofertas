@@ -158,31 +158,6 @@ class ProdutoRepository:
         session.execute(consulta)
         session.flush()
 
-    def listar_selecao_categoria(
-        self,
-        session: Session,
-        categoria_id: int,
-        limite: int | None = None,
-    ) -> list[Produto]:
-        """Lista os produtos selecionados na ordem de prioridade."""
-
-        consulta = (
-            select(Produto)
-            .where(
-                Produto.categoria_id == categoria_id,
-                Produto.posicao_selecao_categoria.is_not(None),
-            )
-            .order_by(
-                Produto.posicao_selecao_categoria.asc(),
-                Produto.id.asc(),
-            )
-        )
-
-        if limite is not None:
-            consulta = consulta.limit(limite)
-
-        return list(session.scalars(consulta).all())
-
     def listar_candidatos_publicacao(
         self,
         session: Session,

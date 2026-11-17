@@ -15,8 +15,10 @@ from ofertas.services.configuracao_divulgacao_service import (
 )
 
 
+# Rotas aninhadas em /grupos. Este router é incluído antes do router de
+# grupos para que /grupos/configuracoes não seja lido como /grupos/{grupo_id}.
 router = APIRouter(
-    prefix="/configuracoes-divulgacao",
+    prefix="/grupos",
     tags=["Configurações de divulgação"],
 )
 
@@ -24,8 +26,9 @@ DbSession = Annotated[Session, Depends(get_db)]
 
 
 @router.get(
-    "",
+    "/configuracoes",
     response_model=list[ConfiguracaoDivulgacaoResponse],
+    summary="Listar a configuração de divulgação de todos os grupos",
 )
 def listar_configuracoes(
     db: DbSession,
@@ -34,17 +37,18 @@ def listar_configuracoes(
 
 
 @router.get(
-    "/{destino_id}",
+    "/{grupo_id}/configuracao",
+    summary="Consultar a configuração de divulgação do grupo",
     response_model=ConfiguracaoDivulgacaoResponse,
     responses={404: {"description": "Configuração de divulgação não encontrada."}},
 )
 def buscar_configuracao(
-    destino_id: Annotated[int, Path(gt=0)],
+    grupo_id: Annotated[int, Path(gt=0)],
     db: DbSession,
 ) -> ConfiguracaoDivulgacaoResponse:
     configuracao = ConfiguracaoDivulgacaoService().buscar_por_destino(
         db,
-        destino_id,
+        grupo_id,
     )
 
     if configuracao is None:
@@ -57,22 +61,24 @@ def buscar_configuracao(
 
 
 @router.post(
-    "",
+    "/{grupo_id}/configuracao",
+    summary="Criar a configuração de divulgação do grupo",
     response_model=ConfiguracaoDivulgacaoResponse,
     status_code=status.HTTP_201_CREATED,
     responses={
-        404: {"description": "Destino não encontrado."},
+        404: {"description": "Grupo não encontrado."},
         409: {"description": "Configuração duplicada ou conflito com o banco."},
     },
 )
 def criar_configuracao(
+    grupo_id: Annotated[int, Path(gt=0)],
     dados: ConfiguracaoDivulgacaoCreate,
     db: DbSession,
 ) -> ConfiguracaoDivulgacaoResponse:
     try:
         configuracao = ConfiguracaoDivulgacaoService().criar(
             db,
-            destino_id=dados.destino_divulgacao_id,
+            destino_id=grupo_id,
             desconto_minimo_percentual=dados.desconto_minimo_percentual,
             preco_minimo=dados.preco_minimo,
             preco_maximo=dados.preco_maximo,
@@ -107,7 +113,8 @@ def criar_configuracao(
 
 
 @router.patch(
-    "/{destino_id}",
+    "/{grupo_id}/configuracao",
+    summary="Alterar a configuração de divulgação do grupo",
     response_model=ConfiguracaoDivulgacaoResponse,
     responses={
         404: {"description": "Configuração não encontrada."},
@@ -115,14 +122,14 @@ def criar_configuracao(
     },
 )
 def atualizar_configuracao(
-    destino_id: Annotated[int, Path(gt=0)],
+    grupo_id: Annotated[int, Path(gt=0)],
     dados: ConfiguracaoDivulgacaoUpdate,
     db: DbSession,
 ) -> ConfiguracaoDivulgacaoResponse:
     try:
         configuracao = ConfiguracaoDivulgacaoService().atualizar(
             db,
-            destino_id,
+            grupo_id,
             dados.model_dump(exclude_unset=True),
         )
         db.commit()

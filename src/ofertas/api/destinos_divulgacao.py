@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -16,8 +16,8 @@ from ofertas.services.destino_divulgacao_service import (
 
 
 router = APIRouter(
-    prefix="/destinos-divulgacao",
-    tags=["Destinos de publicação"],
+    prefix="/grupos",
+    tags=["Grupos de publicação"],
 )
 
 DbSession = Annotated[Session, Depends(get_db)]
@@ -31,17 +31,17 @@ def listar_destinos(
 
 
 @router.get(
-    "/{destino_id}",
+    "/{grupo_id}",
     response_model=DestinoDivulgacaoResponse,
     responses={404: {"description": "Destino de divulgação não encontrado."}},
 )
 def buscar_destino(
-    destino_id: Annotated[int, Path(gt=0)],
+    grupo_id: Annotated[int, Path(gt=0)],
     db: DbSession,
 ) -> DestinoDivulgacaoResponse:
     destino = DestinoDivulgacaoService().buscar_por_id(
         db,
-        destino_id,
+        grupo_id,
     )
 
     if destino is None:
@@ -95,19 +95,19 @@ def criar_destino(
 
 
 @router.patch(
-    "/{destino_id}/status",
+    "/{grupo_id}/status",
     response_model=DestinoDivulgacaoResponse,
     responses={404: {"description": "Destino de divulgação não encontrado."}},
 )
 def atualizar_status_destino(
-    destino_id: Annotated[int, Path(gt=0)],
+    grupo_id: Annotated[int, Path(gt=0)],
     dados: DestinoDivulgacaoStatusUpdate,
     db: DbSession,
 ) -> DestinoDivulgacaoResponse:
     try:
         destino = DestinoDivulgacaoService().atualizar_status(
             db,
-            destino_id,
+            grupo_id,
             dados.status_destino,
         )
         db.commit()

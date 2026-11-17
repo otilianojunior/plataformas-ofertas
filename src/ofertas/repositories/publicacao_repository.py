@@ -1,7 +1,6 @@
-from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ofertas.models.publicacao import Publicacao
@@ -75,44 +74,6 @@ class PublicacaoRepository:
         return session.scalars(consulta).first()
 
 
-    def buscar_ultima_publicada_destino(
-        self,
-        session: Session,
-        destino_id: int,
-    ) -> Publicacao | None:
-        """Busca a última publicação bem-sucedida de um destino."""
-
-        consulta = (
-            select(Publicacao)
-            .where(
-                Publicacao.destino_divulgacao_id == destino_id,
-                Publicacao.status_publicacao == "publicada",
-            )
-            .order_by(
-                Publicacao.publicada_em.desc(),
-                Publicacao.id.desc(),
-            )
-            .limit(1)
-        )
-
-        return session.scalars(consulta).first()
-
-    def contar_publicadas_desde(
-        self,
-        session: Session,
-        destino_id: int,
-        desde: datetime,
-    ) -> int:
-        """Conta publicações bem-sucedidas de um destino desde um horário."""
-
-        consulta = select(func.count(Publicacao.id)).where(
-            Publicacao.destino_divulgacao_id == destino_id,
-            Publicacao.status_publicacao == "publicada",
-            Publicacao.publicada_em >= desde,
-        )
-
-        return session.scalar(consulta) or 0
-
     def criar(
         self,
         session: Session,
@@ -162,21 +123,3 @@ class PublicacaoRepository:
 
         session.flush()
         return publicacao
-
-    def listar_por_produto(
-        self,
-        session: Session,
-        produto_id: int,
-    ) -> list[Publicacao]:
-        """Lista o histórico de publicações de um produto."""
-
-        consulta = (
-            select(Publicacao)
-            .where(Publicacao.produto_id == produto_id)
-            .order_by(
-                Publicacao.created_at.desc(),
-                Publicacao.id.desc(),
-            )
-        )
-
-        return list(session.scalars(consulta).all())

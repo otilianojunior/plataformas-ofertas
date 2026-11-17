@@ -457,26 +457,6 @@ class ShopeeClient:
             limit=limit,
         )
 
-    def buscar_ofertas_por_palavra_chave(
-        self,
-        session: Session,
-        keyword: str,
-        sort_type: int = 2,
-        *,
-        page: int = 1,
-        limit: int = 10,
-    ) -> dict:
-        """Busca ofertas usando o nome da categoria como palavra-chave."""
-
-        return self._buscar_ofertas(
-            session,
-            keyword=keyword,
-            categoria_id=None,
-            sort_type=sort_type,
-            page=page,
-            limit=limit,
-        )
-
     def gerar_link_afiliado(
         self,
         session: Session,

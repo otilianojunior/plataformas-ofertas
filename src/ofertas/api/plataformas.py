@@ -13,7 +13,7 @@ from ofertas.schemas.plataforma import (
 from ofertas.services.plataforma_service import PlataformaService
 
 
-router = APIRouter(prefix="/plataformas", tags=["Lojas de origem das ofertas"])
+router = APIRouter(prefix="/lojas", tags=["Lojas de origem das ofertas"])
 DbSession = Annotated[Session, Depends(get_db)]
 
 
@@ -25,7 +25,7 @@ def listar_plataformas(db: DbSession) -> list[PlataformaResponse]:
 @router.get(
     "/{codigo}",
     response_model=PlataformaResponse,
-    responses={404: {"description": "Plataforma não encontrada."}},
+    responses={404: {"description": "Loja não encontrada."}},
 )
 def buscar_plataforma(
     codigo: str,
@@ -36,7 +36,7 @@ def buscar_plataforma(
     if plataforma is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Plataforma não encontrada.",
+            detail="Loja não encontrada.",
         )
 
     return plataforma
@@ -46,7 +46,7 @@ def buscar_plataforma(
     "",
     response_model=PlataformaResponse,
     status_code=status.HTTP_201_CREATED,
-    responses={409: {"description": "Já existe uma plataforma com esse código."}},
+    responses={409: {"description": "Já existe uma loja com esse código."}},
 )
 def criar_plataforma(
     dados: PlataformaCreate,
@@ -67,7 +67,7 @@ def criar_plataforma(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Já existe uma plataforma com esse código.",
+            detail="Já existe uma loja com esse código.",
         ) from exc
     except Exception:
         db.rollback()
@@ -77,7 +77,7 @@ def criar_plataforma(
 @router.patch(
     "/{codigo}/status",
     response_model=PlataformaResponse,
-    responses={404: {"description": "Plataforma não encontrada."}},
+    responses={404: {"description": "Loja não encontrada."}},
 )
 def atualizar_status_plataforma(
     codigo: str,

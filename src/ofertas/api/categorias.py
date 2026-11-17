@@ -9,7 +9,6 @@ from ofertas.schemas.destino_divulgacao import DestinoDivulgacaoResponse
 from ofertas.schemas.categoria import (
     CategoriaCreate,
     CategoriaDescontoUpdate,
-    CategoriaDestinoDivulgacaoUpdate,
     CategoriaEtiquetaAfiliadoUpdate,
     CategoriaResponse,
     CategoriaStatusUpdate,
@@ -54,7 +53,7 @@ def buscar_categoria(
     response_model=CategoriaResponse,
     status_code=status.HTTP_201_CREATED,
     responses={
-        404: {"description": "Plataforma ou destino não encontrado."},
+        404: {"description": "Loja ou grupo não encontrado."},
         409: {"description": "Categoria duplicada ou conflito com o banco."},
     },
 )
@@ -213,71 +212,17 @@ def atualizar_etiqueta_afiliado_categoria(
         ) from erro
 
 
-@router.patch(
-    "/{categoria_id}/destino-divulgacao",
-    response_model=CategoriaResponse,
-    summary="Definir destino principal da categoria (obsoleta)",
-    description=(
-        "Obsoleta: a categoria agora aceita vários grupos. Use "
-        "POST/DELETE /categorias/{categoria_id}/destinos/{destino_id}."
-    ),
-    deprecated=True,
-    responses={
-        404: {"description": "Categoria ou destino não encontrado."},
-        409: {"description": "Conflito com as regras ou o banco de dados."},
-    },
-)
-def atualizar_destino_divulgacao_categoria(
-    categoria_id: Annotated[int, Path(gt=0)],
-    dados: CategoriaDestinoDivulgacaoUpdate,
-    session: Session = Depends(get_db),
-):
-    try:
-        categoria = service.atualizar_destino_divulgacao(
-            session,
-            categoria_id,
-            dados.destino_divulgacao_id,
-        )
-        session.commit()
-        session.refresh(categoria)
-        return categoria
-
-    except LookupError as erro:
-        session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(erro),
-        ) from erro
-
-    except ValueError as erro:
-        session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(erro),
-        ) from erro
-
-    except IntegrityError as erro:
-        session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=(
-                "Não foi possível atualizar o destino "
-                "de divulgação da categoria."
-            ),
-        ) from erro
-
-
 @router.get(
-    "/{categoria_id}/destinos",
+    "/{categoria_id}/grupos",
     response_model=list[DestinoDivulgacaoResponse],
     responses={404: {"description": "Categoria não encontrada."}},
     summary="Listar grupos associados à categoria",
     description=(
-        "Retorna os destinos Telegram e WhatsApp associados à categoria, "
-        "incluindo nome, canal e status de cada grupo."
+        "Retorna os grupos (Telegram e WhatsApp) que recebem as "
+        "publicações da categoria, com canal e status de cada um."
     ),
 )
-def listar_destinos_categoria(
+def listar_grupos_categoria(
     categoria_id: Annotated[int, Path(gt=0)],
     session: Session = Depends(get_db),
 ):
@@ -291,25 +236,25 @@ def listar_destinos_categoria(
 
 
 @router.post(
-    "/{categoria_id}/destinos/{destino_id}",
+    "/{categoria_id}/grupos/{grupo_id}",
     response_model=list[DestinoDivulgacaoResponse],
     summary="Associar grupo à categoria",
     responses={
-        404: {"description": "Categoria ou destino não encontrado."},
+        404: {"description": "Categoria ou grupo não encontrado."},
         409: {"description": "Associação inválida ou já existente."},
     },
     description=(
-        "Adiciona um destino Telegram ou WhatsApp à categoria. "
+        "Adiciona um grupo Telegram ou WhatsApp à categoria. "
         "Os demais grupos associados são preservados."
     ),
 )
-def associar_destino_categoria(
+def associar_grupo_categoria(
     categoria_id: Annotated[int, Path(gt=0)],
-    destino_id: Annotated[int, Path(gt=0)],
+    grupo_id: Annotated[int, Path(gt=0)],
     session: Session = Depends(get_db),
 ):
     try:
-        service.associar_destino(session, categoria_id, destino_id)
+        service.associar_destino(session, categoria_id, grupo_id)
         session.commit()
         return service.listar_destinos(session, categoria_id)
 
@@ -340,24 +285,24 @@ def associar_destino_categoria(
 
 
 @router.delete(
-    "/{categoria_id}/destinos/{destino_id}",
+    "/{categoria_id}/grupos/{grupo_id}",
     response_model=list[DestinoDivulgacaoResponse],
     summary="Desassociar grupo da categoria",
     responses={
         404: {"description": "Categoria não encontrada ou grupo não associado."},
     },
     description=(
-        "Remove somente o destino informado. Os demais grupos da "
+        "Remove somente o grupo informado. Os demais grupos da "
         "categoria continuam associados."
     ),
 )
-def desassociar_destino_categoria(
+def desassociar_grupo_categoria(
     categoria_id: Annotated[int, Path(gt=0)],
-    destino_id: Annotated[int, Path(gt=0)],
+    grupo_id: Annotated[int, Path(gt=0)],
     session: Session = Depends(get_db),
 ):
     try:
-        service.desassociar_destino(session, categoria_id, destino_id)
+        service.desassociar_destino(session, categoria_id, grupo_id)
         session.commit()
         return service.listar_destinos(session, categoria_id)
 

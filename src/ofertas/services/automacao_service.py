@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 
+from ofertas.core.tempo import garantir_utc
 from ofertas.db.session import SessionLocal
 from ofertas.models.execucao_coleta import ExecucaoColeta
 from ofertas.models.plataforma import Plataforma
@@ -56,12 +57,6 @@ class AutomacaoService:
             janela_execucao_service or JanelaExecucaoService()
         )
 
-    @staticmethod
-    def _normalizar_horario(horario: datetime) -> datetime:
-        if horario.tzinfo is None:
-            return horario.replace(tzinfo=timezone.utc)
-        return horario
-
     @classmethod
     def _intervalo_concluido(
         cls,
@@ -72,7 +67,7 @@ class AutomacaoService:
         if ultima_execucao is None:
             return True
 
-        referencia = cls._normalizar_horario(ultima_execucao)
+        referencia = garantir_utc(ultima_execucao)
 
         return agora >= referencia + timedelta(
             minutes=intervalo_minutos

@@ -16,7 +16,7 @@ from ofertas.services.plataforma_divulgacao_service import (
 
 
 router = APIRouter(
-    prefix="/plataformas-divulgacao",
+    prefix="/canais-divulgacao",
     tags=["Canais de divulgação"],
 )
 

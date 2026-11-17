@@ -1,15 +1,13 @@
 from datetime import datetime, time
-from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
+from ofertas.core.tempo import FUSO_HORARIO
 from ofertas.models.janela_execucao import JanelaExecucao
 from ofertas.repositories.janela_execucao_repository import (
     JanelaExecucaoRepository,
 )
 
-
-FUSO_HORARIO = ZoneInfo("America/Sao_Paulo")
 
 
 class JanelaExecucaoService:
