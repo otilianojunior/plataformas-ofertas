@@ -1,6 +1,7 @@
 from datetime import datetime
 from pydantic import BaseModel
 
+from ofertas.schemas.ciclo_publicacao import CicloPublicacaoResponse
 from ofertas.schemas.configuracao_sistema import ConfiguracaoSistemaResponse
 from ofertas.schemas.janela_execucao import JanelaExecucaoResponse
 
@@ -23,6 +24,8 @@ class ColetaMarketplaceStatus(BaseModel):
     ultima_execucao_status: str | None
     ultima_execucao_iniciada_em: datetime | None
     ultima_execucao_finalizada_em: datetime | None
+    ultima_execucao_erro: str | None
+    quantidade_encontrada: int | None
     quantidade_processada: int | None
     quantidade_ignorada: int | None
     proxima_execucao_em: datetime | None
@@ -44,6 +47,8 @@ class DestinoPublicacaoStatus(BaseModel):
     ultima_publicacao_status: str | None
     ultima_publicacao_em: datetime | None
     ultima_publicacao_erro: str | None
+    ciclo_em_andamento: bool
+    ultimo_ciclo: CicloPublicacaoResponse | None
 
 
 class AutomacoesStatusResponse(BaseModel):

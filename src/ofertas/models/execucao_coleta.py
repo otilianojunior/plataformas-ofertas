@@ -28,7 +28,7 @@ class ExecucaoColeta(Base):
             name="ck_execucao_quantidade_processada_nao_negativa",
         ),
         CheckConstraint(
-            "status IN ('em_andamento', 'concluida', 'falhou')",
+            "status IN ('em_andamento', 'concluida', 'parcial', 'falhou')",
             name="ck_execucao_status_valido",
         ),
         CheckConstraint(

@@ -11,6 +11,9 @@ from ofertas.models.execucao_coleta import ExecucaoColeta
 from ofertas.models.plataforma import Plataforma
 from ofertas.models.plataforma_divulgacao import PlataformaDivulgacao
 from ofertas.models.publicacao import Publicacao
+from ofertas.repositories.ciclo_publicacao_repository import (
+    CicloPublicacaoRepository,
+)
 from ofertas.services.configuracao_sistema_service import (
     ConfiguracaoSistemaService,
 )
@@ -40,12 +43,16 @@ class AutomacaoStatusService:
         self,
         configuracao_sistema_service: ConfiguracaoSistemaService | None = None,
         janela_execucao_service: JanelaExecucaoService | None = None,
+        ciclo_repository: CicloPublicacaoRepository | None = None,
     ) -> None:
         self.configuracao_sistema_service = (
             configuracao_sistema_service or ConfiguracaoSistemaService()
         )
         self.janela_execucao_service = (
             janela_execucao_service or JanelaExecucaoService()
+        )
+        self.ciclo_repository = (
+            ciclo_repository or CicloPublicacaoRepository()
         )
 
     @staticmethod
@@ -283,6 +290,13 @@ class AutomacaoStatusService:
                 "ultima_execucao_finalizada_em": (
                     ultima.finalizada_em if ultima is not None else None
                 ),
+                "ultima_execucao_erro": (
+                    ultima.erro if ultima is not None else None
+                ),
+                "quantidade_encontrada": (
+                    ultima.quantidade_encontrada
+                    if ultima is not None else None
+                ),
                 "quantidade_processada": (
                     ultima.quantidade_processada
                     if ultima is not None else None
@@ -330,6 +344,16 @@ class AutomacaoStatusService:
                 config_destino.ultima_execucao_publicacao_em
             )
 
+            ultimo_ciclo = self.ciclo_repository.buscar_ultimo(
+                session,
+                destino.id,
+            )
+            ciclo_em_andamento = (
+                ultimo_ciclo is not None
+                and ultimo_ciclo.status == "em_andamento"
+                and monitor_online
+            )
+
             proxima_execucao = None
             habilitada_globalmente = configuracao.automacoes_ativas
 
@@ -347,7 +371,7 @@ class AutomacaoStatusService:
                     and monitor_online
                 )
 
-                if pode_executar:
+                if pode_executar and not ciclo_em_andamento:
                     primeira_data = (
                         agora_local
                         if ultima_execucao_ciclo is None
@@ -375,6 +399,8 @@ class AutomacaoStatusService:
                     status_publicacao = "destino_inativo"
                 elif not monitor_online:
                     status_publicacao = "monitor_offline"
+                elif ciclo_em_andamento:
+                    status_publicacao = "publicando"
                 elif not horario_permitido:
                     status_publicacao = "fora_da_janela"
                 elif (
@@ -428,6 +454,8 @@ class AutomacaoStatusService:
                     ultima_publicacao.erro
                     if ultima_publicacao is not None else None
                 ),
+                "ciclo_em_andamento": ciclo_em_andamento,
+                "ultimo_ciclo": ultimo_ciclo,
             })
 
         return {

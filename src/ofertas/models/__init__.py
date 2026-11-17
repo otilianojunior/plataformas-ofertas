@@ -14,8 +14,10 @@ from ofertas.models.plataforma_divulgacao import PlataformaDivulgacao
 from ofertas.models.publicacao import Publicacao
 from ofertas.models.configuracao_sistema import ConfiguracaoSistema
 from ofertas.models.janela_execucao import JanelaExecucao
+from ofertas.models.ciclo_publicacao import CicloPublicacao
 
 __all__ = [
+    "CicloPublicacao",
     "AutenticacaoOAuth",
     "ConfiguracaoDivulgacao",
     "ConfiguracaoSistema",

@@ -17,6 +17,9 @@ from ofertas.repositories.configuracao_divulgacao_repository import (
 from ofertas.repositories.destino_divulgacao_repository import (
     DestinoDivulgacaoRepository,
 )
+from ofertas.repositories.ciclo_publicacao_repository import (
+    CicloPublicacaoRepository,
+)
 from ofertas.repositories.produto_repository import ProdutoRepository
 from ofertas.services.publicacao_service import PublicacaoService
 from ofertas.services.janela_execucao_service import (
@@ -42,6 +45,7 @@ class PublicacaoLoteService:
         produto_repository: ProdutoRepository | None = None,
         publicacao_service: PublicacaoService | None = None,
         janela_execucao_service: JanelaExecucaoService | None = None,
+        ciclo_repository: CicloPublicacaoRepository | None = None,
     ) -> None:
         self.configuracao_repository = (
             configuracao_repository or ConfiguracaoDivulgacaoRepository()
@@ -60,6 +64,9 @@ class PublicacaoLoteService:
         )
         self.janela_execucao_service = (
             janela_execucao_service or JanelaExecucaoService()
+        )
+        self.ciclo_repository = (
+            ciclo_repository or CicloPublicacaoRepository()
         )
 
     def _buscar_configuracao_ativa(
@@ -296,13 +303,102 @@ class PublicacaoLoteService:
                 destino_id,
             )
 
+            # Com o lock do destino, ciclos ainda "em andamento" são restos
+            # de uma execução encerrada no meio (ex.: API reiniciada).
+            self.ciclo_repository.marcar_interrompidos(
+                session,
+                destino_id,
+            )
+            ciclo = self.ciclo_repository.iniciar(
+                session,
+                destino_id,
+                len(candidatos),
+            )
+            session.commit()
+            ciclo_id = ciclo.id
+
+        try:
+            resultado = self._publicar_candidatos(
+                destino_id,
+                candidatos,
+                ciclo_id,
+            )
+        except Exception as erro:
+            self._finalizar_ciclo(
+                ciclo_id,
+                "falhou",
+                erro=f"{type(erro).__name__}: {erro}",
+            )
+            raise
+
+        self._finalizar_ciclo(
+            ciclo_id,
+            resultado["status"],
+            quantidade_publicada=resultado["publicadas"],
+            quantidade_falha=resultado["falhas"],
+            quantidade_ignorada=resultado["ignoradas"],
+        )
+
+        return resultado
+
+    def _atualizar_ciclo(self, ciclo_id: int | None, **valores) -> None:
+        """Persiste o progresso do ciclo sem interromper a publicação."""
+
+        if ciclo_id is None:
+            return
+
+        try:
+            with SessionLocal() as session:
+                self.ciclo_repository.atualizar(
+                    session,
+                    ciclo_id,
+                    **valores,
+                )
+                session.commit()
+        except Exception:
+            logger.exception(
+                "Falha ao registrar o andamento do ciclo %s.",
+                ciclo_id,
+            )
+
+    def _finalizar_ciclo(
+        self,
+        ciclo_id: int | None,
+        status: str,
+        **valores,
+    ) -> None:
+        self._atualizar_ciclo(
+            ciclo_id,
+            status=status,
+            finalizado_em=datetime.now(timezone.utc),
+            **valores,
+        )
+
+    def _publicar_candidatos(
+        self,
+        destino_id: int,
+        candidatos: list[tuple[int, str, int]],
+        ciclo_id: int | None,
+    ) -> dict[str, int | str]:
+        """Envia os candidatos respeitando pausas, janelas e intervalos."""
+
         publicadas = 0
         falhas = 0
         ignoradas = 0
         ultima_mensagem_em = None
         status_ciclo = "concluido"
 
-        for categoria_id, nome_categoria, produto_id in candidatos:
+        for indice, (categoria_id, nome_categoria, produto_id) in enumerate(
+            candidatos
+        ):
+            if indice > 0:
+                self._atualizar_ciclo(
+                    ciclo_id,
+                    quantidade_publicada=publicadas,
+                    quantidade_falha=falhas,
+                    quantidade_ignorada=ignoradas,
+                )
+
             if ultima_mensagem_em is not None:
                 with SessionLocal() as session:
                     configuracao = self._buscar_configuracao_ativa(

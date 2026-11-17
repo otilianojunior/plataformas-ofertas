@@ -77,6 +77,21 @@ class ExecucaoColetaService:
             self.shopee_collector,
         )
 
+    @staticmethod
+    def _definir_status(
+        falhas: list[str],
+        categorias_com_sucesso: int,
+    ) -> str:
+        """Diferencia falha total de falha em parte das categorias."""
+
+        if not falhas:
+            return "concluida"
+
+        if categorias_com_sucesso > 0:
+            return "parcial"
+
+        return "falhou"
+
     def _executar(
         self,
         session: Session,
@@ -123,6 +138,7 @@ class ExecucaoColetaService:
 
         falhas = []
         avisos = []
+        categorias_com_sucesso = 0
 
         try:
             categorias = self.categoria_repository.listar(
@@ -143,6 +159,8 @@ class ExecucaoColetaService:
                             session,
                             categoria,
                         )
+
+                    categorias_com_sucesso += 1
 
                     execucao.quantidade_encontrada += (
                         resultado["encontradas"]
@@ -184,7 +202,10 @@ class ExecucaoColetaService:
             )
 
         execucao.finalizada_em = datetime.now(timezone.utc)
-        execucao.status = "falhou" if falhas else "concluida"
+        execucao.status = self._definir_status(
+            falhas,
+            categorias_com_sucesso,
+        )
 
         registros_erro = []
 
