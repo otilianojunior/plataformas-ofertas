@@ -1,4 +1,5 @@
 import logging
+import threading
 import time
 from datetime import datetime, timezone
 
@@ -68,6 +69,9 @@ class PublicacaoLoteService:
         self.ciclo_repository = (
             ciclo_repository or CicloPublicacaoRepository()
         )
+        # Sinalizado no encerramento da API: interrompe o ciclo entre um
+        # envio e outro, sem esperar os 20s de intervalo.
+        self.encerrando = threading.Event()
 
     def _buscar_configuracao_ativa(
         self,
@@ -391,6 +395,10 @@ class PublicacaoLoteService:
         for indice, (categoria_id, nome_categoria, produto_id) in enumerate(
             candidatos
         ):
+            if self.encerrando.is_set():
+                status_ciclo = "interrompido"
+                break
+
             if indice > 0:
                 self._atualizar_ciclo(
                     ciclo_id,
@@ -416,8 +424,11 @@ class PublicacaoLoteService:
                     - tempo_decorrido
                 )
 
-                if tempo_restante > 0:
-                    time.sleep(tempo_restante)
+                if tempo_restante > 0 and self.encerrando.wait(
+                    tempo_restante
+                ):
+                    status_ciclo = "interrompido"
+                    break
 
             with SessionLocal() as session:
                 if self._buscar_configuracao_ativa(
@@ -500,7 +511,7 @@ class PublicacaoLoteService:
                         destino_id,
                     )
 
-        if status_ciclo != "pausado":
+        if status_ciclo == "concluido":
             self._registrar_execucao(destino_id)
 
         resultado = {

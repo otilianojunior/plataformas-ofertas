@@ -1,4 +1,5 @@
 import logging
+import threading
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 
@@ -56,6 +57,8 @@ class AutomacaoService:
         self.janela_execucao_service = (
             janela_execucao_service or JanelaExecucaoService()
         )
+        # Sinalizado no encerramento da API: não inicia novas coletas.
+        self.encerrando = threading.Event()
 
     @classmethod
     def _intervalo_concluido(
@@ -104,6 +107,9 @@ class AutomacaoService:
         )
 
         for codigo, atributo_ativo, executar in marketplaces:
+            if self.encerrando.is_set():
+                return
+
             with SessionLocal() as session:
                 try:
                     configuracao = self.configuracao_sistema_service.buscar(
@@ -147,6 +153,9 @@ class AutomacaoService:
                 continue
 
             for plataforma_id in plataforma_ids:
+                if self.encerrando.is_set():
+                    return
+
                 with SessionLocal() as session:
                     try:
                         configuracao_atual = (

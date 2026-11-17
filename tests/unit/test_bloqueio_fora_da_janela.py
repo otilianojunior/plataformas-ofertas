@@ -205,3 +205,25 @@ def test_limite_global_e_aplicado_a_cada_categoria():
     chamadas = produto_repository.listar_candidatos_publicacao.call_args_list
     assert [c.kwargs["categoria_id"] for c in chamadas] == [1, 2, 3]
     assert all(c.kwargs["limite"] == 5 for c in chamadas)
+
+
+def test_coletas_nao_iniciam_durante_o_encerramento():
+    session = MagicMock()
+    execucao_coleta_service = Mock()
+    servico = AutomacaoService(
+        configuracao_sistema_service=Mock(),
+        execucao_coleta_service=execucao_coleta_service,
+        configuracao_divulgacao_repository=Mock(),
+        destino_repository=Mock(),
+        janela_execucao_service=Mock(),
+    )
+    servico.encerrando.set()
+
+    with patch(
+        "ofertas.services.automacao_service.SessionLocal",
+        _session_local(session),
+    ):
+        servico.executar_coletas_liberadas()
+
+    session.scalars.assert_not_called()
+    execucao_coleta_service.executar.assert_not_called()

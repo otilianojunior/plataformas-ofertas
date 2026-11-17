@@ -25,6 +25,15 @@ from ofertas.services.automacao_service import AutomacaoService
 from ofertas.services.publicacao_lote_service import PublicacaoLoteService
 
 
+from ofertas.core.config import get_settings
+
+
+# Sem isto os logs INFO das automações não aparecem no uvicorn/journalctl.
+logging.basicConfig(
+    level=get_settings().log_level.upper(),
+    format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+)
+
 logger = logging.getLogger(__name__)
 
 INTERVALO_VERIFICACAO_AUTOMACOES_SEGUNDOS = 15
@@ -147,6 +156,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     finally:
         logger.info("Encerrando automações internas da API.")
         encerrando.set()
+        automacao.encerrando.set()
+        publicacao_lote.encerrando.set()
 
         await asyncio.gather(
             *tarefas_principais,

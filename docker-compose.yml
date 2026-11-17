@@ -1,0 +1,27 @@
+# Banco de dados do projeto. A API roda fora do Docker (serviço systemd),
+# porque precisa abrir o Chrome com a sessão do Mercado Livre na sua tela.
+name: plataformas-ofertas
+
+services:
+  db:
+    image: postgres:18
+    container_name: plataformas-ofertas-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USUARIO:-ofertas_app}
+      POSTGRES_PASSWORD: ${POSTGRES_SENHA:?defina POSTGRES_SENHA no .env}
+      POSTGRES_DB: ${POSTGRES_BANCO:-plataformas_ofertas}
+      TZ: America/Sao_Paulo
+    ports:
+      # Só acessível pela própria máquina.
+      - "127.0.0.1:${POSTGRES_PORTA:-5434}:5432"
+    volumes:
+      - dados_postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  dados_postgres:

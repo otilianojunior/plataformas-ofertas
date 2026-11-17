@@ -32,3 +32,6 @@ Thumbs.db
 
 # Perfil persistente do Chrome (sessão autenticada do Mercado Livre)
 data/chrome_profile/
+
+# Backups do banco (make db-backup)
+backups/

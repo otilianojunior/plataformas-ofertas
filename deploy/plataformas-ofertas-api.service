@@ -1,0 +1,23 @@
+# Modelo do serviço systemd de usuário. Instale com: make servico-instalar
+# (@RAIZ@, @HOST@ e @PORTA@ são preenchidos pelo Makefile).
+[Unit]
+Description=Plataformas de Ofertas - API e automações
+Documentation=file://@RAIZ@/README.md
+# Sobe junto com a sessão gráfica: o Chrome do Mercado Livre precisa da tela.
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=exec
+WorkingDirectory=@RAIZ@
+# Um único processo: as automações rodam dentro da API (não use --workers).
+ExecStart=@RAIZ@/.venv/bin/uvicorn ofertas.main:app --host @HOST@ --port @PORTA@
+Restart=on-failure
+RestartSec=10
+# Encerra só o uvicorn: o Chrome do Mercado Livre continua aberto e logado.
+KillMode=process
+# Tempo para terminar uma coleta em andamento antes de forçar a parada.
+TimeoutStopSec=180
+
+[Install]
+WantedBy=graphical-session.target

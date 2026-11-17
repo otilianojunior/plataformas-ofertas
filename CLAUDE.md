@@ -12,16 +12,25 @@ Backend quase finalizado; frontend (painel administrativo) ainda não iniciado.
 
 ## Comandos
 
+Use o Makefile (`make` lista tudo):
+
 ```bash
-source .venv/bin/activate
-uvicorn ofertas.main:app --reload          # API (pacote instalado em modo editável)
-alembic upgrade head                        # aplicar migrações
-alembic revision --autogenerate -m "..."    # nova migração (revisar o arquivo gerado)
-pip install -e ".[dev]"                     # dependências de desenvolvimento (pytest)
-python -m pytest                            # todos os testes
-python -m pytest tests/unit                 # só unitários (sem banco)
-python -m compileall -q src                 # checagem rápida de sintaxe
+make instalar        # .venv + dependências (inclui pytest)
+make db              # PostgreSQL 18 no Docker, porta 5434 (docker-compose.yml)
+make migrar          # alembic upgrade head
+make testes          # pytest (make testes-unit: sem banco)
+make api             # uvicorn --reload (LIGA as automações)
+make servico-logs    # logs da API rodando como serviço systemd de usuário
+make chrome-status   # Chrome/perfil do Mercado Livre detectados
+alembic revision --autogenerate -m "..."   # nova migração (revisar o arquivo gerado)
 ```
+
+Infra: banco no Docker (`docker-compose.yml`, volume `dados_postgres`); a API roda
+fora do Docker como serviço systemd de usuário (`deploy/plataformas-ofertas-api.service`,
+instalado por `make servico-instalar`), preso à sessão gráfica porque abre o Chrome.
+Um único processo uvicorn (sem `--workers`: as automações rodam no lifespan).
+No encerramento, `AutomacaoService.encerrando` / `PublicacaoLoteService.encerrando`
+(threading.Event) interrompem coletas e ciclos; `KillMode=process` mantém o Chrome aberto.
 
 Testes de integração (`tests/integration/`) usam o PostgreSQL do `.env` dentro
 de uma transação desfeita ao final (nada é gravado) e não executam o `lifespan`.
@@ -124,8 +133,7 @@ Pontos importantes:
 1. ~~Validar configurações globais e janelas~~ (concluída: testes em `tests/`).
 2. Monitoramento: últimas execuções ML/Shopee, ciclos por destino, persistir o
    estado da publicação em andamento, decidir se execuções manuais obedecem às janelas.
-3. Documentação e infra: README, variáveis de ambiente, Makefile, Docker Compose
-   (API + Postgres), inicialização/encerramento/workers.
+3. ~~Documentação e infra~~ (concluída: README, Makefile, Docker Compose, systemd).
 4. Publisher WhatsApp (credenciais, destinos/categorias, regras, monitoramento).
 5. Painel administrativo (frontend) sobre as rotas existentes.
 6. Fechamento: auditoria, segurança, erros, dependências, merge develop → main.

@@ -1,49 +1,196 @@
 # Plataformas de Ofertas
 
-Backend para coleta, armazenamento, processamento e distribuição
-de ofertas de diferentes marketplaces.
+Coleta ofertas de lojas (Mercado Livre e Shopee), gera links de afiliado e
+publica as melhores ofertas em grupos do Telegram, de forma automática e com
+controle de horários, limites e regras de desconto. O WhatsApp está planejado.
 
-## Objetivo
+## Como funciona
 
-Construir uma aplicação backend organizada, testável e extensível,
-capaz de integrar múltiplas fontes de ofertas e publicar promoções
-em canais de comunicação.
+```
+ Lojas (ML, Shopee) ──coleta──▶ Produtos ──link afiliado──▶ Produtos elegíveis
+                                                                 │
+                     regras do grupo (desconto, preço, 24h) ◀────┘
+                                   │
+                                   ▼
+                          Grupos (Telegram / WhatsApp)
+```
 
-## Fontes planejadas
+- **API e automações no mesmo processo.** Ao subir, a API inicia três
+  monitores internos: sinal de vida, coletas e publicações por grupo.
+- **Coleta:** a cada `intervalo_coleta_minutos`, cada loja ativa coleta as
+  categorias ativas e gera os links de afiliado pendentes.
+- **Publicação:** cada grupo tem o próprio intervalo entre ciclos. Um ciclo
+  escolhe até `limite_produtos_por_categoria` produtos por categoria e envia uma
+  mensagem a cada 20 segundos.
+- **Janelas de execução:** quando há janelas ativas, as automações só rodam
+  dentro delas (horário de Brasília). Sem janelas, rodam 24h. As execuções
+  manuais não obedecem às janelas.
+- **Mercado Livre:** os links de afiliado são gerados por um Chrome dedicado do
+  projeto, logado na sua conta de afiliado (veja [Chrome](#chrome-do-mercado-livre)).
 
-- Mercado Livre
-- Shopee
-- Amazon
-- Magazine Luiza
+| Peça | Onde roda |
+|---|---|
+| PostgreSQL 18 | Docker Compose (`make db`) |
+| API + automações | serviço systemd do usuário (`make servico-*`) ou `make api` |
+| Chrome do Mercado Livre | na sua sessão gráfica, aberto pela API ou por `make chrome-login` |
 
-## Canais de publicação
-
-- Telegram
-- WhatsApp
-
-## Tecnologias
-
-- Python
-- FastAPI
-- PostgreSQL
-- SQLAlchemy
-- Alembic
-- Pytest
-- Git
+A API não roda no Docker porque precisa abrir o Chrome na sua tela, e a porta
+de depuração do Chrome só é aceita no próprio computador.
 
 ## Requisitos
 
-- Python compatível com as dependências do projeto.
-- PostgreSQL em execução.
-- Ambiente virtual Python configurado.
-- Variáveis de ambiente definidas no arquivo `.env`.
+- Linux com sessão gráfica (testado no Ubuntu com GNOME)
+- Python 3.11+, `make`, Docker com Compose
+- Google Chrome ou Chromium
+- `pg_dump` (só para `make db-importar`)
 
-Não versione o arquivo `.env` nem compartilhe credenciais ou tokens.
-
-## Executar localmente
-
-Na raiz do projeto, ative o ambiente virtual:
+## Primeira instalação
 
 ```bash
-source .venv/bin/activate
+make instalar          # cria o .venv, instala as dependências e o .env
+# edite o .env: POSTGRES_SENHA, DATABASE_URL e CREDENTIAL_ENCRYPTION_KEY
+make db                # sobe o PostgreSQL no Docker
+make migrar            # cria as tabelas
+make chrome-login      # abre o Chrome do projeto: faça login no Mercado Livre
+make chrome-verificar  # confere se a sessão ficou salva
+make servico-instalar  # instala a API como serviço
+make servico-iniciar   # liga a API e as automações
 ```
+
+Documentação interativa da API: <http://127.0.0.1:8000/docs>
+
+> **Atenção:** `make servico-iniciar`, `make subir` e `make api` ligam as
+> automações. Se `automacoes_ativas` estiver ligado no banco, a API começa a
+> coletar e a **publicar nos grupos**. Para subir sem publicar, pause antes:
+> `POST /configuracoes-sistema/automacoes/pausar`.
+
+### Já tinha um banco local?
+
+```bash
+make db
+make db-importar ORIGEM=postgresql://usuario:senha@localhost:5433/plataformas_ofertas
+# depois aponte a DATABASE_URL do .env para a porta do Docker (5434)
+```
+
+O banco do Docker precisa estar vazio. Para recomeçar do zero:
+`docker compose down -v` (**apaga os dados do Docker**).
+
+## Comandos do dia a dia
+
+Rode `make` para ver todos. Os principais:
+
+| Comando | O que faz |
+|---|---|
+| `make subir` | sobe o banco, aplica as migrações e inicia a API |
+| `make parar` | para a API e o banco |
+| `make status` | estado do banco, da API e do Chrome |
+| `make servico-logs` | acompanha os logs da API (coletas, publicações, erros) |
+| `make servico-reiniciar` | reinicia a API (use depois de atualizar o código) |
+| `make api` | API em modo desenvolvimento, recarregando ao salvar |
+| `make testes` | roda os testes; os de integração usam o banco, sem gravar nada |
+| `make db-backup` | salva um backup em `backups/` |
+| `make db-psql` | abre o `psql` no banco |
+
+### Sobre o serviço
+
+- É um serviço systemd **do usuário**, iniciado junto com a sessão gráfica
+  (login no desktop) e parado no logout. Isso é necessário porque o Chrome do
+  Mercado Livre precisa da tela.
+- Roda **um único processo**. As automações vivem dentro da API, então não use
+  `--workers`: cada worker rodaria as automações de novo.
+- Ao parar, interrompe os ciclos de publicação entre um envio e outro. Uma
+  coleta em andamento tem até 3 minutos para terminar. Ciclos cortados no meio
+  ficam como `interrompido`.
+- O Chrome do Mercado Livre continua aberto quando o serviço para ou reinicia
+  (a sessão é preservada).
+
+## Configuração (`.env`)
+
+| Variável | Obrigatória | Padrão | Uso |
+|---|---|---|---|
+| `DATABASE_URL` | sim | — | conexão da API (`postgresql+psycopg://usuario:senha@localhost:5434/banco`) |
+| `CREDENTIAL_ENCRYPTION_KEY` | sim | — | chave Fernet que criptografa as credenciais no banco. **Se for perdida, as credenciais salvas não podem mais ser lidas.** |
+| `POSTGRES_USUARIO` | não | `ofertas_app` | usuário do PostgreSQL no Docker |
+| `POSTGRES_SENHA` | sim (Docker) | — | senha do PostgreSQL no Docker |
+| `POSTGRES_BANCO` | não | `plataformas_ofertas` | nome do banco no Docker |
+| `POSTGRES_PORTA` | não | `5434` | porta local do PostgreSQL no Docker |
+| `MERCADO_LIVRE_CHROME_PROFILE_DIR` | não | `data/chrome_profile` | perfil do Chrome do projeto (relativo à raiz) |
+| `MERCADO_LIVRE_CHROME_PATH` | não | detectado | executável do Chrome |
+| `MERCADO_LIVRE_CHROME_CDP_URL` | não | `http://127.0.0.1:9222` | porta de depuração do Chrome (só local) |
+| `LOG_LEVEL` | não | `INFO` | nível dos logs |
+
+Para gerar a chave de criptografia:
+`.venv/bin/python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`
+
+O host e a porta da API ficam no Makefile (`API_HOST=127.0.0.1`,
+`API_PORTA=8000`). A API **não tem autenticação**: mantenha-a acessível só pela
+própria máquina.
+
+As configurações que mudam com o sistema rodando ficam no banco e são
+alteradas pela API: intervalos, limite por categoria, janelas, regras por grupo
+e ligar/pausar automações.
+
+## Chrome do Mercado Livre
+
+O projeto usa um **perfil próprio** do Chrome em `data/chrome_profile`
+(fora do git), separado do seu Chrome pessoal. O login é feito uma vez:
+
+```bash
+make chrome-login      # abre o Chrome do projeto; faça login na conta de afiliado
+make chrome-verificar  # "Sessão autenticada" = pronto
+```
+
+Se a pasta for apagada ou a sessão expirar, a geração de links do Mercado Livre
+falha (`MercadoLivreLoginRequiredError`). Basta repetir o `make chrome-login`.
+Não copie o perfil entre computadores: faça o login em cada um.
+
+## Rotas da API
+
+Lista completa com exemplos em `/docs`. Visão geral:
+
+| Recurso | Rotas |
+|---|---|
+| Lojas de origem | `GET/POST /lojas`, `GET /lojas/{codigo}`, `PATCH /lojas/{codigo}/status` |
+| Credenciais das lojas | `/credenciais-plataforma` (uma ativa por tipo e loja) |
+| Autorização do Mercado Livre | `GET /oauth/mercado-livre/autorizar` → `callback` |
+| Categorias | `GET/POST /categorias`, `PATCH /categorias/{id}/status`, `/desconto-minimo`, `/etiqueta-afiliado` |
+| Grupos da categoria | `GET /categorias/{id}/grupos`, `POST/DELETE /categorias/{id}/grupos/{grupo_id}` |
+| Canais (Telegram, WhatsApp) | `GET/POST /canais-divulgacao`, `PATCH /canais-divulgacao/{codigo}/status` |
+| Credenciais dos canais | `/credenciais-divulgacao` (ex.: token do bot) |
+| Grupos | `GET/POST /grupos`, `GET /grupos/{grupo_id}`, `PATCH /grupos/{grupo_id}/status` |
+| Regras do grupo | `GET /grupos/configuracoes`, `GET/POST/PATCH /grupos/{grupo_id}/configuracao` |
+| Produtos | `GET/POST /produtos`, `GET/PATCH /produtos/{id}`, `PATCH /produtos/{id}/monitoramento` |
+| Coleta manual | `POST /coletas/mercado-livre`, `POST /coletas/shopee` |
+| Publicação manual | `POST /publicacoes/produtos/{id}` (todos os grupos da categoria), `POST /publicacoes/produtos/{id}/grupos/{grupo_id}` |
+| Configurações globais | `GET/PATCH /configuracoes-sistema`, `POST /configuracoes-sistema/automacoes/{ativar\|pausar}`, `POST /configuracoes-sistema/automacoes/{automacao}/{ativar\|pausar}` |
+| Janelas de execução | `GET/POST /janelas-execucao`, `GET/PATCH/DELETE /janelas-execucao/{id}` |
+| Monitoramento | `GET /automacoes/status`, `GET /ciclos-publicacao` |
+| Saúde | `GET /health` |
+
+Códigos de erro: `404` recurso não encontrado, `409` regra de negócio violada,
+`422` dados inválidos, `502` falha no envio ao Telegram ou na comunicação com a
+loja.
+
+## Problemas comuns
+
+| Sintoma | Causa e solução |
+|---|---|
+| Coleta da Shopee como `parcial` | a Shopee devolve `error [10000]` de forma intermitente; o cliente tenta de novo 3 vezes. Se for frequente, aumente o intervalo de coleta. |
+| Avisos `USER_PRODUCT` na coleta do Mercado Livre | esse tipo de anúncio ainda não é suportado e é ignorado. Não é um erro. |
+| Links do Mercado Livre com `erro` | sessão do Chrome expirada: `make chrome-verificar` e, se preciso, `make chrome-login`. |
+| `401` do Mercado Livre na coleta | autorização OAuth expirada: abra `/oauth/mercado-livre/autorizar`. |
+| `monitor_offline` em `/automacoes/status` | a API não está rodando (`make servico-status`). |
+| Nada é publicado | confira `/automacoes/status`: automações pausadas, `fora_da_janela` ou grupo sem configuração. |
+
+## Desenvolvimento
+
+- Camadas: `api/` → `services/` → `repositories/` → `models/`; integrações em
+  `collectors/`, `affiliates/` e `publishers/`.
+- Migrações com Alembic: `alembic revision --autogenerate -m "..."` e revise o
+  arquivo gerado.
+- Testes com pytest. Os de integração rodam no banco do `.env` dentro de uma
+  transação desfeita ao final e não iniciam as automações.
+
+## Licença
+
+MIT. Veja [LICENSE](LICENSE).

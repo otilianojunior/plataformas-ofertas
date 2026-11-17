@@ -23,6 +23,8 @@ class Settings(BaseSettings):
 
     mercado_livre_chrome_cdp_url: str = "http://127.0.0.1:9222"
 
+    log_level: str = "INFO"
+
     model_config = SettingsConfigDict(
         env_file=RAIZ_PROJETO / ".env",
         env_file_encoding="utf-8",

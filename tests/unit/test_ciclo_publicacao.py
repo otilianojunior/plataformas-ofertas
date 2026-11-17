@@ -51,7 +51,7 @@ def test_ciclo_concluido_registra_inicio_progresso_e_fim(servico, ciclo_reposito
 
     with (
         patch("ofertas.services.publicacao_lote_service.SessionLocal", _session_local()),
-        patch("ofertas.services.publicacao_lote_service.time.sleep"),
+        patch.object(servico, "INTERVALO_ENTRE_MENSAGENS_SEGUNDOS", 0),
         patch.object(servico, "_buscar_configuracao_ativa", return_value=Mock()),
         patch.object(servico, "_selecionar_candidatos", return_value=candidatos),
         patch.object(servico, "_registrar_execucao"),
@@ -121,7 +121,7 @@ def test_falha_ao_gravar_progresso_nao_interrompe_publicacao(servico, ciclo_repo
 
     with (
         patch("ofertas.services.publicacao_lote_service.SessionLocal", _session_local()),
-        patch("ofertas.services.publicacao_lote_service.time.sleep"),
+        patch.object(servico, "INTERVALO_ENTRE_MENSAGENS_SEGUNDOS", 0),
         patch.object(servico, "_buscar_configuracao_ativa", return_value=Mock()),
         patch.object(servico, "_selecionar_candidatos", return_value=[(1, "c", 10), (1, "c", 11)]),
         patch.object(servico, "_registrar_execucao"),
@@ -142,3 +142,43 @@ def test_falha_ao_gravar_progresso_nao_interrompe_publicacao(servico, ciclo_repo
 )
 def test_status_da_execucao_de_coleta(falhas, sucessos, esperado):
     assert ExecucaoColetaService._definir_status(falhas, sucessos) == esperado
+
+
+def test_encerramento_da_api_interrompe_durante_o_intervalo(servico, ciclo_repository):
+    """Não espera os 20s entre mensagens quando a API está parando."""
+    import threading
+    import time
+
+    servico.publicacao_service.publicar_produto.return_value = Mock(
+        status_publicacao="publicada"
+    )
+    threading.Timer(0.2, servico.encerrando.set).start()
+    inicio = time.monotonic()
+
+    with (
+        patch("ofertas.services.publicacao_lote_service.SessionLocal", _session_local()),
+        patch.object(servico, "_buscar_configuracao_ativa", return_value=Mock()),
+        patch.object(servico, "_selecionar_candidatos", return_value=[(1, "c", 10), (1, "c", 11)]),
+        patch.object(servico, "_registrar_execucao") as registrar,
+    ):
+        resultado = servico._executar_ciclo_destino_com_lock(7)
+
+    assert time.monotonic() - inicio < 5
+    assert resultado["status"] == "interrompido"
+    assert resultado["publicadas"] == 1
+    assert _status_finais(ciclo_repository)[0]["status"] == "interrompido"
+    registrar.assert_not_called()  # o ciclo volta a rodar após o reinício
+
+
+def test_encerramento_antes_do_ciclo_nao_publica(servico):
+    servico.encerrando.set()
+
+    with (
+        patch("ofertas.services.publicacao_lote_service.SessionLocal", _session_local()),
+        patch.object(servico, "_buscar_configuracao_ativa", return_value=Mock()),
+        patch.object(servico, "_selecionar_candidatos", return_value=[(1, "c", 10)]),
+    ):
+        resultado = servico._executar_ciclo_destino_com_lock(7)
+
+    assert resultado["status"] == "interrompido"
+    servico.publicacao_service.publicar_produto.assert_not_called()
