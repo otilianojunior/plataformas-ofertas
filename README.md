@@ -22,6 +22,12 @@ controle de horários, limites e regras de desconto. O WhatsApp está planejado.
 - **Publicação:** cada grupo tem o próprio intervalo entre ciclos. Um ciclo
   escolhe até `limite_produtos_por_categoria` produtos por categoria e envia uma
   mensagem a cada 20 segundos.
+- **Sem repetição com preço maior:** o mesmo produto, reconhecido pelo título
+  mesmo vindo de outra loja, só volta a um grupo em menos de 24h se o preço for
+  menor que o já publicado. Quando um produto é barrado, o ciclo usa o próximo
+  da lista.
+- **Categorias por termo:** além dos destaques de uma categoria, dá para coletar
+  por busca (`termo_busca`, ex.: "headset razer") dentro dela.
 - **Janelas de execução:** quando há janelas ativas, as automações só rodam
   dentro delas (horário de Brasília). Sem janelas, rodam 24h. As execuções
   manuais não obedecem às janelas.

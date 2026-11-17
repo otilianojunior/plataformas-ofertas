@@ -70,6 +70,15 @@ Pontos importantes:
 - Categoria ↔ grupos só pela tabela `plataforma_categoria_destino` (vários grupos
   por categoria). Não existe mais "destino principal" nem seleção por categoria;
   o limite de produtos é o global.
+- Republicação: o mesmo produto num grupo só volta em 24h com preço **menor** que o
+  menor preço publicado. "Mesmo produto" = mesmo ID ou título equivalente de qualquer
+  loja (`core/similaridade_produto.py`: ignora cor/marketing; separa por código de
+  modelo, armazenamento, tela, variante Pro/Ultra e acessórios). Aplicado no envio
+  (`PublicacaoService._validar_republicacao`) e na seleção do ciclo, que busca 4x o
+  limite por categoria para repor os barrados e fica com o mais barato entre iguais.
+- Categoria com `termo_busca`: coleta por termo dentro da categoria da loja
+  (Shopee: keyword + productCatId; Mercado Livre: `/products/search`, pois
+  `/sites/MLB/search` dá 403 — o catálogo traz produtos sem anúncio, descartados).
 - Fuso horário e normalização de datas: `core/tempo.py` (`FUSO_HORARIO`, `garantir_utc`).
 - `configuracoes_sistema` é uma linha única (id=1) com os controles globais:
   `automacoes_ativas`, flags por automação, `intervalo_coleta_minutos`,
