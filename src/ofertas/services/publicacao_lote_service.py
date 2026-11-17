@@ -19,6 +19,9 @@ from ofertas.repositories.destino_divulgacao_repository import (
 )
 from ofertas.repositories.produto_repository import ProdutoRepository
 from ofertas.services.publicacao_service import PublicacaoService
+from ofertas.services.janela_execucao_service import (
+    JanelaExecucaoService,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -27,7 +30,6 @@ logger = logging.getLogger(__name__)
 class PublicacaoLoteService:
     """Coordena os ciclos automáticos de publicação por destino."""
 
-    LIMITE_PRODUTOS_POR_CATEGORIA = 10
     LOCK_NAMESPACE = 20261110
     INTERVALO_ENTRE_MENSAGENS_SEGUNDOS = 20
     CODIGO_TELEGRAM = "telegram"
@@ -39,6 +41,7 @@ class PublicacaoLoteService:
         categoria_repository: CategoriaRepository | None = None,
         produto_repository: ProdutoRepository | None = None,
         publicacao_service: PublicacaoService | None = None,
+        janela_execucao_service: JanelaExecucaoService | None = None,
     ) -> None:
         self.configuracao_repository = (
             configuracao_repository or ConfiguracaoDivulgacaoRepository()
@@ -54,6 +57,9 @@ class PublicacaoLoteService:
         )
         self.publicacao_service = (
             publicacao_service or PublicacaoService()
+        )
+        self.janela_execucao_service = (
+            janela_execucao_service or JanelaExecucaoService()
         )
 
     def _buscar_configuracao_ativa(
@@ -101,6 +107,11 @@ class PublicacaoLoteService:
         ):
             return None
 
+        if not self.janela_execucao_service.esta_em_horario_permitido(
+            session
+        ):
+            return None
+
         return configuracao
 
     def _selecionar_candidatos(
@@ -115,6 +126,15 @@ class PublicacaoLoteService:
 
         if configuracao is None:
             return []
+
+        configuracao_sistema = session.get(ConfiguracaoSistema, 1)
+
+        if configuracao_sistema is None:
+            return []
+
+        limite_produtos_por_categoria = (
+            configuracao_sistema.limite_produtos_por_categoria
+        )
 
         categorias = self.categoria_repository.listar_por_destino(
             session,
@@ -147,7 +167,7 @@ class PublicacaoLoteService:
                 desconto_minimo_percentual=desconto_minimo,
                 preco_minimo=configuracao.preco_minimo,
                 preco_maximo=configuracao.preco_maximo,
-                limite=self.LIMITE_PRODUTOS_POR_CATEGORIA,
+                limite=limite_produtos_por_categoria,
             )
 
             for produto in produtos:

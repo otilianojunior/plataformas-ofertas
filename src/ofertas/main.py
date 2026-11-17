@@ -17,6 +17,8 @@ from ofertas.api.credenciais_divulgacao import router as credenciais_divulgacao_
 from ofertas.api.publicacoes import router as publicacoes_router
 from ofertas.api.oauth_mercado_livre import router as oauth_mercado_livre_router
 from ofertas.api.coletas import router as coletas_router
+from ofertas.api.automacoes import router as automacoes_router
+from ofertas.api.janelas_execucao import router as janelas_execucao_router
 
 from ofertas.services.automacao_service import AutomacaoService
 from ofertas.services.publicacao_lote_service import PublicacaoLoteService
@@ -174,6 +176,8 @@ app = FastAPI(
 
 app.include_router(plataformas_router)
 app.include_router(coletas_router)
+app.include_router(automacoes_router)
+app.include_router(janelas_execucao_router)
 app.include_router(oauth_mercado_livre_router)
 app.include_router(produtos_router)
 app.include_router(categorias_router)

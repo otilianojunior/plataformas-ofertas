@@ -22,9 +22,21 @@ class ConfiguracaoSistemaRepository:
         self,
         session: Session,
         configuracao: ConfiguracaoSistema,
-        intervalo_coleta_minutos: int,
+        dados: dict[str, int],
     ) -> ConfiguracaoSistema:
-        configuracao.intervalo_coleta_minutos = intervalo_coleta_minutos
+        campos_permitidos = {
+            "intervalo_coleta_minutos",
+            "limite_produtos_por_categoria",
+        }
+
+        for campo, valor in dados.items():
+            if campo not in campos_permitidos:
+                raise ValueError(
+                    f"Campo de configuração não permitido: {campo}."
+                )
+
+            setattr(configuracao, campo, valor)
+
         session.flush()
         return configuracao
 

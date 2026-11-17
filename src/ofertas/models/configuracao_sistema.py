@@ -25,6 +25,10 @@ class ConfiguracaoSistema(Base):
             "intervalo_coleta_minutos > 0",
             name="ck_config_sistema_intervalo_positivo",
         ),
+        CheckConstraint(
+            "limite_produtos_por_categoria >= 1",
+            name="ck_config_sistema_limite_produtos_positivo",
+        ),
     )
 
     id: Mapped[int] = mapped_column(
@@ -43,6 +47,13 @@ class ConfiguracaoSistema(Base):
     intervalo_coleta_minutos: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
+    )
+
+    limite_produtos_por_categoria: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=10,
+        server_default=text("10"),
     )
 
     coleta_mercado_livre_ativa: Mapped[bool] = mapped_column(

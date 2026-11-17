@@ -37,11 +37,27 @@ class ConfiguracaoSistemaService:
     def atualizar(
         self,
         session: Session,
-        intervalo_coleta_minutos: int,
+        dados: dict[str, int],
     ) -> ConfiguracaoSistema:
-        if intervalo_coleta_minutos <= 0:
+        if not dados:
+            raise ValueError(
+                "Informe ao menos uma configuração para atualizar."
+            )
+
+        if (
+            "intervalo_coleta_minutos" in dados
+            and dados["intervalo_coleta_minutos"] <= 0
+        ):
             raise ValueError(
                 "O intervalo de coleta deve ser maior que zero."
+            )
+
+        if (
+            "limite_produtos_por_categoria" in dados
+            and dados["limite_produtos_por_categoria"] < 1
+        ):
+            raise ValueError(
+                "O limite de produtos por categoria deve ser pelo menos 1."
             )
 
         configuracao = self.buscar(session)
@@ -49,7 +65,7 @@ class ConfiguracaoSistemaService:
         return self.repository.atualizar(
             session,
             configuracao,
-            intervalo_coleta_minutos,
+            dados,
         )
 
     def atualizar_status_automacao(

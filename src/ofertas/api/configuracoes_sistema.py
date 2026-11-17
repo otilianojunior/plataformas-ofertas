@@ -127,7 +127,7 @@ def atualizar_configuracao_sistema(
     try:
         configuracao = ConfiguracaoSistemaService().atualizar(
             db,
-            dados.intervalo_coleta_minutos,
+            dados.model_dump(exclude_unset=True),
         )
         db.commit()
         db.refresh(configuracao)

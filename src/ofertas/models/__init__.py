@@ -13,6 +13,7 @@ from ofertas.models.plataforma_categoria_destino import PlataformaCategoriaDesti
 from ofertas.models.plataforma_divulgacao import PlataformaDivulgacao
 from ofertas.models.publicacao import Publicacao
 from ofertas.models.configuracao_sistema import ConfiguracaoSistema
+from ofertas.models.janela_execucao import JanelaExecucao
 
 __all__ = [
     "AutenticacaoOAuth",
@@ -24,6 +25,7 @@ __all__ = [
     "EstadoOAuth",
     "ExecucaoColeta",
     "HistoricoPreco",
+    "JanelaExecucao",
     "Plataforma",
     "PlataformaCategoria",
     "PlataformaCategoriaDestino",

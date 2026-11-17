@@ -16,6 +16,9 @@ from ofertas.services.configuracao_sistema_service import (
     ConfiguracaoSistemaService,
 )
 from ofertas.services.execucao_coleta_service import ExecucaoColetaService
+from ofertas.services.janela_execucao_service import (
+    JanelaExecucaoService,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -34,6 +37,7 @@ class AutomacaoService:
         execucao_coleta_service: ExecucaoColetaService | None = None,
         configuracao_divulgacao_repository: ConfiguracaoDivulgacaoRepository | None = None,
         destino_repository: DestinoDivulgacaoRepository | None = None,
+        janela_execucao_service: JanelaExecucaoService | None = None,
     ) -> None:
         self.configuracao_sistema_service = (
             configuracao_sistema_service or ConfiguracaoSistemaService()
@@ -47,6 +51,9 @@ class AutomacaoService:
         )
         self.destino_repository = (
             destino_repository or DestinoDivulgacaoRepository()
+        )
+        self.janela_execucao_service = (
+            janela_execucao_service or JanelaExecucaoService()
         )
 
     @staticmethod
@@ -108,6 +115,11 @@ class AutomacaoService:
                         session
                     )
 
+                    if not self.janela_execucao_service.esta_em_horario_permitido(
+                        session
+                    ):
+                        continue
+
                     if (
                         not configuracao.automacoes_ativas
                         or not getattr(configuracao, atributo_ativo)
@@ -151,6 +163,9 @@ class AutomacaoService:
                             or not getattr(
                                 configuracao_atual,
                                 atributo_ativo,
+                            )
+                            or not self.janela_execucao_service.esta_em_horario_permitido(
+                                session
                             )
                         ):
                             logger.info(
@@ -260,6 +275,9 @@ class AutomacaoService:
             if (
                 not configuracao_sistema.automacoes_ativas
                 or not configuracao_sistema.publicacao_telegram_ativa
+                or not self.janela_execucao_service.esta_em_horario_permitido(
+                    session
+                )
             ):
                 return []
 
