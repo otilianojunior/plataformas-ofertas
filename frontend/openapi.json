@@ -1,0 +1,5134 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "Plataformas de Ofertas",
+  "description": "API para coleta, armazenamento e distribuição de produtos e ofertas.",
+  "version": "0.9.0"
+ },
+ "paths": {
+  "/lojas": {
+   "get": {
+    "tags": [
+     "Lojas de origem das ofertas"
+    ],
+    "summary": "Listar Plataformas",
+    "operationId": "listar_plataformas_lojas_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/PlataformaResponse"
+         },
+         "type": "array",
+         "title": "Response Listar Plataformas Lojas Get"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Lojas de origem das ofertas"
+    ],
+    "summary": "Criar Plataforma",
+    "operationId": "criar_plataforma_lojas_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PlataformaCreate"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PlataformaResponse"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Já existe uma loja com esse código."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/lojas/{codigo}": {
+   "get": {
+    "tags": [
+     "Lojas de origem das ofertas"
+    ],
+    "summary": "Buscar Plataforma",
+    "operationId": "buscar_plataforma_lojas__codigo__get",
+    "parameters": [
+     {
+      "name": "codigo",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Codigo"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PlataformaResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Loja não encontrada."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/lojas/{codigo}/status": {
+   "patch": {
+    "tags": [
+     "Lojas de origem das ofertas"
+    ],
+    "summary": "Atualizar Status Plataforma",
+    "operationId": "atualizar_status_plataforma_lojas__codigo__status_patch",
+    "parameters": [
+     {
+      "name": "codigo",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Codigo"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PlataformaStatusUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PlataformaResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Loja não encontrada."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/coletas/mercado-livre": {
+   "post": {
+    "tags": [
+     "Coletas"
+    ],
+    "summary": "Executar coleta manual do Mercado Livre",
+    "description": "Não obedece às janelas de execução.",
+    "operationId": "executar_coleta_mercado_livre_coletas_mercado_livre_post",
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ExecucaoColetaResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Loja não cadastrada."
+     },
+     "409": {
+      "description": "Loja inativa ou já existe uma coleta em andamento para ela."
+     }
+    }
+   }
+  },
+  "/coletas/shopee": {
+   "post": {
+    "tags": [
+     "Coletas"
+    ],
+    "summary": "Executar coleta manual da Shopee",
+    "description": "Não obedece às janelas de execução.",
+    "operationId": "executar_coleta_shopee_coletas_shopee_post",
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ExecucaoColetaResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Loja não cadastrada."
+     },
+     "409": {
+      "description": "Loja inativa ou já existe uma coleta em andamento para ela."
+     }
+    }
+   }
+  },
+  "/automacoes/status": {
+   "get": {
+    "tags": [
+     "Automações"
+    ],
+    "summary": "Consultar o status geral das automações",
+    "operationId": "consultar_status_automacoes_automacoes_status_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AutomacoesStatusResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Configuração global não encontrada."
+     }
+    }
+   }
+  },
+  "/janelas-execucao": {
+   "get": {
+    "tags": [
+     "Janelas de execução"
+    ],
+    "summary": "Listar Janelas",
+    "operationId": "listar_janelas_janelas_execucao_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/JanelaExecucaoResponse"
+         },
+         "type": "array",
+         "title": "Response Listar Janelas Janelas Execucao Get"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Janelas de execução"
+    ],
+    "summary": "Criar Janela",
+    "operationId": "criar_janela_janelas_execucao_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/JanelaExecucaoCreate"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JanelaExecucaoResponse"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Sobreposição ou conflito com o banco."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/janelas-execucao/{janela_id}": {
+   "get": {
+    "tags": [
+     "Janelas de execução"
+    ],
+    "summary": "Buscar Janela",
+    "operationId": "buscar_janela_janelas_execucao__janela_id__get",
+    "parameters": [
+     {
+      "name": "janela_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Janela Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JanelaExecucaoResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Janela não encontrada."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "Janelas de execução"
+    ],
+    "summary": "Atualizar Janela",
+    "operationId": "atualizar_janela_janelas_execucao__janela_id__patch",
+    "parameters": [
+     {
+      "name": "janela_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Janela Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/JanelaExecucaoUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JanelaExecucaoResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Janela não encontrada."
+     },
+     "409": {
+      "description": "Sobreposição ou conflito com o banco."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "Janelas de execução"
+    ],
+    "summary": "Excluir Janela",
+    "operationId": "excluir_janela_janelas_execucao__janela_id__delete",
+    "parameters": [
+     {
+      "name": "janela_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Janela Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "404": {
+      "description": "Janela não encontrada."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/ciclos-publicacao": {
+   "get": {
+    "tags": [
+     "Ciclos de publicação"
+    ],
+    "summary": "Listar os ciclos de publicação mais recentes",
+    "operationId": "listar_ciclos_publicacao_ciclos_publicacao_get",
+    "parameters": [
+     {
+      "name": "destino_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "exclusiveMinimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Destino Id"
+      }
+     },
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "enum": [
+          "em_andamento",
+          "concluido",
+          "pausado",
+          "falhou",
+          "interrompido"
+         ],
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Status"
+      }
+     },
+     {
+      "name": "limite",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "default": 20,
+       "title": "Limite"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/CicloPublicacaoResponse"
+         },
+         "title": "Response Listar Ciclos Publicacao Ciclos Publicacao Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/oauth/mercado-livre/autorizar": {
+   "get": {
+    "tags": [
+     "Autenticação OAuth - Mercado Livre"
+    ],
+    "summary": "Iniciar a autorização OAuth do Mercado Livre",
+    "operationId": "autorizar_mercado_livre_oauth_mercado_livre_autorizar_get",
+    "responses": {
+     "307": {
+      "description": "Redireciona para a tela de login do Mercado Livre.",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "404": {
+      "description": "Plataforma Mercado Livre não cadastrada."
+     },
+     "409": {
+      "description": "Plataforma inativa ou credenciais OAuth ausentes/duplicadas."
+     }
+    }
+   }
+  },
+  "/oauth/mercado-livre/callback": {
+   "get": {
+    "tags": [
+     "Autenticação OAuth - Mercado Livre"
+    ],
+    "summary": "Receber o retorno da autorização OAuth do Mercado Livre",
+    "operationId": "callback_mercado_livre_oauth_mercado_livre_callback_get",
+    "parameters": [
+     {
+      "name": "code",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Code"
+      }
+     },
+     {
+      "name": "state",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "State"
+      }
+     },
+     {
+      "name": "error",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Error"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "400": {
+      "description": "State inválido/expirado, autorização recusada ou código ausente."
+     },
+     "404": {
+      "description": "Plataforma Mercado Livre não cadastrada."
+     },
+     "409": {
+      "description": "Credenciais OAuth ausentes ou duplicadas."
+     },
+     "502": {
+      "description": "Falha na comunicação com o Mercado Livre."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/produtos": {
+   "get": {
+    "tags": [
+     "Produtos"
+    ],
+    "summary": "Listar Produtos",
+    "operationId": "listar_produtos_produtos_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/ProdutoResponse"
+         },
+         "type": "array",
+         "title": "Response Listar Produtos Produtos Get"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Produtos"
+    ],
+    "summary": "Criar Produto",
+    "operationId": "criar_produto_produtos_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ProdutoCreate"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProdutoResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Plataforma ou categoria não encontrada."
+     },
+     "409": {
+      "description": "Produto duplicado ou conflito com o banco."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/produtos/{produto_id}": {
+   "get": {
+    "tags": [
+     "Produtos"
+    ],
+    "summary": "Buscar Produto",
+    "operationId": "buscar_produto_produtos__produto_id__get",
+    "parameters": [
+     {
+      "name": "produto_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Produto Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProdutoResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Produto não encontrado."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "Produtos"
+    ],
+    "summary": "Atualizar Produto",
+    "operationId": "atualizar_produto_produtos__produto_id__patch",
+    "parameters": [
+     {
+      "name": "produto_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Produto Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ProdutoUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProdutoResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Produto ou categoria não encontrada."
+     },
+     "409": {
+      "description": "Dados incompatíveis com as regras do sistema."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/produtos/{produto_id}/monitoramento": {
+   "patch": {
+    "tags": [
+     "Produtos"
+    ],
+    "summary": "Atualizar Monitoramento Produto",
+    "operationId": "atualizar_monitoramento_produto_produtos__produto_id__monitoramento_patch",
+    "parameters": [
+     {
+      "name": "produto_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Produto Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ProdutoUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProdutoResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Produto não encontrado."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/categorias": {
+   "get": {
+    "tags": [
+     "Ofertas e categorias"
+    ],
+    "summary": "Listar Categorias",
+    "operationId": "listar_categorias_categorias_get",
+    "parameters": [
+     {
+      "name": "plataforma_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "exclusiveMinimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Plataforma Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/CategoriaResponse"
+         },
+         "title": "Response Listar Categorias Categorias Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Ofertas e categorias"
+    ],
+    "summary": "Criar Categoria",
+    "operationId": "criar_categoria_categorias_post",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CategoriaCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CategoriaResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Loja ou grupo não encontrado."
+     },
+     "409": {
+      "description": "Categoria duplicada ou conflito com o banco."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/categorias/{categoria_id}": {
+   "get": {
+    "tags": [
+     "Ofertas e categorias"
+    ],
+    "summary": "Buscar Categoria",
+    "operationId": "buscar_categoria_categorias__categoria_id__get",
+    "parameters": [
+     {
+      "name": "categoria_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Categoria Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CategoriaResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Categoria não encontrada."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/categorias/{categoria_id}/status": {
+   "patch": {
+    "tags": [
+     "Ofertas e categorias"
+    ],
+    "summary": "Atualizar Status Categoria",
+    "operationId": "atualizar_status_categoria_categorias__categoria_id__status_patch",
+    "parameters": [
+     {
+      "name": "categoria_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Categoria Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CategoriaStatusUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CategoriaResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Categoria não encontrada."
+     },
+     "409": {
+      "description": "Conflito com as regras ou o banco de dados."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/categorias/{categoria_id}/desconto-minimo": {
+   "patch": {
+    "tags": [
+     "Ofertas e categorias"
+    ],
+    "summary": "Atualizar Desconto Minimo Categoria",
+    "operationId": "atualizar_desconto_minimo_categoria_categorias__categoria_id__desconto_minimo_patch",
+    "parameters": [
+     {
+      "name": "categoria_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Categoria Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CategoriaDescontoUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CategoriaResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Categoria não encontrada."
+     },
+     "409": {
+      "description": "Conflito com as regras ou o banco de dados."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/categorias/{categoria_id}/etiqueta-afiliado": {
+   "patch": {
+    "tags": [
+     "Ofertas e categorias"
+    ],
+    "summary": "Atualizar Etiqueta Afiliado Categoria",
+    "operationId": "atualizar_etiqueta_afiliado_categoria_categorias__categoria_id__etiqueta_afiliado_patch",
+    "parameters": [
+     {
+      "name": "categoria_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Categoria Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CategoriaEtiquetaAfiliadoUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CategoriaResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Categoria não encontrada."
+     },
+     "409": {
+      "description": "Conflito com as regras ou o banco de dados."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/categorias/{categoria_id}/grupos": {
+   "get": {
+    "tags": [
+     "Ofertas e categorias"
+    ],
+    "summary": "Listar grupos associados à categoria",
+    "description": "Retorna os grupos (Telegram e WhatsApp) que recebem as publicações da categoria, com canal e status de cada um.",
+    "operationId": "listar_grupos_categoria_categorias__categoria_id__grupos_get",
+    "parameters": [
+     {
+      "name": "categoria_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Categoria Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/DestinoDivulgacaoResponse"
+         },
+         "title": "Response Listar Grupos Categoria Categorias  Categoria Id  Grupos Get"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Categoria não encontrada."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/categorias/{categoria_id}/grupos/{grupo_id}": {
+   "post": {
+    "tags": [
+     "Ofertas e categorias"
+    ],
+    "summary": "Associar grupo à categoria",
+    "description": "Adiciona um grupo Telegram ou WhatsApp à categoria. Os demais grupos associados são preservados.",
+    "operationId": "associar_grupo_categoria_categorias__categoria_id__grupos__grupo_id__post",
+    "parameters": [
+     {
+      "name": "categoria_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Categoria Id"
+      }
+     },
+     {
+      "name": "grupo_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Grupo Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/DestinoDivulgacaoResponse"
+         },
+         "title": "Response Associar Grupo Categoria Categorias  Categoria Id  Grupos  Grupo Id  Post"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Categoria ou grupo não encontrado."
+     },
+     "409": {
+      "description": "Associação inválida ou já existente."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "Ofertas e categorias"
+    ],
+    "summary": "Desassociar grupo da categoria",
+    "description": "Remove somente o grupo informado. Os demais grupos da categoria continuam associados.",
+    "operationId": "desassociar_grupo_categoria_categorias__categoria_id__grupos__grupo_id__delete",
+    "parameters": [
+     {
+      "name": "categoria_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Categoria Id"
+      }
+     },
+     {
+      "name": "grupo_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Grupo Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/DestinoDivulgacaoResponse"
+         },
+         "title": "Response Desassociar Grupo Categoria Categorias  Categoria Id  Grupos  Grupo Id  Delete"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Categoria não encontrada ou grupo não associado."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/configuracoes-sistema": {
+   "get": {
+    "tags": [
+     "Configurações do sistema"
+    ],
+    "summary": "Buscar Configuracao Sistema",
+    "operationId": "buscar_configuracao_sistema_configuracoes_sistema_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ConfiguracaoSistemaResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Configuração global não encontrada."
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "Configurações do sistema"
+    ],
+    "summary": "Atualizar Configuracao Sistema",
+    "operationId": "atualizar_configuracao_sistema_configuracoes_sistema_patch",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ConfiguracaoSistemaUpdate"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ConfiguracaoSistemaResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Configuração global não encontrada."
+     },
+     "409": {
+      "description": "Conflito com as regras ou o banco de dados."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/configuracoes-sistema/automacoes/{automacao}/ativar": {
+   "post": {
+    "tags": [
+     "Configurações do sistema"
+    ],
+    "summary": "Ativar Automacao",
+    "operationId": "ativar_automacao_configuracoes_sistema_automacoes__automacao__ativar_post",
+    "parameters": [
+     {
+      "name": "automacao",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "enum": [
+        "coleta_mercado_livre",
+        "coleta_shopee",
+        "publicacao_telegram",
+        "publicacao_whatsapp"
+       ],
+       "type": "string",
+       "title": "Automacao"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ConfiguracaoSistemaResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Configuração global não encontrada."
+     },
+     "409": {
+      "description": "Não foi possível ativar a automação."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/configuracoes-sistema/automacoes/{automacao}/pausar": {
+   "post": {
+    "tags": [
+     "Configurações do sistema"
+    ],
+    "summary": "Pausar Automacao",
+    "operationId": "pausar_automacao_configuracoes_sistema_automacoes__automacao__pausar_post",
+    "parameters": [
+     {
+      "name": "automacao",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "enum": [
+        "coleta_mercado_livre",
+        "coleta_shopee",
+        "publicacao_telegram",
+        "publicacao_whatsapp"
+       ],
+       "type": "string",
+       "title": "Automacao"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ConfiguracaoSistemaResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Configuração global não encontrada."
+     },
+     "409": {
+      "description": "Não foi possível pausar a automação."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/configuracoes-sistema/automacoes/ativar": {
+   "post": {
+    "tags": [
+     "Configurações do sistema"
+    ],
+    "summary": "Ativar Automacoes",
+    "operationId": "ativar_automacoes_configuracoes_sistema_automacoes_ativar_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ConfiguracaoSistemaResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Configuração global não encontrada."
+     }
+    }
+   }
+  },
+  "/configuracoes-sistema/automacoes/pausar": {
+   "post": {
+    "tags": [
+     "Configurações do sistema"
+    ],
+    "summary": "Pausar Automacoes",
+    "operationId": "pausar_automacoes_configuracoes_sistema_automacoes_pausar_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ConfiguracaoSistemaResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Configuração global não encontrada."
+     }
+    }
+   }
+  },
+  "/grupos/configuracoes": {
+   "get": {
+    "tags": [
+     "Configurações de divulgação"
+    ],
+    "summary": "Listar a configuração de divulgação de todos os grupos",
+    "operationId": "listar_configuracoes_grupos_configuracoes_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/ConfiguracaoDivulgacaoResponse"
+         },
+         "type": "array",
+         "title": "Response Listar Configuracoes Grupos Configuracoes Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/grupos/{grupo_id}/configuracao": {
+   "get": {
+    "tags": [
+     "Configurações de divulgação"
+    ],
+    "summary": "Consultar a configuração de divulgação do grupo",
+    "operationId": "buscar_configuracao_grupos__grupo_id__configuracao_get",
+    "parameters": [
+     {
+      "name": "grupo_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Grupo Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ConfiguracaoDivulgacaoResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Configuração de divulgação não encontrada."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Configurações de divulgação"
+    ],
+    "summary": "Criar a configuração de divulgação do grupo",
+    "operationId": "criar_configuracao_grupos__grupo_id__configuracao_post",
+    "parameters": [
+     {
+      "name": "grupo_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Grupo Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ConfiguracaoDivulgacaoCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ConfiguracaoDivulgacaoResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Grupo não encontrado."
+     },
+     "409": {
+      "description": "Configuração duplicada ou conflito com o banco."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "Configurações de divulgação"
+    ],
+    "summary": "Alterar a configuração de divulgação do grupo",
+    "operationId": "atualizar_configuracao_grupos__grupo_id__configuracao_patch",
+    "parameters": [
+     {
+      "name": "grupo_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Grupo Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ConfiguracaoDivulgacaoUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ConfiguracaoDivulgacaoResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Configuração não encontrada."
+     },
+     "409": {
+      "description": "Dados inválidos ou conflito com o banco."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/canais-divulgacao": {
+   "get": {
+    "tags": [
+     "Canais de divulgação"
+    ],
+    "summary": "Listar Plataformas Divulgacao",
+    "operationId": "listar_plataformas_divulgacao_canais_divulgacao_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/PlataformaDivulgacaoResponse"
+         },
+         "type": "array",
+         "title": "Response Listar Plataformas Divulgacao Canais Divulgacao Get"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Canais de divulgação"
+    ],
+    "summary": "Criar Plataforma Divulgacao",
+    "operationId": "criar_plataforma_divulgacao_canais_divulgacao_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PlataformaDivulgacaoCreate"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PlataformaDivulgacaoResponse"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Já existe um canal com esse código."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/canais-divulgacao/{codigo}": {
+   "get": {
+    "tags": [
+     "Canais de divulgação"
+    ],
+    "summary": "Buscar Plataforma Divulgacao",
+    "operationId": "buscar_plataforma_divulgacao_canais_divulgacao__codigo__get",
+    "parameters": [
+     {
+      "name": "codigo",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Codigo"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PlataformaDivulgacaoResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Canal de divulgação não encontrado."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/canais-divulgacao/{codigo}/status": {
+   "patch": {
+    "tags": [
+     "Canais de divulgação"
+    ],
+    "summary": "Atualizar Status Plataforma Divulgacao",
+    "operationId": "atualizar_status_plataforma_divulgacao_canais_divulgacao__codigo__status_patch",
+    "parameters": [
+     {
+      "name": "codigo",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Codigo"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PlataformaDivulgacaoStatusUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PlataformaDivulgacaoResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Canal de divulgação não encontrado."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/grupos": {
+   "get": {
+    "tags": [
+     "Grupos de publicação"
+    ],
+    "summary": "Listar Destinos",
+    "operationId": "listar_destinos_grupos_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/DestinoDivulgacaoResponse"
+         },
+         "type": "array",
+         "title": "Response Listar Destinos Grupos Get"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Grupos de publicação"
+    ],
+    "summary": "Criar Destino",
+    "operationId": "criar_destino_grupos_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DestinoDivulgacaoCreate"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DestinoDivulgacaoResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Plataforma ou credencial não encontrada."
+     },
+     "409": {
+      "description": "Destino duplicado ou conflito com o banco."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/grupos/{grupo_id}": {
+   "get": {
+    "tags": [
+     "Grupos de publicação"
+    ],
+    "summary": "Buscar Destino",
+    "operationId": "buscar_destino_grupos__grupo_id__get",
+    "parameters": [
+     {
+      "name": "grupo_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Grupo Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DestinoDivulgacaoResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Destino de divulgação não encontrado."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/grupos/{grupo_id}/status": {
+   "patch": {
+    "tags": [
+     "Grupos de publicação"
+    ],
+    "summary": "Atualizar Status Destino",
+    "operationId": "atualizar_status_destino_grupos__grupo_id__status_patch",
+    "parameters": [
+     {
+      "name": "grupo_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Grupo Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DestinoDivulgacaoStatusUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DestinoDivulgacaoResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Destino de divulgação não encontrado."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/credenciais-plataforma": {
+   "get": {
+    "tags": [
+     "Credenciais de acesso às lojas"
+    ],
+    "summary": "Listar Credenciais",
+    "operationId": "listar_credenciais_credenciais_plataforma_get",
+    "parameters": [
+     {
+      "name": "plataforma_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "exclusiveMinimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Plataforma Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/CredencialPlataformaResponse"
+         },
+         "title": "Response Listar Credenciais Credenciais Plataforma Get"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Plataforma não encontrado(a)."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Credenciais de acesso às lojas"
+    ],
+    "summary": "Criar Credencial",
+    "operationId": "criar_credencial_credenciais_plataforma_post",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CredencialPlataformaCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CredencialPlataformaResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Plataforma não encontrado(a)."
+     },
+     "409": {
+      "description": "Regra de negócio violada (ex.: canal inativo ou credencial ativa duplicada)."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/credenciais-plataforma/{credencial_id}": {
+   "get": {
+    "tags": [
+     "Credenciais de acesso às lojas"
+    ],
+    "summary": "Buscar Credencial",
+    "operationId": "buscar_credencial_credenciais_plataforma__credencial_id__get",
+    "parameters": [
+     {
+      "name": "credencial_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Credencial Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CredencialPlataformaResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Credencial não encontrada."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/credenciais-plataforma/{credencial_id}/status": {
+   "patch": {
+    "tags": [
+     "Credenciais de acesso às lojas"
+    ],
+    "summary": "Atualizar Status Credencial",
+    "operationId": "atualizar_status_credencial_credenciais_plataforma__credencial_id__status_patch",
+    "parameters": [
+     {
+      "name": "credencial_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Credencial Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CredencialPlataformaStatusUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CredencialPlataformaResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Credencial não encontrada."
+     },
+     "409": {
+      "description": "Já existe outra credencial ativa do mesmo tipo."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/credenciais-divulgacao": {
+   "get": {
+    "tags": [
+     "Credenciais dos canais de divulgação"
+    ],
+    "summary": "Listar Credenciais",
+    "operationId": "listar_credenciais_credenciais_divulgacao_get",
+    "parameters": [
+     {
+      "name": "plataforma_divulgacao_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "exclusiveMinimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Plataforma Divulgacao Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/CredencialDivulgacaoResponse"
+         },
+         "title": "Response Listar Credenciais Credenciais Divulgacao Get"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Canal de divulgação não encontrado(a)."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Credenciais dos canais de divulgação"
+    ],
+    "summary": "Criar Credencial",
+    "operationId": "criar_credencial_credenciais_divulgacao_post",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CredencialDivulgacaoCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CredencialDivulgacaoResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Canal de divulgação não encontrado(a)."
+     },
+     "409": {
+      "description": "Regra de negócio violada (ex.: canal inativo ou credencial ativa duplicada)."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/credenciais-divulgacao/{credencial_id}": {
+   "get": {
+    "tags": [
+     "Credenciais dos canais de divulgação"
+    ],
+    "summary": "Buscar Credencial",
+    "operationId": "buscar_credencial_credenciais_divulgacao__credencial_id__get",
+    "parameters": [
+     {
+      "name": "credencial_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Credencial Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CredencialDivulgacaoResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Credencial não encontrada."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/credenciais-divulgacao/{credencial_id}/status": {
+   "patch": {
+    "tags": [
+     "Credenciais dos canais de divulgação"
+    ],
+    "summary": "Atualizar Status Credencial",
+    "operationId": "atualizar_status_credencial_credenciais_divulgacao__credencial_id__status_patch",
+    "parameters": [
+     {
+      "name": "credencial_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Credencial Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CredencialDivulgacaoStatusUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CredencialDivulgacaoResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Credencial não encontrada."
+     },
+     "409": {
+      "description": "Já existe outra credencial ativa do mesmo tipo."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/publicacoes/produtos/{produto_id}": {
+   "post": {
+    "tags": [
+     "Publicações"
+    ],
+    "summary": "Publicar produto em todos os grupos da categoria",
+    "description": "Publicação manual. Localiza a categoria do produto e tenta publicar em cada grupo associado a ela cujo canal e grupo estejam ativos, aplicando todas as regras de publicação (elegibilidade, link afiliado, desconto mínimo, faixa de preço, republicação e tentativas). Não obedece às janelas de execução. O resultado de cada grupo vem em `resultados`. Grupos do WhatsApp são ignorados até o publisher ser implementado.",
+    "operationId": "publicar_produto_publicacoes_produtos__produto_id__post",
+    "parameters": [
+     {
+      "name": "produto_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Produto Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PublicacaoManualResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Produto ou categoria não encontrado."
+     },
+     "409": {
+      "description": "Nenhum grupo pôde receber a publicação (categoria inativa, sem grupos ou todos ignorados). O detalhe traz o motivo de cada grupo."
+     },
+     "502": {
+      "description": "Nenhuma publicação concluída e ao menos um envio falhou. As tentativas ficam registradas no banco."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/publicacoes/produtos/{produto_id}/grupos/{grupo_id}": {
+   "post": {
+    "tags": [
+     "Publicações"
+    ],
+    "summary": "Publicar produto em um grupo específico",
+    "description": "Publica o produto no destino informado, desde que o grupo esteja associado à categoria do produto.",
+    "operationId": "publicar_produto_em_grupo_publicacoes_produtos__produto_id__grupos__grupo_id__post",
+    "parameters": [
+     {
+      "name": "produto_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Produto Id"
+      }
+     },
+     {
+      "name": "grupo_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Grupo Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PublicacaoResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Produto, categoria ou destino não encontrado."
+     },
+     "409": {
+      "description": "Destino não associado ou publicação não permitida."
+     },
+     "502": {
+      "description": "Falha no envio ao Telegram."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/health": {
+   "get": {
+    "tags": [
+     "Sistema"
+    ],
+    "summary": "Health Check",
+    "operationId": "health_check_health_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": {
+          "type": "string"
+         },
+         "type": "object",
+         "title": "Response Health Check Health Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "AutomacoesStatusResponse": {
+    "properties": {
+     "consultado_em": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Consultado Em"
+     },
+     "fuso_horario": {
+      "type": "string",
+      "title": "Fuso Horario"
+     },
+     "horario_permitido": {
+      "type": "boolean",
+      "title": "Horario Permitido"
+     },
+     "configuracoes_sistema": {
+      "$ref": "#/components/schemas/ConfiguracaoSistemaResponse"
+     },
+     "monitor": {
+      "$ref": "#/components/schemas/MonitorAutomacoesStatus"
+     },
+     "janelas_execucao": {
+      "items": {
+       "$ref": "#/components/schemas/JanelaExecucaoResponse"
+      },
+      "type": "array",
+      "title": "Janelas Execucao"
+     },
+     "coletas": {
+      "items": {
+       "$ref": "#/components/schemas/ColetaMarketplaceStatus"
+      },
+      "type": "array",
+      "title": "Coletas"
+     },
+     "destinos_publicacao": {
+      "items": {
+       "$ref": "#/components/schemas/DestinoPublicacaoStatus"
+      },
+      "type": "array",
+      "title": "Destinos Publicacao"
+     },
+     "publicacao_whatsapp_habilitada": {
+      "type": "boolean",
+      "title": "Publicacao Whatsapp Habilitada"
+     },
+     "publicacao_whatsapp_status": {
+      "type": "string",
+      "title": "Publicacao Whatsapp Status"
+     }
+    },
+    "type": "object",
+    "required": [
+     "consultado_em",
+     "fuso_horario",
+     "horario_permitido",
+     "configuracoes_sistema",
+     "monitor",
+     "janelas_execucao",
+     "coletas",
+     "destinos_publicacao",
+     "publicacao_whatsapp_habilitada",
+     "publicacao_whatsapp_status"
+    ],
+    "title": "AutomacoesStatusResponse"
+   },
+   "CategoriaCreate": {
+    "properties": {
+     "plataforma_id": {
+      "type": "integer",
+      "exclusiveMinimum": 0.0,
+      "title": "Plataforma Id"
+     },
+     "id_categoria_plataforma": {
+      "type": "string",
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Id Categoria Plataforma"
+     },
+     "nome_categoria": {
+      "type": "string",
+      "maxLength": 150,
+      "minLength": 1,
+      "title": "Nome Categoria"
+     },
+     "etiqueta_afiliado": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 150
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Etiqueta Afiliado"
+     },
+     "termo_busca": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 150
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Termo Busca",
+      "description": "Opcional. Coleta por busca (ex.: 'headset razer') dentro da categoria da loja, em vez de só os destaques da categoria."
+     },
+     "grupos_ids": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Grupos Ids",
+      "description": "Grupos que vão receber as publicações da categoria."
+     },
+     "desconto_minimo_percentual": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 100.0,
+        "minimum": 10.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Desconto Minimo Percentual"
+     },
+     "status_categoria": {
+      "type": "boolean",
+      "title": "Status Categoria",
+      "default": true
+     }
+    },
+    "type": "object",
+    "required": [
+     "plataforma_id",
+     "id_categoria_plataforma",
+     "nome_categoria",
+     "desconto_minimo_percentual"
+    ],
+    "title": "CategoriaCreate"
+   },
+   "CategoriaDescontoUpdate": {
+    "properties": {
+     "desconto_minimo_percentual": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 100.0,
+        "minimum": 10.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Desconto Minimo Percentual"
+     }
+    },
+    "type": "object",
+    "required": [
+     "desconto_minimo_percentual"
+    ],
+    "title": "CategoriaDescontoUpdate"
+   },
+   "CategoriaEtiquetaAfiliadoUpdate": {
+    "properties": {
+     "etiqueta_afiliado": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 150
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Etiqueta Afiliado"
+     }
+    },
+    "type": "object",
+    "title": "CategoriaEtiquetaAfiliadoUpdate"
+   },
+   "CategoriaResponse": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "plataforma_id": {
+      "type": "integer",
+      "title": "Plataforma Id"
+     },
+     "id_categoria_plataforma": {
+      "type": "string",
+      "title": "Id Categoria Plataforma"
+     },
+     "nome_categoria": {
+      "type": "string",
+      "title": "Nome Categoria"
+     },
+     "termo_busca": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Termo Busca"
+     },
+     "etiqueta_afiliado": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Etiqueta Afiliado"
+     },
+     "desconto_minimo_percentual": {
+      "type": "string",
+      "title": "Desconto Minimo Percentual"
+     },
+     "status_categoria": {
+      "type": "boolean",
+      "title": "Status Categoria"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "plataforma_id",
+     "id_categoria_plataforma",
+     "nome_categoria",
+     "termo_busca",
+     "etiqueta_afiliado",
+     "desconto_minimo_percentual",
+     "status_categoria",
+     "created_at",
+     "updated_at"
+    ],
+    "title": "CategoriaResponse"
+   },
+   "CategoriaStatusUpdate": {
+    "properties": {
+     "status_categoria": {
+      "type": "boolean",
+      "title": "Status Categoria"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status_categoria"
+    ],
+    "title": "CategoriaStatusUpdate"
+   },
+   "CicloPublicacaoResponse": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "destino_divulgacao_id": {
+      "type": "integer",
+      "title": "Destino Divulgacao Id"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "iniciado_em": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Iniciado Em"
+     },
+     "finalizado_em": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Finalizado Em"
+     },
+     "atualizado_em": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Atualizado Em"
+     },
+     "quantidade_candidatos": {
+      "type": "integer",
+      "title": "Quantidade Candidatos"
+     },
+     "quantidade_publicada": {
+      "type": "integer",
+      "title": "Quantidade Publicada"
+     },
+     "quantidade_falha": {
+      "type": "integer",
+      "title": "Quantidade Falha"
+     },
+     "quantidade_ignorada": {
+      "type": "integer",
+      "title": "Quantidade Ignorada"
+     },
+     "erro": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Erro"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "destino_divulgacao_id",
+     "status",
+     "iniciado_em",
+     "finalizado_em",
+     "atualizado_em",
+     "quantidade_candidatos",
+     "quantidade_publicada",
+     "quantidade_falha",
+     "quantidade_ignorada",
+     "erro"
+    ],
+    "title": "CicloPublicacaoResponse"
+   },
+   "ColetaMarketplaceStatus": {
+    "properties": {
+     "plataforma_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Plataforma Id"
+     },
+     "codigo": {
+      "type": "string",
+      "title": "Codigo"
+     },
+     "nome": {
+      "type": "string",
+      "title": "Nome"
+     },
+     "plataforma_ativa": {
+      "type": "boolean",
+      "title": "Plataforma Ativa"
+     },
+     "automacao_habilitada": {
+      "type": "boolean",
+      "title": "Automacao Habilitada"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "ultima_execucao_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ultima Execucao Id"
+     },
+     "ultima_execucao_status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ultima Execucao Status"
+     },
+     "ultima_execucao_iniciada_em": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ultima Execucao Iniciada Em"
+     },
+     "ultima_execucao_finalizada_em": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ultima Execucao Finalizada Em"
+     },
+     "ultima_execucao_erro": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ultima Execucao Erro"
+     },
+     "quantidade_encontrada": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Quantidade Encontrada"
+     },
+     "quantidade_processada": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Quantidade Processada"
+     },
+     "quantidade_ignorada": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Quantidade Ignorada"
+     },
+     "proxima_execucao_em": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Proxima Execucao Em"
+     }
+    },
+    "type": "object",
+    "required": [
+     "plataforma_id",
+     "codigo",
+     "nome",
+     "plataforma_ativa",
+     "automacao_habilitada",
+     "status",
+     "ultima_execucao_id",
+     "ultima_execucao_status",
+     "ultima_execucao_iniciada_em",
+     "ultima_execucao_finalizada_em",
+     "ultima_execucao_erro",
+     "quantidade_encontrada",
+     "quantidade_processada",
+     "quantidade_ignorada",
+     "proxima_execucao_em"
+    ],
+    "title": "ColetaMarketplaceStatus"
+   },
+   "ConfiguracaoDivulgacaoCreate": {
+    "properties": {
+     "desconto_minimo_percentual": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 100.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Desconto Minimo Percentual",
+      "default": "0"
+     },
+     "preco_minimo": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Preco Minimo"
+     },
+     "preco_maximo": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Preco Maximo"
+     },
+     "intervalo_publicacao_minutos": {
+      "type": "integer",
+      "minimum": 0.0,
+      "title": "Intervalo Publicacao Minutos",
+      "default": 0
+     },
+     "identificador_rastreamento": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 150
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Identificador Rastreamento"
+     },
+     "status_configuracao": {
+      "type": "boolean",
+      "title": "Status Configuracao",
+      "default": true
+     }
+    },
+    "type": "object",
+    "title": "ConfiguracaoDivulgacaoCreate"
+   },
+   "ConfiguracaoDivulgacaoResponse": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "destino_divulgacao_id": {
+      "type": "integer",
+      "title": "Destino Divulgacao Id"
+     },
+     "desconto_minimo_percentual": {
+      "type": "string",
+      "title": "Desconto Minimo Percentual"
+     },
+     "preco_minimo": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Preco Minimo"
+     },
+     "preco_maximo": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Preco Maximo"
+     },
+     "intervalo_publicacao_minutos": {
+      "type": "integer",
+      "title": "Intervalo Publicacao Minutos"
+     },
+     "identificador_rastreamento": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Identificador Rastreamento"
+     },
+     "status_configuracao": {
+      "type": "boolean",
+      "title": "Status Configuracao"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "destino_divulgacao_id",
+     "desconto_minimo_percentual",
+     "preco_minimo",
+     "preco_maximo",
+     "intervalo_publicacao_minutos",
+     "identificador_rastreamento",
+     "status_configuracao",
+     "created_at",
+     "updated_at"
+    ],
+    "title": "ConfiguracaoDivulgacaoResponse"
+   },
+   "ConfiguracaoDivulgacaoUpdate": {
+    "properties": {
+     "desconto_minimo_percentual": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 100.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Desconto Minimo Percentual"
+     },
+     "preco_minimo": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Preco Minimo"
+     },
+     "preco_maximo": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Preco Maximo"
+     },
+     "intervalo_publicacao_minutos": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Intervalo Publicacao Minutos"
+     },
+     "identificador_rastreamento": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 150
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Identificador Rastreamento"
+     },
+     "status_configuracao": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Status Configuracao"
+     }
+    },
+    "type": "object",
+    "title": "ConfiguracaoDivulgacaoUpdate"
+   },
+   "ConfiguracaoSistemaResponse": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "automacoes_ativas": {
+      "type": "boolean",
+      "title": "Automacoes Ativas"
+     },
+     "intervalo_coleta_minutos": {
+      "type": "integer",
+      "title": "Intervalo Coleta Minutos"
+     },
+     "limite_produtos_por_categoria": {
+      "type": "integer",
+      "title": "Limite Produtos Por Categoria"
+     },
+     "coleta_mercado_livre_ativa": {
+      "type": "boolean",
+      "title": "Coleta Mercado Livre Ativa"
+     },
+     "coleta_shopee_ativa": {
+      "type": "boolean",
+      "title": "Coleta Shopee Ativa"
+     },
+     "publicacao_telegram_ativa": {
+      "type": "boolean",
+      "title": "Publicacao Telegram Ativa"
+     },
+     "publicacao_whatsapp_ativa": {
+      "type": "boolean",
+      "title": "Publicacao Whatsapp Ativa"
+     },
+     "agendador_ultimo_sinal_em": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Agendador Ultimo Sinal Em"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "automacoes_ativas",
+     "intervalo_coleta_minutos",
+     "limite_produtos_por_categoria",
+     "coleta_mercado_livre_ativa",
+     "coleta_shopee_ativa",
+     "publicacao_telegram_ativa",
+     "publicacao_whatsapp_ativa",
+     "agendador_ultimo_sinal_em",
+     "created_at",
+     "updated_at"
+    ],
+    "title": "ConfiguracaoSistemaResponse"
+   },
+   "ConfiguracaoSistemaUpdate": {
+    "properties": {
+     "intervalo_coleta_minutos": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Intervalo Coleta Minutos"
+     },
+     "limite_produtos_por_categoria": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Limite Produtos Por Categoria"
+     }
+    },
+    "type": "object",
+    "title": "ConfiguracaoSistemaUpdate"
+   },
+   "CredencialDivulgacaoCreate": {
+    "properties": {
+     "plataforma_divulgacao_id": {
+      "type": "integer",
+      "exclusiveMinimum": 0.0,
+      "title": "Plataforma Divulgacao Id"
+     },
+     "nome_credencial": {
+      "type": "string",
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Nome Credencial"
+     },
+     "tipo_credencial": {
+      "type": "string",
+      "maxLength": 50,
+      "minLength": 1,
+      "title": "Tipo Credencial"
+     },
+     "valor": {
+      "type": "string",
+      "minLength": 1,
+      "title": "Valor"
+     }
+    },
+    "type": "object",
+    "required": [
+     "plataforma_divulgacao_id",
+     "nome_credencial",
+     "tipo_credencial",
+     "valor"
+    ],
+    "title": "CredencialDivulgacaoCreate"
+   },
+   "CredencialDivulgacaoResponse": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "plataforma_divulgacao_id": {
+      "type": "integer",
+      "title": "Plataforma Divulgacao Id"
+     },
+     "nome_credencial": {
+      "type": "string",
+      "title": "Nome Credencial"
+     },
+     "tipo_credencial": {
+      "type": "string",
+      "title": "Tipo Credencial"
+     },
+     "status_credencial": {
+      "type": "string",
+      "title": "Status Credencial"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "plataforma_divulgacao_id",
+     "nome_credencial",
+     "tipo_credencial",
+     "status_credencial",
+     "created_at",
+     "updated_at"
+    ],
+    "title": "CredencialDivulgacaoResponse"
+   },
+   "CredencialDivulgacaoStatusUpdate": {
+    "properties": {
+     "status_credencial": {
+      "type": "string",
+      "pattern": "^(ativa|inativa)$",
+      "title": "Status Credencial"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status_credencial"
+    ],
+    "title": "CredencialDivulgacaoStatusUpdate"
+   },
+   "CredencialPlataformaCreate": {
+    "properties": {
+     "plataforma_id": {
+      "type": "integer",
+      "exclusiveMinimum": 0.0,
+      "title": "Plataforma Id"
+     },
+     "tipo_credencial": {
+      "type": "string",
+      "maxLength": 50,
+      "minLength": 1,
+      "title": "Tipo Credencial"
+     },
+     "valor": {
+      "type": "string",
+      "minLength": 1,
+      "title": "Valor"
+     }
+    },
+    "type": "object",
+    "required": [
+     "plataforma_id",
+     "tipo_credencial",
+     "valor"
+    ],
+    "title": "CredencialPlataformaCreate"
+   },
+   "CredencialPlataformaResponse": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "plataforma_id": {
+      "type": "integer",
+      "title": "Plataforma Id"
+     },
+     "tipo_credencial": {
+      "type": "string",
+      "title": "Tipo Credencial"
+     },
+     "status_credencial": {
+      "type": "string",
+      "title": "Status Credencial"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "plataforma_id",
+     "tipo_credencial",
+     "status_credencial",
+     "created_at",
+     "updated_at"
+    ],
+    "title": "CredencialPlataformaResponse"
+   },
+   "CredencialPlataformaStatusUpdate": {
+    "properties": {
+     "status_credencial": {
+      "type": "string",
+      "pattern": "^(ativa|inativa)$",
+      "title": "Status Credencial"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status_credencial"
+    ],
+    "title": "CredencialPlataformaStatusUpdate"
+   },
+   "DestinoDivulgacaoCreate": {
+    "properties": {
+     "plataforma_divulgacao_id": {
+      "type": "integer",
+      "exclusiveMinimum": 0.0,
+      "title": "Plataforma Divulgacao Id"
+     },
+     "credencial_divulgacao_id": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Credencial Divulgacao Id",
+      "description": "Obrigatória no Telegram (token do bot). Não usada no WhatsApp."
+     },
+     "identificador_destino": {
+      "type": "string",
+      "maxLength": 255,
+      "minLength": 1,
+      "title": "Identificador Destino",
+      "description": "Telegram: ID do chat (ex.: -100123...). WhatsApp: nome do grupo exatamente como aparece no WhatsApp."
+     },
+     "nome_destino": {
+      "type": "string",
+      "maxLength": 150,
+      "minLength": 1,
+      "title": "Nome Destino"
+     },
+     "status_destino": {
+      "type": "boolean",
+      "title": "Status Destino",
+      "default": true
+     }
+    },
+    "type": "object",
+    "required": [
+     "plataforma_divulgacao_id",
+     "identificador_destino",
+     "nome_destino"
+    ],
+    "title": "DestinoDivulgacaoCreate"
+   },
+   "DestinoDivulgacaoResponse": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "plataforma_divulgacao_id": {
+      "type": "integer",
+      "title": "Plataforma Divulgacao Id"
+     },
+     "credencial_divulgacao_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Credencial Divulgacao Id"
+     },
+     "identificador_destino": {
+      "type": "string",
+      "title": "Identificador Destino"
+     },
+     "nome_destino": {
+      "type": "string",
+      "title": "Nome Destino"
+     },
+     "status_destino": {
+      "type": "boolean",
+      "title": "Status Destino"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "plataforma_divulgacao_id",
+     "credencial_divulgacao_id",
+     "identificador_destino",
+     "nome_destino",
+     "status_destino",
+     "created_at",
+     "updated_at"
+    ],
+    "title": "DestinoDivulgacaoResponse"
+   },
+   "DestinoDivulgacaoStatusUpdate": {
+    "properties": {
+     "status_destino": {
+      "type": "boolean",
+      "title": "Status Destino"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status_destino"
+    ],
+    "title": "DestinoDivulgacaoStatusUpdate"
+   },
+   "DestinoPublicacaoStatus": {
+    "properties": {
+     "configuracao_id": {
+      "type": "integer",
+      "title": "Configuracao Id"
+     },
+     "destino_id": {
+      "type": "integer",
+      "title": "Destino Id"
+     },
+     "nome_destino": {
+      "type": "string",
+      "title": "Nome Destino"
+     },
+     "codigo_canal": {
+      "type": "string",
+      "title": "Codigo Canal"
+     },
+     "canal_ativo": {
+      "type": "boolean",
+      "title": "Canal Ativo"
+     },
+     "destino_ativo": {
+      "type": "boolean",
+      "title": "Destino Ativo"
+     },
+     "configuracao_ativa": {
+      "type": "boolean",
+      "title": "Configuracao Ativa"
+     },
+     "intervalo_publicacao_minutos": {
+      "type": "integer",
+      "title": "Intervalo Publicacao Minutos"
+     },
+     "ultima_execucao_ciclo_em": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ultima Execucao Ciclo Em"
+     },
+     "proxima_execucao_em": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Proxima Execucao Em"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "ultima_publicacao_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ultima Publicacao Id"
+     },
+     "ultima_publicacao_status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ultima Publicacao Status"
+     },
+     "ultima_publicacao_em": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ultima Publicacao Em"
+     },
+     "ultima_publicacao_erro": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ultima Publicacao Erro"
+     },
+     "ciclo_em_andamento": {
+      "type": "boolean",
+      "title": "Ciclo Em Andamento"
+     },
+     "ultimo_ciclo": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/CicloPublicacaoResponse"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "configuracao_id",
+     "destino_id",
+     "nome_destino",
+     "codigo_canal",
+     "canal_ativo",
+     "destino_ativo",
+     "configuracao_ativa",
+     "intervalo_publicacao_minutos",
+     "ultima_execucao_ciclo_em",
+     "proxima_execucao_em",
+     "status",
+     "ultima_publicacao_id",
+     "ultima_publicacao_status",
+     "ultima_publicacao_em",
+     "ultima_publicacao_erro",
+     "ciclo_em_andamento",
+     "ultimo_ciclo"
+    ],
+    "title": "DestinoPublicacaoStatus"
+   },
+   "ExecucaoColetaResponse": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "plataforma_id": {
+      "type": "integer",
+      "title": "Plataforma Id"
+     },
+     "iniciada_em": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Iniciada Em"
+     },
+     "finalizada_em": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Finalizada Em"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "quantidade_encontrada": {
+      "type": "integer",
+      "minimum": 0.0,
+      "title": "Quantidade Encontrada"
+     },
+     "quantidade_processada": {
+      "type": "integer",
+      "minimum": 0.0,
+      "title": "Quantidade Processada"
+     },
+     "quantidade_ignorada": {
+      "type": "integer",
+      "minimum": 0.0,
+      "title": "Quantidade Ignorada"
+     },
+     "erro": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Erro"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "plataforma_id",
+     "iniciada_em",
+     "finalizada_em",
+     "status",
+     "quantidade_encontrada",
+     "quantidade_processada",
+     "quantidade_ignorada",
+     "erro"
+    ],
+    "title": "ExecucaoColetaResponse"
+   },
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "type": "array",
+      "title": "Detail"
+     }
+    },
+    "type": "object",
+    "title": "HTTPValidationError"
+   },
+   "JanelaExecucaoCreate": {
+    "properties": {
+     "hora_inicio": {
+      "type": "string",
+      "format": "time",
+      "title": "Hora Inicio",
+      "description": "Horário local (America/Sao_Paulo) em que a janela começa, sem fuso. Exemplo: 08:00."
+     },
+     "hora_fim": {
+      "type": "string",
+      "format": "time",
+      "title": "Hora Fim",
+      "description": "Horário local (America/Sao_Paulo) em que a janela termina, sem fuso, exclusivo. Janelas não atravessam a meia-noite: para cobrir até o fim do dia use 23:59:59."
+     },
+     "ativa": {
+      "type": "boolean",
+      "title": "Ativa",
+      "default": true
+     }
+    },
+    "type": "object",
+    "required": [
+     "hora_inicio",
+     "hora_fim"
+    ],
+    "title": "JanelaExecucaoCreate"
+   },
+   "JanelaExecucaoResponse": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "hora_inicio": {
+      "type": "string",
+      "format": "time",
+      "title": "Hora Inicio"
+     },
+     "hora_fim": {
+      "type": "string",
+      "format": "time",
+      "title": "Hora Fim"
+     },
+     "ativa": {
+      "type": "boolean",
+      "title": "Ativa"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "hora_inicio",
+     "hora_fim",
+     "ativa",
+     "created_at",
+     "updated_at"
+    ],
+    "title": "JanelaExecucaoResponse"
+   },
+   "JanelaExecucaoUpdate": {
+    "properties": {
+     "hora_inicio": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Hora Inicio",
+      "description": "Horário local (America/Sao_Paulo) em que a janela começa, sem fuso. Exemplo: 08:00."
+     },
+     "hora_fim": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Hora Fim",
+      "description": "Horário local (America/Sao_Paulo) em que a janela termina, sem fuso, exclusivo. Janelas não atravessam a meia-noite: para cobrir até o fim do dia use 23:59:59."
+     },
+     "ativa": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ativa"
+     }
+    },
+    "type": "object",
+    "title": "JanelaExecucaoUpdate"
+   },
+   "MonitorAutomacoesStatus": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "online": {
+      "type": "boolean",
+      "title": "Online"
+     },
+     "ultimo_sinal_em": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ultimo Sinal Em"
+     },
+     "limite_sinal_minutos": {
+      "type": "integer",
+      "title": "Limite Sinal Minutos"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status",
+     "online",
+     "ultimo_sinal_em",
+     "limite_sinal_minutos"
+    ],
+    "title": "MonitorAutomacoesStatus"
+   },
+   "PlataformaCreate": {
+    "properties": {
+     "codigo": {
+      "type": "string",
+      "maxLength": 50,
+      "minLength": 1,
+      "title": "Codigo"
+     },
+     "nome": {
+      "type": "string",
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Nome"
+     },
+     "status_plataforma": {
+      "type": "boolean",
+      "title": "Status Plataforma",
+      "default": true
+     }
+    },
+    "type": "object",
+    "required": [
+     "codigo",
+     "nome"
+    ],
+    "title": "PlataformaCreate"
+   },
+   "PlataformaDivulgacaoCreate": {
+    "properties": {
+     "codigo": {
+      "type": "string",
+      "maxLength": 50,
+      "minLength": 1,
+      "title": "Codigo"
+     },
+     "nome": {
+      "type": "string",
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Nome"
+     },
+     "status_plataforma": {
+      "type": "boolean",
+      "title": "Status Plataforma",
+      "default": true
+     }
+    },
+    "type": "object",
+    "required": [
+     "codigo",
+     "nome"
+    ],
+    "title": "PlataformaDivulgacaoCreate"
+   },
+   "PlataformaDivulgacaoResponse": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "codigo": {
+      "type": "string",
+      "title": "Codigo"
+     },
+     "nome": {
+      "type": "string",
+      "title": "Nome"
+     },
+     "status_plataforma": {
+      "type": "boolean",
+      "title": "Status Plataforma"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "codigo",
+     "nome",
+     "status_plataforma",
+     "created_at",
+     "updated_at"
+    ],
+    "title": "PlataformaDivulgacaoResponse"
+   },
+   "PlataformaDivulgacaoStatusUpdate": {
+    "properties": {
+     "status_plataforma": {
+      "type": "boolean",
+      "title": "Status Plataforma"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status_plataforma"
+    ],
+    "title": "PlataformaDivulgacaoStatusUpdate"
+   },
+   "PlataformaResponse": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "codigo": {
+      "type": "string",
+      "title": "Codigo"
+     },
+     "nome": {
+      "type": "string",
+      "title": "Nome"
+     },
+     "status_plataforma": {
+      "type": "boolean",
+      "title": "Status Plataforma"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "codigo",
+     "nome",
+     "status_plataforma",
+     "created_at",
+     "updated_at"
+    ],
+    "title": "PlataformaResponse"
+   },
+   "PlataformaStatusUpdate": {
+    "properties": {
+     "status_plataforma": {
+      "type": "boolean",
+      "title": "Status Plataforma"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status_plataforma"
+    ],
+    "title": "PlataformaStatusUpdate"
+   },
+   "ProdutoCreate": {
+    "properties": {
+     "plataforma_id": {
+      "type": "integer",
+      "exclusiveMinimum": 0.0,
+      "title": "Plataforma Id"
+     },
+     "categoria_id": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Categoria Id"
+     },
+     "id_produto_plataforma": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 150
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Id Produto Plataforma"
+     },
+     "id_item_plataforma": {
+      "type": "string",
+      "maxLength": 150,
+      "minLength": 1,
+      "title": "Id Item Plataforma"
+     },
+     "titulo": {
+      "type": "string",
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Titulo"
+     },
+     "descricao": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Descricao"
+     },
+     "url": {
+      "type": "string",
+      "maxLength": 2083,
+      "minLength": 1,
+      "format": "uri",
+      "title": "Url"
+     },
+     "imagem_url": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 2083,
+        "minLength": 1,
+        "format": "uri"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Imagem Url"
+     },
+     "url_afiliada": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 2083,
+        "minLength": 1,
+        "format": "uri"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Url Afiliada"
+     },
+     "preco_atual": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Preco Atual"
+     },
+     "preco_original": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Preco Original"
+     },
+     "percentual_desconto": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 100.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Percentual Desconto"
+     }
+    },
+    "type": "object",
+    "required": [
+     "plataforma_id",
+     "id_item_plataforma",
+     "titulo",
+     "url",
+     "preco_atual"
+    ],
+    "title": "ProdutoCreate"
+   },
+   "ProdutoResponse": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "plataforma_id": {
+      "type": "integer",
+      "title": "Plataforma Id"
+     },
+     "categoria_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Categoria Id"
+     },
+     "id_produto_plataforma": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Id Produto Plataforma"
+     },
+     "id_item_plataforma": {
+      "type": "string",
+      "title": "Id Item Plataforma"
+     },
+     "titulo": {
+      "type": "string",
+      "title": "Titulo"
+     },
+     "descricao": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Descricao"
+     },
+     "url": {
+      "type": "string",
+      "title": "Url"
+     },
+     "imagem_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Imagem Url"
+     },
+     "url_afiliada": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Url Afiliada"
+     },
+     "preco_atual": {
+      "type": "string",
+      "title": "Preco Atual"
+     },
+     "preco_original": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Preco Original"
+     },
+     "percentual_desconto": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Percentual Desconto"
+     },
+     "disponivel": {
+      "type": "boolean",
+      "title": "Disponivel"
+     },
+     "status_monitoramento": {
+      "type": "string",
+      "title": "Status Monitoramento"
+     },
+     "elegivel_divulgacao": {
+      "type": "boolean",
+      "title": "Elegivel Divulgacao"
+     },
+     "status_link_afiliado": {
+      "type": "string",
+      "title": "Status Link Afiliado"
+     },
+     "metodo_geracao_link_afiliado": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Metodo Geracao Link Afiliado"
+     },
+     "identificador_rastreamento": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Identificador Rastreamento"
+     },
+     "erro_geracao_link_afiliado": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Erro Geracao Link Afiliado"
+     },
+     "link_afiliado_gerado_em": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Link Afiliado Gerado Em"
+     },
+     "primeira_coleta_em": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Primeira Coleta Em"
+     },
+     "ultima_coleta_em": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Ultima Coleta Em"
+     },
+     "proxima_coleta_em": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Proxima Coleta Em"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "plataforma_id",
+     "categoria_id",
+     "id_produto_plataforma",
+     "id_item_plataforma",
+     "titulo",
+     "descricao",
+     "url",
+     "imagem_url",
+     "url_afiliada",
+     "preco_atual",
+     "preco_original",
+     "percentual_desconto",
+     "disponivel",
+     "status_monitoramento",
+     "elegivel_divulgacao",
+     "status_link_afiliado",
+     "metodo_geracao_link_afiliado",
+     "identificador_rastreamento",
+     "erro_geracao_link_afiliado",
+     "link_afiliado_gerado_em",
+     "primeira_coleta_em",
+     "ultima_coleta_em",
+     "proxima_coleta_em",
+     "created_at",
+     "updated_at"
+    ],
+    "title": "ProdutoResponse"
+   },
+   "ProdutoUpdate": {
+    "properties": {
+     "categoria_id": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Categoria Id"
+     },
+     "titulo": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 500,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Titulo"
+     },
+     "descricao": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Descricao"
+     },
+     "url": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 2083,
+        "minLength": 1,
+        "format": "uri"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Url"
+     },
+     "imagem_url": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 2083,
+        "minLength": 1,
+        "format": "uri"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Imagem Url"
+     },
+     "url_afiliada": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 2083,
+        "minLength": 1,
+        "format": "uri"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Url Afiliada"
+     },
+     "preco_atual": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Preco Atual"
+     },
+     "preco_original": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Preco Original"
+     },
+     "percentual_desconto": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 100.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Percentual Desconto"
+     },
+     "disponivel": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Disponivel"
+     },
+     "status_monitoramento": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Status Monitoramento"
+     }
+    },
+    "type": "object",
+    "title": "ProdutoUpdate"
+   },
+   "PublicacaoManualResponse": {
+    "properties": {
+     "produto_id": {
+      "type": "integer",
+      "title": "Produto Id"
+     },
+     "categoria_id": {
+      "type": "integer",
+      "title": "Categoria Id"
+     },
+     "nome_categoria": {
+      "type": "string",
+      "title": "Nome Categoria"
+     },
+     "total_destinos": {
+      "type": "integer",
+      "title": "Total Destinos"
+     },
+     "publicadas": {
+      "type": "integer",
+      "title": "Publicadas"
+     },
+     "falhas": {
+      "type": "integer",
+      "title": "Falhas"
+     },
+     "ignoradas": {
+      "type": "integer",
+      "title": "Ignoradas"
+     },
+     "resultados": {
+      "items": {
+       "$ref": "#/components/schemas/ResultadoPublicacaoDestino"
+      },
+      "type": "array",
+      "title": "Resultados"
+     }
+    },
+    "type": "object",
+    "required": [
+     "produto_id",
+     "categoria_id",
+     "nome_categoria",
+     "total_destinos",
+     "publicadas",
+     "falhas",
+     "ignoradas",
+     "resultados"
+    ],
+    "title": "PublicacaoManualResponse",
+    "description": "Resumo da publicação manual em todos os grupos da categoria."
+   },
+   "PublicacaoResponse": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "produto_id": {
+      "type": "integer",
+      "title": "Produto Id"
+     },
+     "destino_divulgacao_id": {
+      "type": "integer",
+      "title": "Destino Divulgacao Id"
+     },
+     "preco_divulgado": {
+      "type": "string",
+      "title": "Preco Divulgado"
+     },
+     "percentual_desconto_divulgado": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Percentual Desconto Divulgado"
+     },
+     "status_publicacao": {
+      "type": "string",
+      "title": "Status Publicacao"
+     },
+     "tentativas": {
+      "type": "integer",
+      "title": "Tentativas"
+     },
+     "publicada_em": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Publicada Em"
+     },
+     "erro": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Erro"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "produto_id",
+     "destino_divulgacao_id",
+     "preco_divulgado",
+     "percentual_desconto_divulgado",
+     "status_publicacao",
+     "tentativas",
+     "publicada_em",
+     "erro",
+     "created_at",
+     "updated_at"
+    ],
+    "title": "PublicacaoResponse",
+    "description": "Dados retornados sobre uma tentativa de publicação."
+   },
+   "ResultadoPublicacaoDestino": {
+    "properties": {
+     "destino_id": {
+      "type": "integer",
+      "title": "Destino Id"
+     },
+     "nome_destino": {
+      "type": "string",
+      "title": "Nome Destino"
+     },
+     "codigo_canal": {
+      "type": "string",
+      "title": "Codigo Canal"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "publicada",
+       "falhou",
+       "ignorada"
+      ],
+      "title": "Status"
+     },
+     "motivo": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Motivo"
+     },
+     "publicacao": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/PublicacaoResponse"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "destino_id",
+     "nome_destino",
+     "codigo_canal",
+     "status"
+    ],
+    "title": "ResultadoPublicacaoDestino",
+    "description": "Resultado da publicação manual em um grupo."
+   },
+   "ValidationError": {
+    "properties": {
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Location"
+     },
+     "msg": {
+      "type": "string",
+      "title": "Message"
+     },
+     "type": {
+      "type": "string",
+      "title": "Error Type"
+     },
+     "input": {
+      "title": "Input"
+     },
+     "ctx": {
+      "type": "object",
+      "title": "Context"
+     }
+    },
+    "type": "object",
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError"
+   }
+  }
+ }
+}

@@ -21,6 +21,7 @@ PSQL_DB = $(COMPOSE) exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$$POSTGRES_US
         db db-parar db-logs db-psql db-backup db-importar \
         migrar testes testes-unit api \
         chrome-login chrome-verificar chrome-status chrome-fechar \
+        painel-instalar painel painel-build painel-tipos \
         whatsapp-login whatsapp-verificar whatsapp-status whatsapp-fechar whatsapp-teste \
         servico-instalar servico-iniciar servico-parar servico-reiniciar \
         servico-status servico-logs servico-desinstalar
@@ -122,6 +123,20 @@ whatsapp-fechar: ## Fecha o Chrome do WhatsApp
 whatsapp-teste: ## Prepara mensagem de teste SEM enviar: make whatsapp-teste GRUPO="Nome" [ENVIAR=1]
 	@test -n "$(GRUPO)" || { echo 'Informe GRUPO="Nome exato do grupo"'; exit 1; }
 	$(PY) -m scripts.whatsapp_web teste "$(GRUPO)" $(if $(ENVIAR),--enviar,)
+
+# -------------------------------------------------------------- painel
+painel-instalar: ## Instala as dependências do painel (frontend/)
+	cd frontend && npm ci --no-audit --no-fund
+
+painel: ## Painel em desenvolvimento em http://127.0.0.1:5173/painel/ (usa a API em :8000)
+	cd frontend && npm run dev
+
+painel-build: ## Compila o painel; a API passa a servi-lo em /painel
+	cd frontend && npm run build
+
+painel-tipos: ## Regenera os tipos TypeScript a partir das rotas da API
+	$(PY) -c "import json, logging; logging.disable(logging.CRITICAL); from ofertas.main import app; json.dump(app.openapi(), open('frontend/openapi.json', 'w'), ensure_ascii=False, indent=1)"
+	cd frontend && npm run tipos
 
 # ----------------------------------------------------------- serviço systemd
 servico-instalar: ## Instala a API como serviço (sobe junto com a sessão gráfica)

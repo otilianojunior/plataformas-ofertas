@@ -3,7 +3,8 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 
 from ofertas import __version__
 
@@ -28,7 +29,7 @@ from ofertas.services.automacao_service import AutomacaoService
 from ofertas.services.publicacao_lote_service import PublicacaoLoteService
 
 
-from ofertas.core.config import get_settings
+from ofertas.core.config import RAIZ_PROJETO, get_settings
 
 
 # Sem isto os logs INFO das automações não aparecem no uvicorn/journalctl.
@@ -210,6 +211,30 @@ app.include_router(destinos_divulgacao_router)
 app.include_router(credenciais_plataforma_router)
 app.include_router(credenciais_divulgacao_router)
 app.include_router(publicacoes_router)
+
+
+# --- painel (frontend compilado em frontend/dist) -----------------------------
+PAINEL_DIST = RAIZ_PROJETO / "frontend" / "dist"
+
+
+@app.get("/painel", include_in_schema=False)
+@app.get("/painel/{caminho:path}", include_in_schema=False)
+def painel(caminho: str = "") -> FileResponse:
+    """Serve o painel; rotas internas do React caem no index.html."""
+
+    if not (PAINEL_DIST / "index.html").exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Painel não compilado. Rode: make painel-build",
+        )
+
+    arquivo = (PAINEL_DIST / caminho).resolve()
+
+    # Impede sair da pasta dist (ex.: /painel/../../.env).
+    if arquivo.is_file() and arquivo.is_relative_to(PAINEL_DIST.resolve()):
+        return FileResponse(arquivo)
+
+    return FileResponse(PAINEL_DIST / "index.html")
 
 
 @app.get("/health", tags=["Sistema"])

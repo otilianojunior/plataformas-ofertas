@@ -171,3 +171,19 @@ def test_criar_categoria_com_grupo_inexistente(client, db_session):
     )
 
     assert resposta.status_code == 404
+
+
+def test_painel_e_servido_com_rotas_do_react(client):
+    from ofertas.main import PAINEL_DIST
+
+    if not (PAINEL_DIST / "index.html").exists():
+        import pytest
+        pytest.skip("Painel não compilado.")
+
+    for caminho in ("/painel", "/painel/", "/painel/produtos", "/painel/categorias"):
+        resposta = client.get(caminho)
+        assert resposta.status_code == 200 and "<div id=\"raiz\">" in resposta.text, caminho
+
+    # não deixa sair da pasta do painel
+    resposta = client.get("/painel/..%2F..%2F.env")
+    assert "DATABASE_URL" not in resposta.text

@@ -40,6 +40,16 @@ no Telegram. O usuário do banco não tem permissão `CREATEDB`.
 Variáveis de ambiente: ver `.env.example` e `src/ofertas/core/config.py`.
 Nunca versionar `.env` nem exibir credenciais/tokens.
 
+## Painel (`frontend/`)
+
+React 18 + Vite + TypeScript, TanStack Query e `openapi-fetch`. Tipos em
+`frontend/src/api/schema.d.ts` gerados do OpenAPI (`make painel-tipos`): ao mudar
+uma rota/schema da API, regenere e rode `npm run verificar` em `frontend/`.
+Chamadas via `chamar(api.GET(...))` (lança `ErroApi` com o `detail` da API) e
+`useAcao` (mutação com aviso e recarga). Dev: Vite em :5173 com proxy `/api` →
+:8000. Produção: `make painel-build` e a API serve `frontend/dist` em `/painel`
+(rotas internas caem no `index.html`).
+
 ## Arquitetura (`src/ofertas/`)
 
 Camadas, sempre nesta direção: `api/` → `services/` → `repositories/` → `models/`.
@@ -160,5 +170,5 @@ Pontos importantes:
    estado da publicação em andamento, decidir se execuções manuais obedecem às janelas.
 3. ~~Documentação e infra~~ (concluída: README, Makefile, Docker Compose, systemd).
 4. ~~Publisher WhatsApp~~ (WhatsApp Web; falta validar os seletores com a sessão real).
-5. Painel administrativo (frontend) sobre as rotas existentes.
+5. ~~Painel administrativo~~ (frontend/; servido em /painel).
 6. Fechamento: auditoria, segurança, erros, dependências, merge develop → main.

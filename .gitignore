@@ -38,3 +38,8 @@ data/whatsapp_profile/
 
 # Backups do banco (make db-backup)
 backups/
+
+# Frontend (painel)
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo

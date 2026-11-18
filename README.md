@@ -110,6 +110,22 @@ Rode `make` para ver todos. Os principais:
 - O Chrome do Mercado Livre continua aberto quando o serviço para ou reinicia
   (a sessão é preservada).
 
+## Painel de administração
+
+Interface web em `frontend/` (React + TypeScript), no mesmo repositório da API.
+Cobre todas as rotas: status geral, coleta manual, produtos e publicação manual,
+histórico de ciclos, categorias, grupos e suas regras, automações e janelas,
+lojas, canais e credenciais.
+
+```bash
+make painel-instalar   # uma vez: instala as dependências (Node 20+)
+make painel-build      # compila; a API passa a servir em http://127.0.0.1:8000/painel
+make painel            # desenvolvimento: http://127.0.0.1:5173/painel/ (recarrega ao salvar)
+make painel-tipos      # depois de mudar rotas da API: regenera os tipos TypeScript
+```
+
+O painel não tem login: como a API, deve ficar acessível só pela própria máquina.
+
 ## Configuração (`.env`)
 
 | Variável | Obrigatória | Padrão | Uso |
