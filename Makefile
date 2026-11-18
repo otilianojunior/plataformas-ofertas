@@ -13,12 +13,14 @@ UNIT        := $(UNIT_DIR)/$(SERVICO).service
 API_HOST    ?= 127.0.0.1
 API_PORTA   ?= 8000
 BACKUPS     := $(RAIZ)/backups
+BACKUPS_MANTER ?= 14
+SERVICO_BACKUP := plataformas-ofertas-backup
 
 # psql dentro do container, com o usuário e o banco do próprio container.
 PSQL_DB = $(COMPOSE) exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
 
 .PHONY: ajuda instalar subir parar status \
-        db db-parar db-logs db-psql db-backup db-importar \
+        db db-parar db-logs db-psql db-backup backup-agendar backup-desagendar db-importar \
         migrar testes testes-unit api \
         chrome-login chrome-verificar chrome-status chrome-fechar \
         painel-instalar painel painel-build painel-tipos usuario-admin usuario-senha \
@@ -65,11 +67,26 @@ db-logs: ## Acompanha os logs do PostgreSQL
 db-psql: ## Abre o psql no banco do projeto
 	$(COMPOSE) exec db sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
 
-db-backup: ## Salva um backup em backups/AAAA-MM-DD_HHMM.sql
+db-backup: ## Backup compactado em backups/ (guarda os últimos BACKUPS_MANTER=14)
 	@mkdir -p $(BACKUPS)
+	@set -o pipefail; destino="$(BACKUPS)/$$(date +%Y-%m-%d_%H%M).sql.gz"; \
 	$(COMPOSE) exec -T db sh -c 'pg_dump --no-owner --no-acl -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"' \
-		> $(BACKUPS)/$$(date +%Y-%m-%d_%H%M).sql
-	@ls -lh $(BACKUPS) | tail -1
+		| gzip > "$$destino.parcial" && mv "$$destino.parcial" "$$destino" && ls -lh "$$destino"
+	@# Rotação: apaga só os .sql.gz mais antigos de backups/, além dos últimos N.
+	@ls -1t "$(BACKUPS)"/*.sql.gz 2>/dev/null | tail -n +$$(( $(BACKUPS_MANTER) + 1 )) | xargs -r rm -f --
+
+backup-agendar: ## Agenda o backup diário (timer systemd; roda ao ligar se perdeu o horário)
+	@mkdir -p $(UNIT_DIR)
+	sed -e 's|@RAIZ@|$(RAIZ)|g' deploy/$(SERVICO_BACKUP).service > $(UNIT_DIR)/$(SERVICO_BACKUP).service
+	cp deploy/$(SERVICO_BACKUP).timer $(UNIT_DIR)/$(SERVICO_BACKUP).timer
+	systemctl --user daemon-reload
+	systemctl --user enable --now $(SERVICO_BACKUP).timer
+	@systemctl --user list-timers $(SERVICO_BACKUP).timer --no-pager | head -2
+
+backup-desagendar: ## Remove o backup diário agendado
+	-systemctl --user disable --now $(SERVICO_BACKUP).timer
+	rm -f $(UNIT_DIR)/$(SERVICO_BACKUP).service $(UNIT_DIR)/$(SERVICO_BACKUP).timer
+	systemctl --user daemon-reload
 
 db-importar: ## Copia um banco existente para o Docker: make db-importar ORIGEM=postgresql://...
 	@test -n "$(ORIGEM)" || { echo "Informe ORIGEM=postgresql://usuario:senha@host:porta/banco"; exit 1; }

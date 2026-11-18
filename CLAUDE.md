@@ -21,6 +21,7 @@ make migrar          # alembic upgrade head
 make testes          # pytest (make testes-unit: sem banco)
 make api             # uvicorn --reload (LIGA as automações)
 make servico-logs    # logs da API rodando como serviço systemd de usuário
+make db-backup       # backup .sql.gz em backups/ (mantém 14); make backup-agendar = diário
 make chrome-status   # Chrome/perfil do Mercado Livre detectados
 alembic revision --autogenerate -m "..."   # nova migração (revisar o arquivo gerado)
 ```
@@ -121,8 +122,13 @@ Pontos importantes:
 - Locks com `pg_advisory_xact_lock` evitam ciclos concorrentes (publicação por
   destino, alterações de janelas).
 - `execucoes_coleta.status`: `concluida`, `parcial` (alguma categoria falhou, outras
-  não) ou `falhou` (nenhuma categoria coletada). O registro só é commitado no fim
-  da coleta, então `em_andamento` não aparece para outras sessões.
+  não) ou `falhou` (nenhuma categoria coletada). A coleta grava (commit) ao criar o
+  registro e a cada categoria: libera linhas e memória e deixa os preços visíveis para a
+  publicação. O lock por loja fica numa conexão própria (`_lock_da_loja`). Ao subir a
+  API, `em_andamento` que sobrou de uma queda vira `falhou` (`marcar_interrompidas`).
+- Categoria com `termo_busca` descarta na coleta o que não condiz (`core/filtro_categoria.py`):
+  título sem a marca do termo, mousepad, acessório antes do tipo ("Almofada para Headset X";
+  "Headset X com almofadas" passa) e kit teclado + mouse.
 - Seleção do ciclo (`PublicacaoLoteService._selecionar_candidatos`): por categoria,
   ordena por desconto + bônus de popularidade (`PESO_POPULARIDADE`/√posição;
   `produtos.posicao_selecao_categoria` = posição na última coleta: ML mais vendidos ou

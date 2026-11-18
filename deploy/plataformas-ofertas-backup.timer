@@ -1,0 +1,12 @@
+# Um backup por dia. Persistent: se o computador estava desligado no horário,
+# o backup roda assim que a sessão abrir.
+[Unit]
+Description=Plataformas de Ofertas - backup diário do banco
+
+[Timer]
+OnCalendar=*-*-* 12:30
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

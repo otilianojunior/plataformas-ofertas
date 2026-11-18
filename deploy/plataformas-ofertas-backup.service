@@ -1,0 +1,8 @@
+# Backup do banco disparado pelo timer. Instale com: make backup-agendar
+[Unit]
+Description=Plataformas de Ofertas - backup do banco
+
+[Service]
+Type=oneshot
+WorkingDirectory=@RAIZ@
+ExecStart=/usr/bin/make -C @RAIZ@ db-backup

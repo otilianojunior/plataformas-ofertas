@@ -145,6 +145,17 @@ A sessão é um token assinado com a `CREDENTIAL_ENCRYPTION_KEY` e vale
 (a tela de login) e o OAuth do Mercado Livre. Mesmo com login, mantenha a API
 acessível só pela própria máquina até a revisão de segurança (Etapa 6).
 
+## Backup
+
+```bash
+make db-backup        # agora: backups/AAAA-MM-DD_HHMM.sql.gz (guarda os 14 últimos)
+make backup-agendar   # todo dia às 12:30; se o PC estava desligado, roda ao abrir a sessão
+```
+
+O backup traz as credenciais **criptografadas**: sem a `CREDENTIAL_ENCRYPTION_KEY`
+do `.env` elas não podem ser lidas. Guarde uma cópia do `.env` fora do computador
+(ex.: num gerenciador de senhas).
+
 ## Configuração (`.env`)
 
 | Variável | Obrigatória | Padrão | Uso |
