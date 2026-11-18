@@ -5,6 +5,7 @@ from decimal import Decimal, InvalidOperation
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from ofertas.core.filtro_categoria import motivo_fora_da_categoria
 from ofertas.collectors.shopee_client import (
     ShopeeAPIError,
     ShopeeClient,
@@ -226,6 +227,10 @@ class ShopeeCollector:
                 )
 
                 if dados is None:
+                    ignoradas += 1
+                    continue
+
+                if motivo_fora_da_categoria(dados["titulo"], categoria.termo_busca):
                     ignoradas += 1
                     continue
 

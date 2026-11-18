@@ -6,6 +6,7 @@ import httpx
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from ofertas.core.filtro_categoria import motivo_fora_da_categoria
 from ofertas.collectors.mercado_livre_client import MercadoLivreClient
 from ofertas.models.plataforma_categoria import PlataformaCategoria
 from ofertas.services.produto_service import ProdutoService
@@ -152,6 +153,10 @@ class MercadoLivreCollector:
                     dados = self._preparar_item(categoria, anuncio)
 
                 if dados is None:
+                    ignoradas += 1
+                    continue
+
+                if motivo_fora_da_categoria(dados["titulo"], categoria.termo_busca):
                     ignoradas += 1
                     continue
 

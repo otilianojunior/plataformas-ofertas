@@ -31,7 +31,7 @@ def _coletor_ml(client):
     coletor = MercadoLivreCollector.__new__(MercadoLivreCollector)
     coletor.client = client
     coletor.produto_service = Mock()
-    coletor._preparar_produto = Mock(return_value={"x": 1})
+    coletor._preparar_produto = Mock(return_value={"titulo": "Headset Razer Kraken X"})
     return coletor
 
 
