@@ -144,6 +144,21 @@ class CategoriaService:
 
         return self.repository.excluir_com_produtos(session, categoria)
 
+    def atualizar_prioridade(
+        self,
+        session: Session,
+        categoria_id: int,
+        prioritaria: bool,
+    ) -> PlataformaCategoria:
+        categoria = self.repository.buscar_por_id(session, categoria_id)
+
+        if categoria is None:
+            raise LookupError(
+                f"Categoria de ID '{categoria_id}' não encontrada."
+            )
+
+        return self.repository.atualizar_prioridade(session, categoria, prioritaria)
+
     def atualizar_status(
         self,
         session: Session,

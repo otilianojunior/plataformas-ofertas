@@ -1449,6 +1449,71 @@
     }
    }
   },
+  "/categorias/{categoria_id}/prioridade": {
+   "patch": {
+    "tags": [
+     "Ofertas e categorias"
+    ],
+    "summary": "Favoritar categoria (prioridade na publicação)",
+    "description": "Categorias favoritas entram antes das outras no rodízio de cada ciclo, respeitando todas as regras de publicação.",
+    "operationId": "atualizar_prioridade_categoria_categorias__categoria_id__prioridade_patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "categoria_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Categoria Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CategoriaPrioridadeUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CategoriaResponse"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
+     "404": {
+      "description": "Categoria não encontrada."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/categorias/{categoria_id}/desconto-minimo": {
    "patch": {
     "tags": [
@@ -3743,6 +3808,19 @@
     ],
     "title": "CategoriaExclusaoResponse"
    },
+   "CategoriaPrioridadeUpdate": {
+    "properties": {
+     "prioritaria": {
+      "type": "boolean",
+      "title": "Prioritaria"
+     }
+    },
+    "type": "object",
+    "required": [
+     "prioritaria"
+    ],
+    "title": "CategoriaPrioridadeUpdate"
+   },
    "CategoriaResponse": {
     "properties": {
      "id": {
@@ -3791,6 +3869,10 @@
       "type": "boolean",
       "title": "Status Categoria"
      },
+     "prioritaria": {
+      "type": "boolean",
+      "title": "Prioritaria"
+     },
      "created_at": {
       "type": "string",
       "format": "date-time",
@@ -3812,6 +3894,7 @@
      "etiqueta_afiliado",
      "desconto_minimo_percentual",
      "status_categoria",
+     "prioritaria",
      "created_at",
      "updated_at"
     ],

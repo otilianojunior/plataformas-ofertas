@@ -84,3 +84,36 @@ def _consulta_candidatos(coletado_desde):
     )
     consulta = session.scalars.call_args.args[0]
     return str(consulta.compile(dialect=postgresql.dialect()))
+
+
+def test_favoritas_entram_primeiro_em_cada_rodada():
+    selecionados = _vagas(1, 11, 12) + _vagas(2, 21, 22) + _vagas(3, 31, 32)
+    ultima = {1: AGORA - timedelta(hours=9), 2: AGORA, 3: AGORA - timedelta(hours=1)}
+
+    ordem = PublicacaoLoteService._intercalar_categorias(selecionados, ultima, None, favoritas={2})
+
+    # A favorita (2) abre cada rodada; as demais seguem pelo rodízio.
+    assert [p for _, _, p in ordem] == [21, 11, 31, 22, 12, 32]
+
+
+def test_favorita_garante_vaga_mesmo_com_teto_baixo():
+    selecionados = _vagas(1, 11) + _vagas(2, 21) + _vagas(3, 31)
+
+    ordem = PublicacaoLoteService._intercalar_categorias(selecionados, {}, 1, favoritas={3})
+
+    assert [p for _, _, p in ordem] == [31]
+
+
+def test_links_afiliados_so_para_publicaveis_e_melhores_primeiro():
+    from unittest.mock import Mock
+
+    from ofertas.repositories.produto_repository import ProdutoRepository
+
+    session = Mock()
+    session.execute.return_value.all.return_value = []
+    ProdutoRepository().listar_pendentes_para_geracao_afiliado(session, 2, limite=25, excluir_ids=[7])
+    sql = str(session.execute.call_args.args[0].compile(dialect=postgresql.dialect()))
+
+    assert "produtos.percentual_desconto >= plataforma_categoria.desconto_minimo_percentual" in sql
+    assert "produtos.percentual_desconto <=" in sql and "produtos.disponivel IS true" in sql
+    assert "NOT IN" in sql and "LIMIT" in sql and "sqrt" in sql

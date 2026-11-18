@@ -133,8 +133,12 @@ Pontos importantes:
   ordena por desconto + bônus de popularidade (`PESO_POPULARIDADE`/√posição;
   `produtos.posicao_selecao_categoria` = posição na última coleta: ML mais vendidos ou
   relevância da busca, Shopee vendas; `quantidade_vendida` só Shopee). Depois alterna as
-  categorias (1º de cada, depois o 2º...), começando pelas publicadas há mais tempo, e
-  corta em `limite_publicacoes_por_ciclo`.
+  categorias (1º de cada, depois o 2º...): em cada rodada, primeiro as favoritas
+  (`plataforma_categoria.prioritaria`, estrela no painel, `PATCH /categorias/{id}/prioridade`),
+  depois as publicadas há mais tempo; corta em `limite_publicacoes_por_ciclo`.
+- Links afiliados (`ExecucaoColetaService.gerar_afiliados_pendentes`): gerados a cada categoria
+  coletada, em lotes de 25 com commit por lote; só para produtos publicáveis (disponível, desconto
+  entre o mínimo da categoria e o teto), dos de maior pontuação para os de menor.
 - Validade do preço (`configuracoes_sistema.validade_preco_minutos`, padrão 120): só
   publica produto com `ultima_coleta_em` dentro dela, na seleção do ciclo e no envio
   (inclusive manual). A API só roda com a sessão gráfica aberta (para à noite): após

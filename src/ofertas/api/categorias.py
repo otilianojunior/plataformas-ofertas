@@ -11,6 +11,7 @@ from ofertas.schemas.categoria import (
     CategoriaDescontoUpdate,
     CategoriaEtiquetaAfiliadoUpdate,
     CategoriaExclusaoResponse,
+    CategoriaPrioridadeUpdate,
     CategoriaResponse,
     CategoriaStatusUpdate,
 )
@@ -129,6 +130,39 @@ def atualizar_status_categoria(
             status_code=status.HTTP_409_CONFLICT,
             detail="Não foi possível atualizar o status da categoria.",
         ) from erro
+
+
+@router.patch(
+    "/{categoria_id}/prioridade",
+    response_model=CategoriaResponse,
+    summary="Favoritar categoria (prioridade na publicação)",
+    description=(
+        "Categorias favoritas entram antes das outras no rodízio de cada ciclo, "
+        "respeitando todas as regras de publicação."
+    ),
+    responses={404: {"description": "Categoria não encontrada."}},
+)
+def atualizar_prioridade_categoria(
+    categoria_id: Annotated[int, Path(gt=0)],
+    dados: CategoriaPrioridadeUpdate,
+    session: Session = Depends(get_db),
+):
+    try:
+        categoria = service.atualizar_prioridade(session, categoria_id, dados.prioritaria)
+        session.commit()
+        session.refresh(categoria)
+        return categoria
+
+    except LookupError as erro:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(erro),
+        ) from erro
+
+    except Exception:
+        session.rollback()
+        raise
 
 
 @router.patch(

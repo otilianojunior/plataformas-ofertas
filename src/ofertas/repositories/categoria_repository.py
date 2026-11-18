@@ -194,6 +194,16 @@ class CategoriaRepository:
         session.flush()
         return categoria
 
+    def atualizar_prioridade(
+        self,
+        session: Session,
+        categoria: PlataformaCategoria,
+        prioritaria: bool,
+    ) -> PlataformaCategoria:
+        categoria.prioritaria = prioritaria
+        session.flush()
+        return categoria
+
     def atualizar_status(
         self,
         session: Session,

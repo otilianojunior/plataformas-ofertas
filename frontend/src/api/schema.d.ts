@@ -364,6 +364,26 @@ export interface paths {
         patch: operations["atualizar_status_categoria_categorias__categoria_id__status_patch"];
         trace?: never;
     };
+    "/categorias/{categoria_id}/prioridade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Favoritar categoria (prioridade na publicação)
+         * @description Categorias favoritas entram antes das outras no rodízio de cada ciclo, respeitando todas as regras de publicação.
+         */
+        patch: operations["atualizar_prioridade_categoria_categorias__categoria_id__prioridade_patch"];
+        trace?: never;
+    };
     "/categorias/{categoria_id}/desconto-minimo": {
         parameters: {
             query?: never;
@@ -957,6 +977,11 @@ export interface components {
             /** Produtos Excluidos */
             produtos_excluidos: number;
         };
+        /** CategoriaPrioridadeUpdate */
+        CategoriaPrioridadeUpdate: {
+            /** Prioritaria */
+            prioritaria: boolean;
+        };
         /** CategoriaResponse */
         CategoriaResponse: {
             /** Id */
@@ -975,6 +1000,8 @@ export interface components {
             desconto_minimo_percentual: string;
             /** Status Categoria */
             status_categoria: boolean;
+            /** Prioritaria */
+            prioritaria: boolean;
             /**
              * Created At
              * Format: date-time
@@ -3021,6 +3048,55 @@ export interface operations {
             };
             /** @description Conflito com as regras ou o banco de dados. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    atualizar_prioridade_categoria_categorias__categoria_id__prioridade_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                categoria_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoriaPrioridadeUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoriaResponse"];
+                };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Categoria não encontrada. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

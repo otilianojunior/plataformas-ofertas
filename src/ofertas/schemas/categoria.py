@@ -29,6 +29,10 @@ class CategoriaStatusUpdate(BaseModel):
     status_categoria: bool
 
 
+class CategoriaPrioridadeUpdate(BaseModel):
+    prioritaria: bool
+
+
 class CategoriaEtiquetaAfiliadoUpdate(BaseModel):
     etiqueta_afiliado: str | None = Field(default=None, max_length=150)
 
@@ -44,6 +48,7 @@ class CategoriaResponse(BaseModel):
     etiqueta_afiliado: str | None
     desconto_minimo_percentual: Decimal
     status_categoria: bool
+    prioritaria: bool
     created_at: datetime
     updated_at: datetime
 

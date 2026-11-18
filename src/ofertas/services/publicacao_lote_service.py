@@ -294,6 +294,11 @@ class PublicacaoLoteService:
                 destino_id,
             ),
             configuracao_sistema.limite_publicacoes_por_ciclo,
+            favoritas={
+                categoria.id
+                for categoria in categorias
+                if getattr(categoria, "prioritaria", False) is True
+            },
         )
 
     @staticmethod
@@ -301,11 +306,13 @@ class PublicacaoLoteService:
         selecionados: list[list],
         ultima_por_categoria: dict[int, datetime],
         limite_ciclo: int | None,
+        favoritas: set[int] | frozenset[int] = frozenset(),
     ) -> list[tuple[int, str, int]]:
         """Alterna as categorias (1º de cada, depois o 2º...) até o limite do ciclo.
 
-        As categorias publicadas há mais tempo (ou nunca) vêm primeiro, então
-        com o limite baixo as categorias se revezam de um ciclo para o outro.
+        Em cada rodada vêm primeiro as favoritas e, dentro de cada grupo, as
+        publicadas há mais tempo (ou nunca): as favoritas garantem vaga em todo
+        ciclo e as demais se revezam de um ciclo para o outro.
         """
 
         por_categoria: dict[int, list] = {}
@@ -315,7 +322,10 @@ class PublicacaoLoteService:
         nunca = datetime.min.replace(tzinfo=timezone.utc)
         ordem = sorted(
             por_categoria,
-            key=lambda categoria_id: ultima_por_categoria.get(categoria_id) or nunca,
+            key=lambda categoria_id: (
+                categoria_id not in favoritas,
+                ultima_por_categoria.get(categoria_id) or nunca,
+            ),
         )
 
         resultado: list[tuple[int, str, int]] = []

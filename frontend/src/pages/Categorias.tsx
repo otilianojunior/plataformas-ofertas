@@ -16,6 +16,7 @@ export function Categorias() {
 
   const [loja, setLoja] = useState("");
   const [busca, setBusca] = useState("");
+  const [soFavoritas, setSoFavoritas] = useState(false);
   const [criando, setCriando] = useState(false);
 
   const nomeDaLoja = useMemo(
@@ -26,7 +27,15 @@ export function Categorias() {
   const filtradas = (categorias.data ?? [])
     .filter((c) => !loja || String(c.plataforma_id) === loja)
     .filter((c) => !busca || `${c.nome_categoria} ${c.termo_busca ?? ""}`.toLowerCase().includes(busca.toLowerCase()))
-    .sort((a, b) => a.plataforma_id - b.plataforma_id || a.nome_categoria.localeCompare(b.nome_categoria));
+    .filter((c) => !soFavoritas || c.prioritaria)
+    // Favoritas primeiro, depois por loja e nome.
+    .sort(
+      (a, b) =>
+        Number(b.prioritaria) - Number(a.prioritaria) ||
+        a.plataforma_id - b.plataforma_id ||
+        a.nome_categoria.localeCompare(b.nome_categoria),
+    );
+  const totalFavoritas = (categorias.data ?? []).filter((c) => c.prioritaria).length;
 
   return (
     <>
@@ -59,6 +68,10 @@ export function Categorias() {
           <Campo rotulo="Buscar">
             <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome ou termo" />
           </Campo>
+          <label className="caixa">
+            <input type="checkbox" checked={soFavoritas} onChange={(e) => setSoFavoritas(e.target.checked)} />
+            Só favoritas ({totalFavoritas})
+          </label>
           <span className="detalhe">{filtradas.length} categorias</span>
         </div>
 
@@ -69,6 +82,7 @@ export function Categorias() {
             <table>
               <thead>
                 <tr>
+                  <th title="Favoritas entram antes das outras em cada ciclo de publicação">Fav.</th>
                   <th>Ativa</th>
                   <th>Categoria</th>
                   <th>Loja</th>
@@ -117,6 +131,11 @@ function LinhaCategoria({ categoria, loja, todosGrupos }: { categoria: Categoria
     { sucesso: "Etiqueta salva.", recarregar },
   );
 
+  const favoritar = useAcao(
+    (prioritaria: boolean) => chamar(api.PATCH("/categorias/{categoria_id}/prioridade", { ...caminho, body: { prioritaria } })),
+    { sucesso: (c) => (c.prioritaria ? "Categoria favoritada: entra primeiro nos ciclos." : "Categoria sem prioridade."), recarregar },
+  );
+
   const excluir = useAcao(() => chamar(api.DELETE("/categorias/{categoria_id}", caminho)), {
     sucesso: (r) => `Categoria excluída com ${r.produtos_excluidos} produtos.`,
     recarregar: [["categorias"], ["produtos"], ["status"]],
@@ -132,6 +151,18 @@ function LinhaCategoria({ categoria, loja, todosGrupos }: { categoria: Categoria
 
   return (
     <tr className={categoria.status_categoria ? "" : "linha-inativa"}>
+      <td>
+        <button
+          className={`estrela ${categoria.prioritaria ? "ativa" : ""}`}
+          aria-pressed={categoria.prioritaria}
+          aria-label={categoria.prioritaria ? "Remover dos favoritos" : "Favoritar"}
+          title={categoria.prioritaria ? "Favorita: entra primeiro nos ciclos" : "Favoritar: prioridade na publicação"}
+          disabled={favoritar.isPending}
+          onClick={() => favoritar.mutate(!categoria.prioritaria)}
+        >
+          {categoria.prioritaria ? "★" : "☆"}
+        </button>
+      </td>
       <td>
         <Alternador
           rotulo=""
