@@ -40,3 +40,47 @@ def test_pontuacao_soma_desconto_e_bonus_de_popularidade():
     assert "sqrt" in sql and "coalesce" in sql
     # 1º lugar ganha o peso inteiro; 4º, metade.
     assert PESO_POPULARIDADE / 1**0.5 == 40 and PESO_POPULARIDADE / 4**0.5 == 20
+
+
+def test_mensagens_sao_espalhadas_pelo_intervalo():
+    # 10 mensagens em 30 min: uma a cada 162s, terminando antes do próximo ciclo.
+    assert PublicacaoLoteService._espacamento(20, 30, 10) == 162
+    assert 10 * 162 < 30 * 60
+    # Muitos candidatos: nunca abaixo do mínimo do canal.
+    assert PublicacaoLoteService._espacamento(20, 30, 500) == 20
+    # Sem intervalo configurado ou uma mensagem só: o mínimo.
+    assert PublicacaoLoteService._espacamento(20, None, 10) == 20
+    assert PublicacaoLoteService._espacamento(120, 30, 1) == 120
+
+
+def test_preco_vencido_nao_e_publicado():
+    from unittest.mock import Mock
+
+    import pytest
+
+    from ofertas.services.publicacao_service import PublicacaoService
+
+    produto = Mock(ultima_coleta_em=AGORA - timedelta(hours=26))
+    with pytest.raises(ValueError, match="Preço não confirmado há 26"):
+        PublicacaoService._validar_elegibilidade(Mock(), produto, Mock(), Mock(), 120)
+
+
+def test_selecao_so_busca_precos_dentro_da_validade():
+    sql_sem = _consulta_candidatos(None)
+    sql_com = _consulta_candidatos(AGORA - timedelta(minutes=120))
+    assert "ultima_coleta_em" not in sql_sem.split("WHERE", 1)[1].split("ORDER BY")[0]
+    assert "produtos.ultima_coleta_em >=" in sql_com
+
+
+def _consulta_candidatos(coletado_desde):
+    from unittest.mock import Mock
+
+    from ofertas.repositories.produto_repository import ProdutoRepository
+
+    session = Mock()
+    session.scalars.return_value.all.return_value = []
+    ProdutoRepository().listar_candidatos_publicacao(
+        session, categoria_id=1, destino_id=1, desconto_minimo_percentual=0, coletado_desde=coletado_desde
+    )
+    consulta = session.scalars.call_args.args[0]
+    return str(consulta.compile(dialect=postgresql.dialect()))

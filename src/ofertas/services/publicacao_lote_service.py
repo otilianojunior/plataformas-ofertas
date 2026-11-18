@@ -47,6 +47,8 @@ class PublicacaoLoteService:
     LOCK_NAMESPACE = 20261110
     INTERVALO_ENTRE_MENSAGENS_SEGUNDOS = 20
     FATOR_CANDIDATOS_EXTRAS = 4
+    # Parte do intervalo entre ciclos usada para espalhar as mensagens.
+    FRACAO_DO_INTERVALO = 0.9
 
     def __init__(
         self,
@@ -137,8 +139,15 @@ class PublicacaoLoteService:
 
         return configuracao
 
-    def _intervalo_entre_mensagens(self, destino_id: int) -> int:
-        """Telegram: 20s. WhatsApp: o intervalo mínimo configurado (≥ 60s)."""
+    def _intervalo_entre_mensagens(
+        self,
+        destino_id: int,
+        quantidade: int = 1,
+    ) -> int:
+        """Espaço entre mensagens do ciclo, distribuídas ao longo do intervalo.
+
+        Mínimo: Telegram 20s; WhatsApp o intervalo configurado (≥ 60s).
+        """
 
         with SessionLocal() as session:
             destino = self.destino_repository.buscar_por_id(session, destino_id)
@@ -147,11 +156,46 @@ class PublicacaoLoteService:
                 if destino is not None
                 else None
             )
+            configuracao = self.configuracao_repository.buscar_por_destino(
+                session,
+                destino_id,
+            )
 
         if canal is not None and canal.codigo == "whatsapp":
-            return get_settings().whatsapp_intervalo_minimo_segundos
+            minimo = get_settings().whatsapp_intervalo_minimo_segundos
+        else:
+            minimo = self.INTERVALO_ENTRE_MENSAGENS_SEGUNDOS
 
-        return self.INTERVALO_ENTRE_MENSAGENS_SEGUNDOS
+        return self._espacamento(
+            minimo,
+            getattr(configuracao, "intervalo_publicacao_minutos", None),
+            quantidade,
+        )
+
+    @classmethod
+    def _espacamento(
+        cls,
+        minimo: int,
+        intervalo_minutos: int | None,
+        quantidade: int,
+    ) -> int:
+        """Ex.: 10 mensagens em 30 min -> uma a cada 2min42s (90% do intervalo).
+
+        Distribui as mensagens em vez de mandar todas em rajada; a folga de 10%
+        garante que o ciclo termine antes de o próximo poder começar.
+        """
+
+        if (
+            not isinstance(intervalo_minutos, int)
+            or intervalo_minutos <= 0
+            or quantidade <= 1
+        ):
+            return minimo
+
+        distribuido = int(
+            intervalo_minutos * 60 * cls.FRACAO_DO_INTERVALO / quantidade
+        )
+        return max(minimo, distribuido)
 
     def _selecionar_candidatos(
         self,
@@ -178,6 +222,13 @@ class PublicacaoLoteService:
         categorias = self.categoria_repository.listar_por_destino(
             session,
             destino_id,
+        )
+
+        validade = configuracao_sistema.validade_preco_minutos
+        coletado_desde = (
+            datetime.now(timezone.utc) - timedelta(minutes=validade)
+            if isinstance(validade, int)
+            else None
         )
 
         recentes = self.publicacao_repository.listar_publicadas_recentes(
@@ -218,6 +269,7 @@ class PublicacaoLoteService:
                 # duplicidade dão lugar aos próximos da lista.
                 limite=limite_produtos_por_categoria
                 * self.FATOR_CANDIDATOS_EXTRAS,
+                coletado_desde=coletado_desde,
             )
 
             vagas = limite_produtos_por_categoria
@@ -516,7 +568,10 @@ class PublicacaoLoteService:
         ignoradas = 0
         ultima_mensagem_em = None
         status_ciclo = "concluido"
-        intervalo_mensagens = self._intervalo_entre_mensagens(destino_id)
+        intervalo_mensagens = self._intervalo_entre_mensagens(
+            destino_id,
+            len(candidatos),
+        )
 
         for indice, (categoria_id, nome_categoria, produto_id) in enumerate(
             candidatos

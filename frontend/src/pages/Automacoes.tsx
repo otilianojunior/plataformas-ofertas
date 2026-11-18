@@ -43,12 +43,14 @@ export function Automacoes() {
   const [intervalo, setIntervalo] = useState("");
   const [limite, setLimite] = useState("");
   const [limiteCiclo, setLimiteCiclo] = useState("");
+  const [validade, setValidade] = useState("");
 
   useEffect(() => {
     if (configuracao.data) {
       setIntervalo(String(configuracao.data.intervalo_coleta_minutos));
       setLimite(String(configuracao.data.limite_produtos_por_categoria));
       setLimiteCiclo(String(configuracao.data.limite_publicacoes_por_ciclo));
+      setValidade(String(configuracao.data.validade_preco_minutos));
     }
   }, [configuracao.data]);
 
@@ -60,6 +62,7 @@ export function Automacoes() {
             intervalo_coleta_minutos: Number(intervalo),
             limite_produtos_por_categoria: Number(limite),
             limite_publicacoes_por_ciclo: Number(limiteCiclo),
+            validade_preco_minutos: Number(validade),
           },
         }),
       ),
@@ -114,9 +117,15 @@ export function Automacoes() {
               </Campo>
               <Campo
                 rotulo="Total de publicações por ciclo (em cada grupo)"
-                dica="Teto somando todas as categorias. As categorias se revezam: as publicadas há mais tempo vão primeiro."
+                dica="Teto somando todas as categorias, espalhado ao longo do intervalo do grupo (ex.: 10 em 30 min = uma a cada ~2,7 min). As categorias se revezam: as publicadas há mais tempo vão primeiro."
               >
                 <input type="number" min={1} required value={limiteCiclo} onChange={(e) => setLimiteCiclo(e.target.value)} />
+              </Campo>
+              <Campo
+                rotulo="Validade do preço (minutos)"
+                dica="Só publica produto cujo preço foi confirmado por uma coleta nesse tempo. Evita divulgar promoção que já acabou."
+              >
+                <input type="number" min={10} required value={validade} onChange={(e) => setValidade(e.target.value)} />
               </Campo>
               <button className="botao botao-principal" disabled={salvar.isPending}>
                 Salvar

@@ -129,6 +129,10 @@ Pontos importantes:
   relevância da busca, Shopee vendas; `quantidade_vendida` só Shopee). Depois alterna as
   categorias (1º de cada, depois o 2º...), começando pelas publicadas há mais tempo, e
   corta em `limite_publicacoes_por_ciclo`.
+- Validade do preço (`configuracoes_sistema.validade_preco_minutos`, padrão 120): só
+  publica produto com `ultima_coleta_em` dentro dela, na seleção do ciclo e no envio
+  (inclusive manual). A API só roda com a sessão gráfica aberta (para à noite): após
+  ligar, o 1º ciclo só tem candidatos depois da 1ª coleta.
 - O intervalo entre ciclos conta do **início** do ciclo (`registrar_execucao` ao iniciar):
   ciclo interrompido/pausado não faz outro começar na hora.
 - `DELETE /categorias/{id}` apaga a categoria e os produtos dela (publicações e histórico
@@ -140,8 +144,10 @@ Pontos importantes:
   grupos da categoria do produto com canal e grupo ativos, aplicando todas as
   regras; commit por grupo; não obedece às janelas. 200 se publicou em ao menos
   um grupo, 502 se só houve falhas de envio, 409 se todos foram ignorados.
-- O intervalo entre mensagens (20s, `PublicacaoLoteService`) é independente do
-  intervalo entre ciclos de publicação (por destino, no banco).
+- Espaçamento entre mensagens do ciclo: `PublicacaoLoteService._espacamento` espalha as
+  mensagens em 90% do intervalo do grupo (10 em 30 min = 162s); mínimo de 20s no
+  Telegram e `WHATSAPP_INTERVALO_MINIMO_SEGUNDOS` no WhatsApp. Configuração em uso:
+  30 min por grupo, 10 por ciclo, 3 por categoria (~20/h, ~330/dia na janela 07h–23h30).
 
 ## Erros das integrações
 
