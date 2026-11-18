@@ -21,7 +21,9 @@ class ShopeeCollector:
     """Executa a coleta e normalização de ofertas da Shopee."""
 
     DEFAULT_SORT_TYPES = (2, 5, 1)
-    DEFAULT_MAX_PAGES = 10
+    # 3 páginas por ordenação (até ~90 ofertas por categoria) bastam: o ciclo
+    # publica poucas por categoria e a coleta fica ~3x mais rápida.
+    DEFAULT_MAX_PAGES = 3
     DEFAULT_PAGE_SIZE = 10
 
     def __init__(

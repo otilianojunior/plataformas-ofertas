@@ -204,6 +204,7 @@ def test_coleta_para_entre_categorias_no_encerramento():
     servico = ExecucaoColetaService.__new__(ExecucaoColetaService)
     servico.categoria_repository = categoria_repository
     servico._lock_da_loja = MagicMock()  # sem banco: lock sempre livre
+    servico.gerar_afiliados_pendentes = Mock()
 
     session = MagicMock()
     session.scalar.return_value = True  # lock adquirido
@@ -232,3 +233,27 @@ def test_sem_candidatos_nao_abre_ciclo_nem_conta_o_intervalo(servico, ciclo_repo
 
     ciclo_repository.iniciar.assert_not_called()
     servico.configuracao_repository.registrar_execucao.assert_not_called()
+
+
+def test_coleta_gera_links_afiliados_a_cada_categoria():
+    from ofertas.models.plataforma import Plataforma
+
+    categorias = [Mock(id=i, nome_categoria=f"Cat {i}") for i in (1, 2, 3)]
+    collector = Mock()
+    collector.coletar_categoria.return_value = {"encontradas": 1, "processadas": 1, "ignoradas": 0, "erros": []}
+
+    servico = ExecucaoColetaService.__new__(ExecucaoColetaService)
+    servico.categoria_repository = Mock(listar=Mock(return_value=categorias))
+    servico._lock_da_loja = MagicMock()
+    servico.gerar_afiliados_pendentes = Mock()
+
+    session = MagicMock()
+    session.get.return_value = Plataforma(id=1, codigo="shopee", status_plataforma=True)
+    session.add.side_effect = lambda obj: [
+        setattr(obj, campo, 0)
+        for campo in ("quantidade_encontrada", "quantidade_processada", "quantidade_ignorada")
+    ]
+
+    servico._executar(session, 1, "shopee", collector, None)
+
+    assert servico.gerar_afiliados_pendentes.call_count == 3

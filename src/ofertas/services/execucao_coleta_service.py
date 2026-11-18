@@ -256,6 +256,11 @@ class ExecucaoColetaService:
                 # Libera as linhas e a memória da sessão a cada categoria.
                 session.commit()
 
+                # Links afiliados já para esta categoria: a publicação não
+                # espera a coleta inteira (que leva dezenas de minutos).
+                if encerrando is None or not encerrando.is_set():
+                    self.gerar_afiliados_pendentes(plataforma_id, encerrando)
+
         except Exception as erro:
             logger.exception(
                 "Falha ao preparar a execução de coleta da plataforma %s.",
