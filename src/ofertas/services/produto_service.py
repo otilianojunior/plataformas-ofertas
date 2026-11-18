@@ -296,6 +296,15 @@ class ProdutoService:
         session.flush()
         return produto
 
+    def limpar_posicoes_categoria(
+        self,
+        session: Session,
+        categoria_id: int,
+    ) -> None:
+        """Zera o ranking antes de uma coleta: quem sumiu da lista perde a posição."""
+
+        self.repository.limpar_posicoes_selecao_categoria(session, categoria_id)
+
     def atualizar_posicoes_selecao_categoria(
         self,
         session: Session,

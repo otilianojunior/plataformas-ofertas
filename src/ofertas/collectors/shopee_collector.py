@@ -216,8 +216,9 @@ class ShopeeCollector:
         )
 
         processadas = 0
+        self.produto_service.limpar_posicoes_categoria(session, categoria.id)
 
-        for oferta in ofertas_ordenadas:
+        for posicao, oferta in enumerate(ofertas_ordenadas, start=1):
             try:
                 dados = self._preparar_produto(
                     categoria,
@@ -227,6 +228,9 @@ class ShopeeCollector:
                 if dados is None:
                     ignoradas += 1
                     continue
+
+                # 1 = mais vendido da categoria nesta coleta.
+                dados["posicao_selecao_categoria"] = posicao
 
                 self.produto_service.registrar_coleta(
                     session,
@@ -392,5 +396,6 @@ class ShopeeCollector:
             "preco_atual": preco,
             "preco_original": preco_original,
             "percentual_desconto": desconto,
+            "quantidade_vendida": int(self._obter_vendas(oferta)) or None,
             "disponivel": True,
         }

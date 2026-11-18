@@ -2,13 +2,26 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
-from sqlalchemy import and_, case, or_, select, update
+from sqlalchemy import Numeric, and_, case, cast, func, or_, select, update
 from sqlalchemy.orm import Session
 
 from ofertas.core.config import get_settings
 from ofertas.models.plataforma_categoria import PlataformaCategoria
 from ofertas.models.produto import Produto
 from ofertas.models.publicacao import Publicacao
+
+
+# Bônus de popularidade somado ao desconto (em pontos percentuais):
+# 1º mais vendido +40, 4º +20, 16º +10, 100º +4; sem posição, 0.
+# Ex.: 25% de desconto e 1º lugar (65) passa na frente de 50% no 30º (57).
+PESO_POPULARIDADE = 40
+
+
+def pontuacao_publicacao():
+    bonus = cast(PESO_POPULARIDADE, Numeric) / func.sqrt(
+        cast(Produto.posicao_selecao_categoria, Numeric)
+    )
+    return Produto.percentual_desconto + func.coalesce(bonus, 0)
 
 
 class ProdutoRepository:
@@ -318,7 +331,7 @@ class ProdutoRepository:
         consulta = (
             consulta
             .order_by(
-                Produto.posicao_selecao_categoria.asc().nulls_last(),
+                pontuacao_publicacao().desc(),
                 Produto.created_at.asc(),
                 Produto.id.asc(),
             )

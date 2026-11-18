@@ -83,7 +83,15 @@ class Produto(Base):
         index=True,
     )
 
+    # Posição do produto na última coleta da categoria, na ordem da loja
+    # (ML: mais vendidos/relevância; Shopee: vendas). 1 = mais popular.
     posicao_selecao_categoria: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    # Unidades vendidas informadas pela loja (só a Shopee informa).
+    quantidade_vendida: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
     )

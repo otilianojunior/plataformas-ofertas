@@ -66,7 +66,11 @@ class MercadoLivreCollector:
         ids_processados = set()
         erros = []
 
-        for destaque in produtos:
+        # Posição na lista da loja (mais vendidos ou relevância da busca):
+        # usada para priorizar os mais populares na publicação.
+        self.produto_service.limpar_posicoes_categoria(session, categoria.id)
+
+        for posicao, destaque in enumerate(produtos, start=1):
             # Encerramento da API: mantém o que já foi salvo e para.
             if encerrando is not None and encerrando.is_set():
                 erros.append(
@@ -150,6 +154,8 @@ class MercadoLivreCollector:
                 if dados is None:
                     ignoradas += 1
                     continue
+
+                dados["posicao_selecao_categoria"] = posicao
 
                 self.produto_service.registrar_coleta(
                     session,

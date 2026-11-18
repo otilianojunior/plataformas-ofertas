@@ -114,6 +114,8 @@ class ProdutoResponse(BaseModel):
     preco_atual: Decimal
     preco_original: Decimal | None
     percentual_desconto: Decimal | None
+    posicao_selecao_categoria: int | None = None
+    quantidade_vendida: int | None = None
 
     disponivel: bool
     status_monitoramento: str
