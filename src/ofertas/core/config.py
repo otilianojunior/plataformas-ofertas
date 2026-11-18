@@ -1,3 +1,4 @@
+from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
 
@@ -29,6 +30,13 @@ class Settings(BaseSettings):
     whatsapp_chrome_cdp_url: str = "http://127.0.0.1:9223"
     whatsapp_intervalo_minimo_segundos: int = Field(default=120, ge=60)
     whatsapp_limite_diario: int = Field(default=30, ge=1)
+
+    # Descontos acima disto quase sempre vêm de preço "de" inflado pela loja
+    # (ex.: R$ 8.972,50 por R$ 358,90 = 96%): o produto não é publicado.
+    desconto_maximo_percentual: Decimal = Field(default=Decimal("90"), gt=0, le=100)
+
+    # Sessão do painel: token assinado com a CREDENTIAL_ENCRYPTION_KEY.
+    sessao_duracao_horas: int = Field(default=12, ge=1, le=720)
 
     log_level: str = "INFO"
 

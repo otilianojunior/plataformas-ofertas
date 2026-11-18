@@ -5,6 +5,7 @@ from decimal import Decimal
 from sqlalchemy import and_, case, or_, select, update
 from sqlalchemy.orm import Session
 
+from ofertas.core.config import get_settings
 from ofertas.models.plataforma_categoria import PlataformaCategoria
 from ofertas.models.produto import Produto
 from ofertas.models.publicacao import Publicacao
@@ -298,6 +299,8 @@ class ProdutoRepository:
             Produto.url_afiliada.is_not(None),
             Produto.percentual_desconto.is_not(None),
             Produto.percentual_desconto >= desconto_minimo_percentual,
+            Produto.percentual_desconto
+            <= get_settings().desconto_maximo_percentual,
             pode_republicar,
             tentativa_liberada,
         )

@@ -20,6 +20,7 @@ from ofertas.repositories.configuracao_divulgacao_repository import (
 )
 from ofertas.repositories.produto_repository import ProdutoRepository
 from ofertas.schemas.publicacao import PublicacaoResponse
+from ofertas.core.elegibilidade import desconto_plausivel
 from ofertas.core.similaridade_produto import bloqueio_republicacao
 from ofertas.repositories.publicacao_repository import (
     PublicacaoRepository,
@@ -201,6 +202,13 @@ class PublicacaoService:
             raise ValueError(
                 "O desconto do produto está abaixo do mínimo exigido "
                 "pela categoria ou pelo destino."
+            )
+
+        if not desconto_plausivel(produto.percentual_desconto):
+            raise ValueError(
+                f"Desconto de {produto.percentual_desconto}% acima do teto "
+                f"(DESCONTO_MAXIMO_PERCENTUAL): provável preço original "
+                f"inflado pela loja."
             )
 
         if (

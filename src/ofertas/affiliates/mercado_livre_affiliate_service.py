@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from ofertas.affiliates.mercado_livre_client import (
     MercadoLivreAffiliateClient,
 )
+from ofertas.core.elegibilidade import produto_elegivel
 from ofertas.models.plataforma import Plataforma
 from ofertas.models.plataforma_categoria import PlataformaCategoria
 from ofertas.models.produto import Produto
@@ -522,22 +523,4 @@ class MercadoLivreAffiliateService:
         produto: Produto,
         categoria: PlataformaCategoria | None,
     ) -> None:
-        desconto_minimo = (
-            categoria.desconto_minimo_percentual
-            if categoria is not None
-            else None
-        )
-
-        desconto_atingido = (
-            desconto_minimo is not None
-            and produto.percentual_desconto is not None
-            and produto.percentual_desconto >= desconto_minimo
-        )
-
-        produto.elegivel_divulgacao = bool(
-            produto.status_monitoramento == "ativo"
-            and produto.disponivel
-            and desconto_atingido
-            and produto.status_link_afiliado == "gerado"
-            and produto.url_afiliada
-        )
+        produto.elegivel_divulgacao = produto_elegivel(produto, categoria)
