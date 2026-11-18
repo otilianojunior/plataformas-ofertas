@@ -15,9 +15,11 @@ export function Login() {
   const [erro, setErro] = useState<string | null>(null);
   const [entrando, setEntrando] = useState(false);
 
-  // Só caminhos internos, para o ?voltar= não levar a outro site.
+  // Só caminhos internos, para o ?voltar= não levar a outro site. Barra
+  // invertida fica de fora: o navegador lê "/\site.com" como "//site.com".
   const voltar = parametros.get("voltar");
-  const destino = voltar && voltar.startsWith("/") && !voltar.startsWith("//") && !voltar.startsWith("/login") ? voltar : "/";
+  const destino =
+    voltar && /^\/(?![/\\])[^\\]*$/.test(voltar) && !voltar.startsWith("/login") ? voltar : "/";
 
   if (obterToken()) return <Navigate to={destino} replace />;
 
