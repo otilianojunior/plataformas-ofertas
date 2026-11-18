@@ -77,7 +77,10 @@ def _servico(produtos_por_categoria, recentes=(), limite=2):
         produto_repository=produto_repository,
         publicacao_service=Mock(),
         janela_execucao_service=Mock(),
-        publicacao_repository=Mock(listar_publicadas_recentes=Mock(return_value=list(recentes))),
+        publicacao_repository=Mock(
+            listar_publicadas_recentes=Mock(return_value=list(recentes)),
+            ultima_publicacao_por_categoria=Mock(return_value={}),
+        ),
     )
     return servico, session
 

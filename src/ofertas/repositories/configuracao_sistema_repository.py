@@ -27,6 +27,7 @@ class ConfiguracaoSistemaRepository:
         campos_permitidos = {
             "intervalo_coleta_minutos",
             "limite_produtos_por_categoria",
+            "limite_publicacoes_por_ciclo",
         }
 
         for campo, valor in dados.items():

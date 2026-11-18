@@ -9,6 +9,11 @@ class ConfiguracaoSistemaUpdate(BaseModel):
         default=None,
         ge=1,
     )
+    limite_publicacoes_por_ciclo: int | None = Field(
+        default=None,
+        ge=1,
+        description="Máximo de mensagens por ciclo em cada grupo, somando as categorias.",
+    )
 
     @model_validator(mode="after")
     def validar_atualizacao(self):
@@ -31,6 +36,7 @@ class ConfiguracaoSistemaResponse(BaseModel):
     automacoes_ativas: bool
     intervalo_coleta_minutos: int
     limite_produtos_por_categoria: int
+    limite_publicacoes_por_ciclo: int
     coleta_mercado_livre_ativa: bool
     coleta_shopee_ativa: bool
     publicacao_telegram_ativa: bool

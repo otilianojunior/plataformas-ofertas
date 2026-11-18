@@ -54,7 +54,6 @@ def test_ciclo_concluido_registra_inicio_progresso_e_fim(servico, ciclo_reposito
         patch.object(servico, "INTERVALO_ENTRE_MENSAGENS_SEGUNDOS", 0),
         patch.object(servico, "_buscar_configuracao_ativa", return_value=Mock()),
         patch.object(servico, "_selecionar_candidatos", return_value=candidatos),
-        patch.object(servico, "_registrar_execucao"),
     ):
         resultado = servico._executar_ciclo_destino_com_lock(7)
 
@@ -124,7 +123,6 @@ def test_falha_ao_gravar_progresso_nao_interrompe_publicacao(servico, ciclo_repo
         patch.object(servico, "INTERVALO_ENTRE_MENSAGENS_SEGUNDOS", 0),
         patch.object(servico, "_buscar_configuracao_ativa", return_value=Mock()),
         patch.object(servico, "_selecionar_candidatos", return_value=[(1, "c", 10), (1, "c", 11)]),
-        patch.object(servico, "_registrar_execucao"),
     ):
         resultado = servico._executar_ciclo_destino_com_lock(7)
 
@@ -159,7 +157,6 @@ def test_encerramento_da_api_interrompe_durante_o_intervalo(servico, ciclo_repos
         patch("ofertas.services.publicacao_lote_service.SessionLocal", _session_local()),
         patch.object(servico, "_buscar_configuracao_ativa", return_value=Mock()),
         patch.object(servico, "_selecionar_candidatos", return_value=[(1, "c", 10), (1, "c", 11)]),
-        patch.object(servico, "_registrar_execucao") as registrar,
     ):
         resultado = servico._executar_ciclo_destino_com_lock(7)
 
@@ -167,7 +164,9 @@ def test_encerramento_da_api_interrompe_durante_o_intervalo(servico, ciclo_repos
     assert resultado["status"] == "interrompido"
     assert resultado["publicadas"] == 1
     assert _status_finais(ciclo_repository)[0]["status"] == "interrompido"
-    registrar.assert_not_called()  # o ciclo volta a rodar após o reinício
+    # O intervalo conta do início: após o reinício, o próximo ciclo espera
+    # o intervalo em vez de recomeçar na hora com a lista inteira.
+    servico.configuracao_repository.registrar_execucao.assert_called_once()
 
 
 def test_encerramento_antes_do_ciclo_nao_publica(servico):

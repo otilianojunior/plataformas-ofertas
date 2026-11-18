@@ -89,6 +89,26 @@ class PublicacaoRepository:
             for produto_id, titulo, preco, loja in linhas
         ]
 
+    def ultima_publicacao_por_categoria(
+        self,
+        session: Session,
+        destino_id: int,
+    ) -> dict[int, datetime]:
+        """Quando cada categoria teve produto publicado no grupo pela última vez."""
+
+        linhas = session.execute(
+            select(Produto.categoria_id, func.max(Publicacao.publicada_em))
+            .join(Produto, Produto.id == Publicacao.produto_id)
+            .where(
+                Publicacao.destino_divulgacao_id == destino_id,
+                Publicacao.status_publicacao == "publicada",
+                Produto.categoria_id.is_not(None),
+            )
+            .group_by(Produto.categoria_id)
+        ).all()
+
+        return {categoria_id: quando for categoria_id, quando in linhas}
+
     def contar_publicadas_canal_desde(
         self,
         session: Session,

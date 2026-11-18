@@ -79,6 +79,14 @@ class ConfiguracaoSistemaService:
                 "O limite de produtos por categoria deve ser pelo menos 1."
             )
 
+        if (
+            "limite_publicacoes_por_ciclo" in dados
+            and dados["limite_publicacoes_por_ciclo"] < 1
+        ):
+            raise ValueError(
+                "O limite de publicações por ciclo deve ser pelo menos 1."
+            )
+
         configuracao = self.buscar(session)
 
         return self.repository.atualizar(

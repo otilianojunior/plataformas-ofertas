@@ -153,7 +153,6 @@ def test_ciclo_em_andamento_para_quando_a_janela_fecha():
             "_selecionar_candidatos",
             return_value=[(1, "Eletrônicos", 10), (1, "Eletrônicos", 11)],
         ),
-        patch.object(servico, "_registrar_execucao"),
     ):
         resultado = servico._executar_ciclo_destino_com_lock(1)
 

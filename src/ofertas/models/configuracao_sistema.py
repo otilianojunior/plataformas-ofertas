@@ -29,6 +29,10 @@ class ConfiguracaoSistema(Base):
             "limite_produtos_por_categoria >= 1",
             name="ck_config_sistema_limite_produtos_positivo",
         ),
+        CheckConstraint(
+            "limite_publicacoes_por_ciclo >= 1",
+            name="ck_config_sistema_limite_ciclo_positivo",
+        ),
     )
 
     id: Mapped[int] = mapped_column(
@@ -54,6 +58,14 @@ class ConfiguracaoSistema(Base):
         nullable=False,
         default=10,
         server_default=text("10"),
+    )
+
+    # Teto de mensagens por ciclo de cada grupo, somando todas as categorias.
+    limite_publicacoes_por_ciclo: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=20,
+        server_default=text("20"),
     )
 
     coleta_mercado_livre_ativa: Mapped[bool] = mapped_column(

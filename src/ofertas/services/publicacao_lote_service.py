@@ -235,10 +235,53 @@ class PublicacaoLoteService:
                 ):
                     vagas -= 1
 
-        return [
-            (categoria_id, nome_categoria, produto.id)
-            for categoria_id, nome_categoria, produto in selecionados
-        ]
+        return self._intercalar_categorias(
+            selecionados,
+            self.publicacao_repository.ultima_publicacao_por_categoria(
+                session,
+                destino_id,
+            ),
+            configuracao_sistema.limite_publicacoes_por_ciclo,
+        )
+
+    @staticmethod
+    def _intercalar_categorias(
+        selecionados: list[list],
+        ultima_por_categoria: dict[int, datetime],
+        limite_ciclo: int | None,
+    ) -> list[tuple[int, str, int]]:
+        """Alterna as categorias (1º de cada, depois o 2º...) até o limite do ciclo.
+
+        As categorias publicadas há mais tempo (ou nunca) vêm primeiro, então
+        com o limite baixo as categorias se revezam de um ciclo para o outro.
+        """
+
+        por_categoria: dict[int, list] = {}
+        for vaga in selecionados:
+            por_categoria.setdefault(vaga[0], []).append(vaga)
+
+        nunca = datetime.min.replace(tzinfo=timezone.utc)
+        ordem = sorted(
+            por_categoria,
+            key=lambda categoria_id: ultima_por_categoria.get(categoria_id) or nunca,
+        )
+
+        resultado: list[tuple[int, str, int]] = []
+        rodada = 0
+
+        while True:
+            adicionou = False
+            for categoria_id in ordem:
+                vagas = por_categoria[categoria_id]
+                if rodada < len(vagas):
+                    _, nome_categoria, produto = vagas[rodada]
+                    resultado.append((categoria_id, nome_categoria, produto.id))
+                    adicionou = True
+            if not adicionou:
+                break
+            rodada += 1
+
+        return resultado[:limite_ciclo] if limite_ciclo else resultado
 
     @staticmethod
     def _adicionar_candidato(
@@ -284,25 +327,6 @@ class PublicacaoLoteService:
             [categoria.id, categoria.nome_categoria, produto]
         )
         return True
-
-    def _registrar_execucao(self, destino_id: int) -> None:
-        with SessionLocal() as session:
-            configuracao = (
-                self.configuracao_repository.buscar_por_destino(
-                    session,
-                    destino_id,
-                )
-            )
-
-            if configuracao is None:
-                return
-
-            self.configuracao_repository.registrar_execucao(
-                session,
-                configuracao,
-                datetime.now(timezone.utc),
-            )
-            session.commit()
 
     def executar_ciclo_destino(
         self,
@@ -410,6 +434,14 @@ class PublicacaoLoteService:
                 session,
                 destino_id,
                 len(candidatos),
+            )
+            # O intervalo conta do início do ciclo: se ele for interrompido
+            # (API reiniciada, pausa, fim da janela), o próximo só começa
+            # depois do intervalo, em vez de recomeçar na hora com tudo.
+            self.configuracao_repository.registrar_execucao(
+                session,
+                configuracao,
+                datetime.now(timezone.utc),
             )
             session.commit()
             ciclo_id = ciclo.id
@@ -604,9 +636,6 @@ class PublicacaoLoteService:
                         categoria_id,
                         destino_id,
                     )
-
-        if status_ciclo == "concluido":
-            self._registrar_execucao(destino_id)
 
         resultado = {
             "status": status_ciclo,
