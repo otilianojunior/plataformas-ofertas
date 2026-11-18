@@ -33,6 +33,10 @@ class ConfiguracaoSistema(Base):
             "limite_publicacoes_por_ciclo >= 1",
             name="ck_config_sistema_limite_ciclo_positivo",
         ),
+        CheckConstraint(
+            "validade_preco_minutos >= 10",
+            name="ck_config_sistema_validade_preco_minima",
+        ),
     )
 
     id: Mapped[int] = mapped_column(
@@ -66,6 +70,14 @@ class ConfiguracaoSistema(Base):
         nullable=False,
         default=20,
         server_default=text("20"),
+    )
+
+    # Só publica produto cujo preço foi confirmado numa coleta recente.
+    validade_preco_minutos: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=120,
+        server_default=text("120"),
     )
 
     coleta_mercado_livre_ativa: Mapped[bool] = mapped_column(

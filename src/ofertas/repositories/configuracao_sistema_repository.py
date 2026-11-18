@@ -28,6 +28,7 @@ class ConfiguracaoSistemaRepository:
             "intervalo_coleta_minutos",
             "limite_produtos_por_categoria",
             "limite_publicacoes_por_ciclo",
+            "validade_preco_minutos",
         }
 
         for campo, valor in dados.items():

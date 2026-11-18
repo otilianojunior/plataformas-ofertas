@@ -182,6 +182,7 @@ class ProdutoRepository:
         preco_minimo: Decimal | None = None,
         preco_maximo: Decimal | None = None,
         limite: int = 10,
+        coletado_desde: datetime | None = None,
     ) -> list[Produto]:
         """Lista candidatos elegíveis para publicação em uma categoria."""
 
@@ -326,6 +327,12 @@ class ProdutoRepository:
         if preco_maximo is not None:
             consulta = consulta.where(
                 Produto.preco_atual <= preco_maximo
+            )
+
+        if coletado_desde is not None:
+            # Preço confirmado por coleta recente: nada de oferta vencida.
+            consulta = consulta.where(
+                Produto.ultima_coleta_em >= coletado_desde
             )
 
         consulta = (

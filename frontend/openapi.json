@@ -4329,6 +4329,10 @@
       "type": "integer",
       "title": "Limite Publicacoes Por Ciclo"
      },
+     "validade_preco_minutos": {
+      "type": "integer",
+      "title": "Validade Preco Minutos"
+     },
      "coleta_mercado_livre_ativa": {
       "type": "boolean",
       "title": "Coleta Mercado Livre Ativa"
@@ -4375,6 +4379,7 @@
      "intervalo_coleta_minutos",
      "limite_produtos_por_categoria",
      "limite_publicacoes_por_ciclo",
+     "validade_preco_minutos",
      "coleta_mercado_livre_ativa",
      "coleta_shopee_ativa",
      "publicacao_telegram_ativa",
@@ -4423,6 +4428,19 @@
       ],
       "title": "Limite Publicacoes Por Ciclo",
       "description": "Máximo de mensagens por ciclo em cada grupo, somando as categorias."
+     },
+     "validade_preco_minutos": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 10.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Validade Preco Minutos",
+      "description": "Só publica produto com preço confirmado por coleta há no máximo este tempo."
      }
     },
     "type": "object",

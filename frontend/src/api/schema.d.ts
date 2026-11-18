@@ -1135,6 +1135,8 @@ export interface components {
             limite_produtos_por_categoria: number;
             /** Limite Publicacoes Por Ciclo */
             limite_publicacoes_por_ciclo: number;
+            /** Validade Preco Minutos */
+            validade_preco_minutos: number;
             /** Coleta Mercado Livre Ativa */
             coleta_mercado_livre_ativa: boolean;
             /** Coleta Shopee Ativa */
@@ -1167,6 +1169,11 @@ export interface components {
              * @description Máximo de mensagens por ciclo em cada grupo, somando as categorias.
              */
             limite_publicacoes_por_ciclo?: number | null;
+            /**
+             * Validade Preco Minutos
+             * @description Só publica produto com preço confirmado por coleta há no máximo este tempo.
+             */
+            validade_preco_minutos?: number | null;
         };
         /** CredencialDivulgacaoCreate */
         CredencialDivulgacaoCreate: {

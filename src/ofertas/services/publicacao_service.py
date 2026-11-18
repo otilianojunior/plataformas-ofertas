@@ -4,7 +4,9 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from ofertas.core.tempo import garantir_utc
 from ofertas.models.configuracao_divulgacao import ConfiguracaoDivulgacao
+from ofertas.models.configuracao_sistema import ConfiguracaoSistema
 from ofertas.models.destino_divulgacao import DestinoDivulgacao
 from ofertas.models.plataforma_divulgacao import PlataformaDivulgacao
 from ofertas.models.plataforma_categoria import PlataformaCategoria
@@ -164,7 +166,17 @@ class PublicacaoService:
         produto: Produto,
         categoria: PlataformaCategoria,
         configuracao: ConfiguracaoDivulgacao,
+        validade_preco_minutos: int | None = None,
     ) -> None:
+        if isinstance(validade_preco_minutos, int) and produto.ultima_coleta_em:
+            idade = datetime.now(timezone.utc) - garantir_utc(produto.ultima_coleta_em)
+            if idade > timedelta(minutes=validade_preco_minutos):
+                horas = idade.total_seconds() / 3600
+                raise ValueError(
+                    f"Preço não confirmado há {horas:.1f}h (validade de "
+                    f"{validade_preco_minutos} min): aguarde a próxima coleta."
+                )
+
         if not produto.elegivel_divulgacao:
             raise ValueError(
                 "O produto não está marcado como elegível para divulgação."
@@ -379,10 +391,13 @@ class PublicacaoService:
                 "A configuração de divulgação deste destino está inativa."
             )
 
+        configuracao_sistema = session.get(ConfiguracaoSistema, 1)
+
         self._validar_elegibilidade(
             produto,
             categoria,
             configuracao,
+            getattr(configuracao_sistema, "validade_preco_minutos", None),
         )
 
         agora = datetime.now(timezone.utc)

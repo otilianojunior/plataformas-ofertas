@@ -87,6 +87,14 @@ class ConfiguracaoSistemaService:
                 "O limite de publicações por ciclo deve ser pelo menos 1."
             )
 
+        if (
+            "validade_preco_minutos" in dados
+            and dados["validade_preco_minutos"] < 10
+        ):
+            raise ValueError(
+                "A validade do preço deve ser de pelo menos 10 minutos."
+            )
+
         configuracao = self.buscar(session)
 
         return self.repository.atualizar(
