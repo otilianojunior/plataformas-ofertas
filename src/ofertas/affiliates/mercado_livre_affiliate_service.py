@@ -47,6 +47,8 @@ class MercadoLivreAffiliateService:
         plataforma_id: int,
         produto_ids: Sequence[int] | None = None,
         encerrando: threading.Event | None = None,
+        limite: int | None = None,
+        excluir_ids: Sequence[int] = (),
     ) -> dict[str, Any]:
         """Gera links afiliados para produtos pendentes do Mercado Livre."""
 
@@ -66,9 +68,12 @@ class MercadoLivreAffiliateService:
             session,
             plataforma_id,
             produto_ids,
+            limite=limite,
+            excluir_ids=excluir_ids,
         )
 
         resultado: dict[str, Any] = {
+            "produto_ids": [produto.id for produto, _ in produtos],
             "total_encontrados": len(produtos),
             "total_gerados": 0,
             "total_erros": 0,

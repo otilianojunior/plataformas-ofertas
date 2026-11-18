@@ -31,6 +31,8 @@ class ExecucaoColetaService:
     CODIGO_MERCADO_LIVRE = "mercado_livre"
     CODIGO_SHOPEE = "shopee"
     LOCK_NAMESPACE = 20261104
+    # Produtos por transação na geração de links afiliados.
+    LOTE_AFILIADOS = 25
 
     def __init__(
         self,
@@ -303,62 +305,82 @@ class ExecucaoColetaService:
         plataforma_id: int,
         encerrando: threading.Event | None = None,
     ) -> dict | None:
-        """Gera links afiliados conforme a plataforma cadastrada."""
+        """Gera links afiliados em lotes, cada um gravado na hora.
 
-        with SessionLocal() as session:
-            try:
-                plataforma = session.get(Plataforma, plataforma_id)
+        Um lote por transação: os links já gerados ficam visíveis para a
+        publicação e nada segura as tabelas por muito tempo.
+        """
 
-                if plataforma is None:
-                    raise LookupError(
-                        f"Plataforma de ID '{plataforma_id}' não encontrada."
+        total = {"total_encontrados": 0, "total_gerados": 0, "total_erros": 0, "total_lotes": 0, "total_tentativas": 0, "erros": []}
+        vistos: list[int] = []
+
+        while encerrando is None or not encerrando.is_set():
+            with SessionLocal() as session:
+                try:
+                    plataforma = session.get(Plataforma, plataforma_id)
+
+                    if plataforma is None:
+                        raise LookupError(
+                            f"Plataforma de ID '{plataforma_id}' não encontrada."
+                        )
+
+                    if plataforma.codigo == self.CODIGO_MERCADO_LIVRE:
+                        servico_afiliado = self.affiliate_service
+                    elif plataforma.codigo == self.CODIGO_SHOPEE:
+                        servico_afiliado = self.shopee_affiliate_service
+                    else:
+                        raise ValueError(
+                            f"Não existe serviço de afiliados para a plataforma "
+                            f"'{plataforma.codigo}'."
+                        )
+
+                    resultado = servico_afiliado.gerar_pendentes(
+                        session,
+                        plataforma_id,
+                        encerrando=encerrando,
+                        limite=self.LOTE_AFILIADOS,
+                        excluir_ids=vistos,
                     )
+                    session.commit()
 
-                if plataforma.codigo == self.CODIGO_MERCADO_LIVRE:
-                    servico_afiliado = self.affiliate_service
-
-                elif plataforma.codigo == self.CODIGO_SHOPEE:
-                    servico_afiliado = self.shopee_affiliate_service
-
-                else:
-                    raise ValueError(
-                        f"Não existe serviço de afiliados para a plataforma "
-                        f"'{plataforma.codigo}'."
+                except Exception:
+                    session.rollback()
+                    logger.exception(
+                        "Falha independente na geração de links afiliados "
+                        "da plataforma %s. A coleta já confirmada foi preservada.",
+                        plataforma_id,
                     )
+                    return None
 
-                resultado = servico_afiliado.gerar_pendentes(
-                    session,
-                    plataforma_id,
-                    encerrando=encerrando,
-                )
-                session.commit()
+            for chave in ("total_encontrados", "total_gerados", "total_erros", "total_lotes", "total_tentativas"):
+                total[chave] += resultado.get(chave, 0)
+            total["erros"].extend(resultado.get("erros", []))
 
-            except Exception:
-                session.rollback()
-                logger.exception(
-                    "Falha independente na geração de links afiliados "
-                    "da plataforma %s. A coleta já confirmada foi preservada.",
-                    plataforma_id,
-                )
-                return None
+            ids = resultado.get("produto_ids", [])
+            # Quem falhou neste lote não volta na mesma rodada.
+            vistos.extend(ids)
 
-        logger.info(
-            "Geração de links afiliados concluída. "
-            "Plataforma: %s | Encontrados: %s | Gerados: %s | "
-            "Erros: %s | Lotes: %s | Tentativas: %s",
-            plataforma_id,
-            resultado.get("total_encontrados", 0),
-            resultado.get("total_gerados", 0),
-            resultado.get("total_erros", 0),
-            resultado.get("total_lotes", 0),
-            resultado.get("total_tentativas", 0),
-        )
+            if len(ids) < self.LOTE_AFILIADOS:
+                break
 
-        for erro_afiliado in resultado.get("erros", []):
+        if total["total_encontrados"]:
+            logger.info(
+                "Geração de links afiliados concluída. "
+                "Plataforma: %s | Encontrados: %s | Gerados: %s | "
+                "Erros: %s | Lotes: %s | Tentativas: %s",
+                plataforma_id,
+                total["total_encontrados"],
+                total["total_gerados"],
+                total["total_erros"],
+                total["total_lotes"],
+                total["total_tentativas"],
+            )
+
+        for erro_afiliado in total["erros"]:
             logger.warning(
                 "Falha ao gerar link afiliado. Produto %s: %s",
                 erro_afiliado["produto_id"],
                 erro_afiliado["mensagem"],
             )
 
-        return resultado
+        return total

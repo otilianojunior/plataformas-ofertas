@@ -59,8 +59,15 @@ class ProdutoRepository:
         session: Session,
         plataforma_id: int,
         produto_ids: Sequence[int] | None = None,
+        limite: int | None = None,
+        excluir_ids: Sequence[int] = (),
     ) -> list[tuple[Produto, PlataformaCategoria | None]]:
-        """Lista produtos pendentes e suas categorias."""
+        """Pendentes que podem ser publicados, dos melhores para os piores.
+
+        Não gasta chamada de API com produto que nunca será divulgado:
+        indisponível, sem categoria ou com desconto fora da faixa (mínimo da
+        categoria até o teto de preço "de" inflado).
+        """
 
         consulta = (
             select(Produto, PlataformaCategoria)
@@ -76,12 +83,28 @@ class ProdutoRepository:
                 Produto.plataforma_id == plataforma_id,
                 Produto.status_link_afiliado.in_(("pendente", "erro")),
                 Produto.url_afiliada.is_(None),
+                Produto.disponivel.is_(True),
+                Produto.status_monitoramento == "ativo",
+                PlataformaCategoria.id.is_not(None),
+                Produto.percentual_desconto
+                >= PlataformaCategoria.desconto_minimo_percentual,
+                Produto.percentual_desconto
+                <= get_settings().desconto_maximo_percentual,
             )
-            .order_by(Produto.created_at.asc(), Produto.id.asc())
+            .order_by(
+                pontuacao_publicacao().desc(),
+                Produto.id.asc(),
+            )
         )
 
         if produto_ids is not None:
             consulta = consulta.where(Produto.id.in_(produto_ids))
+
+        if excluir_ids:
+            consulta = consulta.where(Produto.id.not_in(excluir_ids))
+
+        if limite is not None:
+            consulta = consulta.limit(limite)
 
         return [
             (produto, categoria)
