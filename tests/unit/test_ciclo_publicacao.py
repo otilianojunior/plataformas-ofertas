@@ -220,3 +220,15 @@ def test_coleta_para_entre_categorias_no_encerramento():
     assert execucao.status == "parcial"
     assert execucao.quantidade_processada == 4
     assert "encerramento da API" in execucao.erro
+
+
+def test_sem_candidatos_nao_abre_ciclo_nem_conta_o_intervalo(servico, ciclo_repository):
+    with (
+        patch("ofertas.services.publicacao_lote_service.SessionLocal", _session_local()),
+        patch.object(servico, "_buscar_configuracao_ativa", return_value=Mock()),
+        patch.object(servico, "_selecionar_candidatos", return_value=[]),
+    ):
+        assert servico._executar_ciclo_destino_com_lock(7)["status"] == "sem_candidatos"
+
+    ciclo_repository.iniciar.assert_not_called()
+    servico.configuracao_repository.registrar_execucao.assert_not_called()

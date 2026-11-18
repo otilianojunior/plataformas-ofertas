@@ -476,6 +476,18 @@ class PublicacaoLoteService:
                 destino_id,
             )
 
+            # Nada para publicar (ex.: logo após ligar, antes da 1ª coleta):
+            # não abre ciclo nem conta o intervalo; tenta de novo em 15s.
+            if not candidatos:
+                return {
+                    "status": "sem_candidatos",
+                    "destino_id": destino_id,
+                    "candidatos": 0,
+                    "publicadas": 0,
+                    "falhas": 0,
+                    "ignoradas": 0,
+                }
+
             # Com o lock do destino, ciclos ainda "em andamento" são restos
             # de uma execução encerrada no meio (ex.: API reiniciada).
             self.ciclo_repository.marcar_interrompidos(

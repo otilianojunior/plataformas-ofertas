@@ -104,11 +104,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 destino_id,
             )
 
-            logger.info(
-                "Ciclo automático do destino %s: %s",
-                destino_id,
-                resultado,
-            )
+            # "sem_candidatos" se repete a cada 15s até haver produtos.
+            if resultado.get("status") != "sem_candidatos":
+                logger.info(
+                    "Ciclo automático do destino %s: %s",
+                    destino_id,
+                    resultado,
+                )
 
         except Exception:
             logger.exception(
