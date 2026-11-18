@@ -159,6 +159,7 @@ tr:last-child td { border-bottom: 0; }
 .botao-principal { background: var(--principal); border-color: var(--principal); color: var(--principal-texto); }
 .botao-principal:hover:not(:disabled) { background: var(--principal); filter: brightness(1.08); }
 .botao-perigo { color: var(--erro); border-color: var(--erro); }
+.botao.botao-perigo-texto { color: var(--erro); }
 .botao-texto { border-color: transparent; background: transparent; color: var(--texto-2); }
 .botao-editavel { border: 1px dashed transparent; background: none; color: inherit; font: inherit; padding: 2px 6px; border-radius: 6px; cursor: text; }
 .botao-editavel:hover { border-color: var(--borda); }

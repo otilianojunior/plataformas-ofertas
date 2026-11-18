@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from ofertas.db.session import get_db
@@ -10,6 +10,7 @@ from ofertas.schemas.categoria import (
     CategoriaCreate,
     CategoriaDescontoUpdate,
     CategoriaEtiquetaAfiliadoUpdate,
+    CategoriaExclusaoResponse,
     CategoriaResponse,
     CategoriaStatusUpdate,
 )
@@ -311,6 +312,53 @@ def desassociar_grupo_categoria(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(erro),
+        ) from erro
+
+    except Exception:
+        session.rollback()
+        raise
+
+
+@router.delete(
+    "/{categoria_id}",
+    response_model=CategoriaExclusaoResponse,
+    summary="Excluir categoria e os produtos dela",
+    description=(
+        "Apaga a categoria, todos os produtos dela e, em cascata, o histórico "
+        "de preços e as publicações desses produtos. Não pode ser desfeito."
+    ),
+    responses={
+        404: {"description": "Categoria não encontrada."},
+        409: {"description": "Uma coleta está gravando produtos da categoria agora."},
+    },
+)
+def excluir_categoria(
+    categoria_id: Annotated[int, Path(gt=0)],
+    session: Session = Depends(get_db),
+):
+    try:
+        excluidos = service.excluir(session, categoria_id)
+        session.commit()
+        return CategoriaExclusaoResponse(
+            categoria_id=categoria_id,
+            produtos_excluidos=excluidos,
+        )
+
+    except LookupError as erro:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(erro),
+        ) from erro
+
+    except (OperationalError, IntegrityError) as erro:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Uma coleta está gravando produtos desta categoria agora. "
+                "Tente de novo em alguns minutos."
+            ),
         ) from erro
 
     except Exception:

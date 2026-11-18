@@ -112,7 +112,8 @@ Pontos importantes:
 - Fuso horário e normalização de datas: `core/tempo.py` (`FUSO_HORARIO`, `garantir_utc`).
 - `configuracoes_sistema` é uma linha única (id=1) com os controles globais:
   `automacoes_ativas`, flags por automação, `intervalo_coleta_minutos`,
-  `limite_produtos_por_categoria`.
+  `limite_produtos_por_categoria`, `limite_publicacoes_por_ciclo` (teto do ciclo de
+  cada grupo somando as categorias, padrão 20).
 - `janelas_execucao`: janelas diárias no fuso `America/Sao_Paulo`, sem atravessar
   a meia-noite, sem sobreposição entre janelas ativas. Horários sem fuso;
   início inclusivo, fim exclusivo (para ir até o fim do dia use `23:59:59`). Sem nenhuma janela ativa,
@@ -122,9 +123,19 @@ Pontos importantes:
 - `execucoes_coleta.status`: `concluida`, `parcial` (alguma categoria falhou, outras
   não) ou `falhou` (nenhuma categoria coletada). O registro só é commitado no fim
   da coleta, então `em_andamento` não aparece para outras sessões.
+- Seleção do ciclo (`PublicacaoLoteService._selecionar_candidatos`): por categoria,
+  ordena por desconto + bônus de popularidade (`PESO_POPULARIDADE`/√posição;
+  `produtos.posicao_selecao_categoria` = posição na última coleta: ML mais vendidos ou
+  relevância da busca, Shopee vendas; `quantidade_vendida` só Shopee). Depois alterna as
+  categorias (1º de cada, depois o 2º...), começando pelas publicadas há mais tempo, e
+  corta em `limite_publicacoes_por_ciclo`.
+- O intervalo entre ciclos conta do **início** do ciclo (`registrar_execucao` ao iniciar):
+  ciclo interrompido/pausado não faz outro começar na hora.
+- `DELETE /categorias/{id}` apaga a categoria e os produtos dela (publicações e histórico
+  em cascata no banco); `lock_timeout` de 5s se uma coleta estiver gravando (409).
 - `ciclos_publicacao`: um registro por ciclo automático de destino, com progresso
   gravado a cada produto. Ciclos que ficaram `em_andamento` (API encerrada no
-  meio) viram `interrompido` no próximo ciclo do destino. Consulta: `GET /ciclos-publicacao`.
+  meio) viram `interrompido` no próximo ciclo do destino (que só começa após o intervalo). Consulta: `GET /ciclos-publicacao`.
 - Publicação manual (`POST /publicacoes/produtos/{id}`): publica em todos os
   grupos da categoria do produto com canal e grupo ativos, aplicando todas as
   regras; commit por grupo; não obedece às janelas. 200 se publicou em ao menos

@@ -132,6 +132,18 @@ class CategoriaService:
 
         return categoria
 
+    def excluir(self, session: Session, categoria_id: int) -> int:
+        """Exclui a categoria e todos os produtos dela. Retorna quantos produtos saíram."""
+
+        categoria = self.repository.buscar_por_id(session, categoria_id)
+
+        if categoria is None:
+            raise LookupError(
+                f"Categoria de ID '{categoria_id}' não encontrada."
+            )
+
+        return self.repository.excluir_com_produtos(session, categoria)
+
     def atualizar_status(
         self,
         session: Session,

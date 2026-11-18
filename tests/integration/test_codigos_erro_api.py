@@ -187,3 +187,46 @@ def test_painel_e_servido_com_rotas_do_react(client):
     # não deixa sair da pasta do painel
     resposta = client.get("/painel/..%2F..%2F.env")
     assert "DATABASE_URL" not in resposta.text
+
+
+def test_excluir_categoria_apaga_produtos_publicacoes_e_historico(client, db_session):
+    from sqlalchemy import text
+
+    plataforma_id = db_session.execute(text("SELECT id FROM plataformas ORDER BY id LIMIT 1")).scalar_one()
+    categoria_id = db_session.execute(
+        text(
+            "INSERT INTO plataforma_categoria (plataforma_id, id_categoria_plataforma, nome_categoria, "
+            "desconto_minimo_percentual, status_categoria) "
+            "VALUES (:p, 'TESTE-EXCLUSAO', 'Categoria de teste', 20, true) RETURNING id"
+        ),
+        {"p": plataforma_id},
+    ).scalar_one()
+    produto_ids = [
+        db_session.execute(
+            text(
+                "INSERT INTO produtos (plataforma_id, categoria_id, id_item_plataforma, titulo, url, preco_atual) "
+                "VALUES (:p, :c, :i, 'Produto de teste', 'https://exemplo.com', 100) RETURNING id"
+            ),
+            {"p": plataforma_id, "c": categoria_id, "i": f"TESTE-EXCLUSAO-{n}"},
+        ).scalar_one()
+        for n in (1, 2)
+    ]
+    db_session.execute(
+        text("INSERT INTO historico_precos (produto_id, preco, origem) VALUES (:id, 100, 'coleta')"),
+        {"id": produto_ids[0]},
+    )
+    db_session.flush()
+
+    resposta = client.delete(f"/categorias/{categoria_id}")
+    assert resposta.status_code == 200
+    assert resposta.json() == {"categoria_id": categoria_id, "produtos_excluidos": 2}
+
+    restantes = db_session.execute(
+        text("SELECT count(*) FROM produtos WHERE id = ANY(:ids)"), {"ids": produto_ids}
+    ).scalar_one()
+    historico = db_session.execute(
+        text("SELECT count(*) FROM historico_precos WHERE produto_id = ANY(:ids)"), {"ids": produto_ids}
+    ).scalar_one()
+    assert (restantes, historico) == (0, 0)
+    assert client.get(f"/categorias/{categoria_id}").status_code == 404
+    assert client.delete(f"/categorias/{categoria_id}").status_code == 404

@@ -11,6 +11,16 @@ type ResultadoManual = Esquemas["PublicacaoManualResponse"];
 
 const POR_PAGINA = 50;
 
+// Mesma regra da API (PESO_POPULARIDADE): desconto + 40/√posição no ranking da loja.
+const pontuacao = (p: Produto) =>
+  Number(p.percentual_desconto ?? 0) + (p.posicao_selecao_categoria ? 40 / Math.sqrt(p.posicao_selecao_categoria) : 0);
+
+const ORDENACOES = {
+  prioridade: { nome: "Prioridade de publicação", chave: (p: Produto) => pontuacao(p) },
+  desconto: { nome: "Maior desconto", chave: (p: Produto) => Number(p.percentual_desconto ?? 0) },
+  populares: { nome: "Mais populares", chave: (p: Produto) => -(p.posicao_selecao_categoria ?? 1e9) },
+} as const;
+
 export function Produtos() {
   const produtos = useQuery({ queryKey: ["produtos"], queryFn: () => chamar(api.GET("/produtos")) });
   const categorias = useQuery({ queryKey: ["categorias"], queryFn: () => chamar(api.GET("/categorias")) });
@@ -20,6 +30,7 @@ export function Produtos() {
   const [loja, setLoja] = useState("");
   const [categoria, setCategoria] = useState("");
   const [somenteElegiveis, setSomenteElegiveis] = useState(true);
+  const [ordem, setOrdem] = useState<keyof typeof ORDENACOES>("prioridade");
   const [pagina, setPagina] = useState(0);
   const [resultado, setResultado] = useState<{ titulo: string; dados: ResultadoManual } | null>(null);
 
@@ -33,8 +44,8 @@ export function Produtos() {
       .filter((p) => !loja || String(p.plataforma_id) === loja)
       .filter((p) => !categoria || String(p.categoria_id) === categoria)
       .filter((p) => !termo || p.titulo.toLowerCase().includes(termo))
-      .sort((a, b) => Number(b.percentual_desconto ?? 0) - Number(a.percentual_desconto ?? 0));
-  }, [produtos.data, busca, loja, categoria, somenteElegiveis]);
+      .sort((a, b) => ORDENACOES[ordem].chave(b) - ORDENACOES[ordem].chave(a));
+  }, [produtos.data, busca, loja, categoria, somenteElegiveis, ordem]);
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA));
   const visiveis = filtrados.slice(pagina * POR_PAGINA, (pagina + 1) * POR_PAGINA);
@@ -119,6 +130,15 @@ export function Produtos() {
                 ))}
             </select>
           </Campo>
+          <Campo rotulo="Ordenar por">
+            <select value={ordem} onChange={(e) => filtrar(setOrdem)(e.target.value as keyof typeof ORDENACOES)}>
+              {Object.entries(ORDENACOES).map(([valor, { nome }]) => (
+                <option key={valor} value={valor}>
+                  {nome}
+                </option>
+              ))}
+            </select>
+          </Campo>
           <label className="caixa">
             <input type="checkbox" checked={somenteElegiveis} onChange={(e) => filtrar(setSomenteElegiveis)(e.target.checked)} />
             Só elegíveis para publicar
@@ -151,7 +171,9 @@ export function Produtos() {
                         {produto.titulo}
                       </a>
                       <div className="detalhe">
-                        {nomeLoja[produto.plataforma_id]} · {produto.categoria_id ? nomeCategoria[produto.categoria_id] : "sem categoria"} · coletado{" "}
+                        {nomeLoja[produto.plataforma_id]} · {produto.categoria_id ? nomeCategoria[produto.categoria_id] : "sem categoria"}
+                        {produto.posicao_selecao_categoria && <> · {produto.posicao_selecao_categoria}º mais popular</>}
+                        {produto.quantidade_vendida ? <> · {produto.quantidade_vendida.toLocaleString("pt-BR")} vendidos</> : null} · coletado{" "}
                         {formatarData(produto.ultima_coleta_em)}
                       </div>
                     </td>

@@ -75,6 +75,7 @@ export function Categorias() {
                   <th>Desconto mín.</th>
                   <th>Etiqueta</th>
                   <th>Grupos</th>
+                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -116,6 +117,19 @@ function LinhaCategoria({ categoria, loja, todosGrupos }: { categoria: Categoria
     { sucesso: "Etiqueta salva.", recarregar },
   );
 
+  const excluir = useAcao(() => chamar(api.DELETE("/categorias/{categoria_id}", caminho)), {
+    sucesso: (r) => `Categoria excluída com ${r.produtos_excluidos} produtos.`,
+    recarregar: [["categorias"], ["produtos"], ["status"]],
+  });
+
+  function confirmarExclusao() {
+    const texto =
+      `Excluir a categoria "${categoria.nome_categoria}" (${loja})?\n\n` +
+      "Todos os produtos dela também serão apagados, com o histórico de preços e as publicações. " +
+      "Isso não pode ser desfeito.";
+    if (confirm(texto)) excluir.mutate(undefined);
+  }
+
   return (
     <tr className={categoria.status_categoria ? "" : "linha-inativa"}>
       <td>
@@ -149,6 +163,11 @@ function LinhaCategoria({ categoria, loja, todosGrupos }: { categoria: Categoria
       </td>
       <td>
         <GruposDaCategoria categoriaId={categoria.id} todosGrupos={todosGrupos} />
+      </td>
+      <td className="acoes">
+        <button className="botao botao-texto botao-perigo-texto" disabled={excluir.isPending} onClick={confirmarExclusao}>
+          {excluir.isPending ? "Excluindo…" : "Excluir"}
+        </button>
       </td>
     </tr>
   );

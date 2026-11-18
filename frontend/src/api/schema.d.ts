@@ -337,7 +337,11 @@ export interface paths {
         get: operations["buscar_categoria_categorias__categoria_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Excluir categoria e os produtos dela
+         * @description Apaga a categoria, todos os produtos dela e, em cascata, o histórico de preços e as publicações desses produtos. Não pode ser desfeito.
+         */
+        delete: operations["excluir_categoria_categorias__categoria_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -946,6 +950,13 @@ export interface components {
             /** Etiqueta Afiliado */
             etiqueta_afiliado?: string | null;
         };
+        /** CategoriaExclusaoResponse */
+        CategoriaExclusaoResponse: {
+            /** Categoria Id */
+            categoria_id: number;
+            /** Produtos Excluidos */
+            produtos_excluidos: number;
+        };
         /** CategoriaResponse */
         CategoriaResponse: {
             /** Id */
@@ -1122,6 +1133,8 @@ export interface components {
             intervalo_coleta_minutos: number;
             /** Limite Produtos Por Categoria */
             limite_produtos_por_categoria: number;
+            /** Limite Publicacoes Por Ciclo */
+            limite_publicacoes_por_ciclo: number;
             /** Coleta Mercado Livre Ativa */
             coleta_mercado_livre_ativa: boolean;
             /** Coleta Shopee Ativa */
@@ -1149,6 +1162,11 @@ export interface components {
             intervalo_coleta_minutos?: number | null;
             /** Limite Produtos Por Categoria */
             limite_produtos_por_categoria?: number | null;
+            /**
+             * Limite Publicacoes Por Ciclo
+             * @description Máximo de mensagens por ciclo em cada grupo, somando as categorias.
+             */
+            limite_publicacoes_por_ciclo?: number | null;
         };
         /** CredencialDivulgacaoCreate */
         CredencialDivulgacaoCreate: {
@@ -1555,6 +1573,10 @@ export interface components {
             preco_original: string | null;
             /** Percentual Desconto */
             percentual_desconto: string | null;
+            /** Posicao Selecao Categoria */
+            posicao_selecao_categoria?: number | null;
+            /** Quantidade Vendida */
+            quantidade_vendida?: number | null;
             /** Disponivel */
             disponivel: boolean;
             /** Status Monitoramento */
@@ -2884,6 +2906,58 @@ export interface operations {
             };
             /** @description Categoria não encontrada. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    excluir_categoria_categorias__categoria_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                categoria_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoriaExclusaoResponse"];
+                };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Categoria não encontrada. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Uma coleta está gravando produtos da categoria agora. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

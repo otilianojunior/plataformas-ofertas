@@ -42,11 +42,13 @@ export function Automacoes() {
 
   const [intervalo, setIntervalo] = useState("");
   const [limite, setLimite] = useState("");
+  const [limiteCiclo, setLimiteCiclo] = useState("");
 
   useEffect(() => {
     if (configuracao.data) {
       setIntervalo(String(configuracao.data.intervalo_coleta_minutos));
       setLimite(String(configuracao.data.limite_produtos_por_categoria));
+      setLimiteCiclo(String(configuracao.data.limite_publicacoes_por_ciclo));
     }
   }, [configuracao.data]);
 
@@ -54,7 +56,11 @@ export function Automacoes() {
     () =>
       chamar(
         api.PATCH("/configuracoes-sistema", {
-          body: { intervalo_coleta_minutos: Number(intervalo), limite_produtos_por_categoria: Number(limite) },
+          body: {
+            intervalo_coleta_minutos: Number(intervalo),
+            limite_produtos_por_categoria: Number(limite),
+            limite_publicacoes_por_ciclo: Number(limiteCiclo),
+          },
         }),
       ),
     { sucesso: "Configurações salvas.", recarregar: RECARREGAR },
@@ -105,6 +111,12 @@ export function Automacoes() {
                 dica="Vale para cada categoria de cada loja, em todos os grupos."
               >
                 <input type="number" min={1} required value={limite} onChange={(e) => setLimite(e.target.value)} />
+              </Campo>
+              <Campo
+                rotulo="Total de publicações por ciclo (em cada grupo)"
+                dica="Teto somando todas as categorias. As categorias se revezam: as publicadas há mais tempo vão primeiro."
+              >
+                <input type="number" min={1} required value={limiteCiclo} onChange={(e) => setLimiteCiclo(e.target.value)} />
               </Campo>
               <button className="botao botao-principal" disabled={salvar.isPending}>
                 Salvar

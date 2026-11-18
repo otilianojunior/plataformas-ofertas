@@ -1,11 +1,12 @@
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.orm import Session
 
 from ofertas.models.destino_divulgacao import DestinoDivulgacao
 from ofertas.models.plataforma_categoria import PlataformaCategoria
 from ofertas.models.plataforma_categoria_destino import PlataformaCategoriaDestino
+from ofertas.models.produto import Produto
 
 
 class CategoriaRepository:
@@ -225,3 +226,32 @@ class CategoriaRepository:
         categoria.etiqueta_afiliado = etiqueta
         session.flush()
         return categoria
+
+    def contar_produtos(self, session: Session, categoria_id: int) -> int:
+        return session.scalar(
+            select(func.count(Produto.id)).where(Produto.categoria_id == categoria_id)
+        ) or 0
+
+    def excluir_com_produtos(
+        self,
+        session: Session,
+        categoria: PlataformaCategoria,
+    ) -> int:
+        """Apaga os produtos da categoria e depois a categoria.
+
+        O banco apaga em cascata as publicações, o histórico de preços e os
+        vínculos com grupos. Espera no máximo 5s por uma coleta que esteja
+        gravando produtos da categoria.
+        """
+
+        session.execute(text("SET LOCAL lock_timeout = '5s'"))
+
+        excluidos = session.execute(
+            delete(Produto)
+            .where(Produto.categoria_id == categoria.id)
+            .execution_options(synchronize_session=False)
+        ).rowcount
+
+        session.delete(categoria)
+        session.flush()
+        return excluidos or 0

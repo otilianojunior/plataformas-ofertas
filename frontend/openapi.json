@@ -1324,6 +1324,62 @@
       }
      }
     }
+   },
+   "delete": {
+    "tags": [
+     "Ofertas e categorias"
+    ],
+    "summary": "Excluir categoria e os produtos dela",
+    "description": "Apaga a categoria, todos os produtos dela e, em cascata, o histórico de preços e as publicações desses produtos. Não pode ser desfeito.",
+    "operationId": "excluir_categoria_categorias__categoria_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "categoria_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Categoria Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CategoriaExclusaoResponse"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
+     "404": {
+      "description": "Categoria não encontrada."
+     },
+     "409": {
+      "description": "Uma coleta está gravando produtos da categoria agora."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
    }
   },
   "/categorias/{categoria_id}/status": {
@@ -3669,6 +3725,24 @@
     "type": "object",
     "title": "CategoriaEtiquetaAfiliadoUpdate"
    },
+   "CategoriaExclusaoResponse": {
+    "properties": {
+     "categoria_id": {
+      "type": "integer",
+      "title": "Categoria Id"
+     },
+     "produtos_excluidos": {
+      "type": "integer",
+      "title": "Produtos Excluidos"
+     }
+    },
+    "type": "object",
+    "required": [
+     "categoria_id",
+     "produtos_excluidos"
+    ],
+    "title": "CategoriaExclusaoResponse"
+   },
    "CategoriaResponse": {
     "properties": {
      "id": {
@@ -4251,6 +4325,10 @@
       "type": "integer",
       "title": "Limite Produtos Por Categoria"
      },
+     "limite_publicacoes_por_ciclo": {
+      "type": "integer",
+      "title": "Limite Publicacoes Por Ciclo"
+     },
      "coleta_mercado_livre_ativa": {
       "type": "boolean",
       "title": "Coleta Mercado Livre Ativa"
@@ -4296,6 +4374,7 @@
      "automacoes_ativas",
      "intervalo_coleta_minutos",
      "limite_produtos_por_categoria",
+     "limite_publicacoes_por_ciclo",
      "coleta_mercado_livre_ativa",
      "coleta_shopee_ativa",
      "publicacao_telegram_ativa",
@@ -4331,6 +4410,19 @@
        }
       ],
       "title": "Limite Produtos Por Categoria"
+     },
+     "limite_publicacoes_por_ciclo": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Limite Publicacoes Por Ciclo",
+      "description": "Máximo de mensagens por ciclo em cada grupo, somando as categorias."
      }
     },
     "type": "object",
@@ -5431,6 +5523,28 @@
        }
       ],
       "title": "Percentual Desconto"
+     },
+     "posicao_selecao_categoria": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Posicao Selecao Categoria"
+     },
+     "quantidade_vendida": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Quantidade Vendida"
      },
      "disponivel": {
       "type": "boolean",

@@ -48,5 +48,10 @@ class CategoriaResponse(BaseModel):
     updated_at: datetime
 
 
+class CategoriaExclusaoResponse(BaseModel):
+    categoria_id: int
+    produtos_excluidos: int
+
+
 class CategoriaDescontoUpdate(BaseModel):
     desconto_minimo_percentual: Decimal = Field(ge=10, le=100)
