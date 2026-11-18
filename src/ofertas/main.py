@@ -3,11 +3,13 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import FileResponse, RedirectResponse
 
 from ofertas import __version__
 
+from ofertas.api.autenticacao import RESPOSTA_401, usuario_atual
+from ofertas.api.autenticacao import router as autenticacao_router
 from ofertas.api.plataformas import router as plataformas_router
 from ofertas.api.produtos import router as produtos_router
 from ofertas.api.categorias import router as categorias_router
@@ -196,21 +198,33 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.include_router(plataformas_router)
-app.include_router(coletas_router)
-app.include_router(automacoes_router)
-app.include_router(janelas_execucao_router)
-app.include_router(ciclos_publicacao_router)
+# Rotas abertas: login, saúde e OAuth do Mercado Livre (o navegador é
+# redirecionado para elas sem o token; o callback é protegido pelo `state`).
+app.include_router(autenticacao_router)
 app.include_router(oauth_mercado_livre_router)
-app.include_router(produtos_router)
-app.include_router(categorias_router)
-app.include_router(configuracoes_sistema_router)
-app.include_router(configuracoes_divulgacao_router)
-app.include_router(plataformas_divulgacao_router)
-app.include_router(destinos_divulgacao_router)
-app.include_router(credenciais_plataforma_router)
-app.include_router(credenciais_divulgacao_router)
-app.include_router(publicacoes_router)
+
+# Todas as demais exigem login no painel.
+for _router in (
+    plataformas_router,
+    coletas_router,
+    automacoes_router,
+    janelas_execucao_router,
+    ciclos_publicacao_router,
+    produtos_router,
+    categorias_router,
+    configuracoes_sistema_router,
+    configuracoes_divulgacao_router,
+    plataformas_divulgacao_router,
+    destinos_divulgacao_router,
+    credenciais_plataforma_router,
+    credenciais_divulgacao_router,
+    publicacoes_router,
+):
+    app.include_router(
+        _router,
+        dependencies=[Depends(usuario_atual)],
+        responses=RESPOSTA_401,
+    )
 
 
 # --- painel (frontend compilado em frontend/dist) -----------------------------
@@ -235,6 +249,11 @@ def painel(caminho: str = "") -> FileResponse:
         return FileResponse(arquivo)
 
     return FileResponse(PAINEL_DIST / "index.html")
+
+
+@app.get("/", include_in_schema=False)
+def raiz() -> RedirectResponse:
+    return RedirectResponse("/painel/")
 
 
 @app.get("/health", tags=["Sistema"])

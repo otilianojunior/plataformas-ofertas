@@ -6,59 +6,36 @@
   "version": "0.9.0"
  },
  "paths": {
-  "/lojas": {
-   "get": {
-    "tags": [
-     "Lojas de origem das ofertas"
-    ],
-    "summary": "Listar Plataformas",
-    "operationId": "listar_plataformas_lojas_get",
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "items": {
-          "$ref": "#/components/schemas/PlataformaResponse"
-         },
-         "type": "array",
-         "title": "Response Listar Plataformas Lojas Get"
-        }
-       }
-      }
-     }
-    }
-   },
+  "/auth/login": {
    "post": {
     "tags": [
-     "Lojas de origem das ofertas"
+     "Autenticação do painel"
     ],
-    "summary": "Criar Plataforma",
-    "operationId": "criar_plataforma_lojas_post",
+    "summary": "Entrar no painel",
+    "operationId": "entrar_auth_login_post",
     "requestBody": {
      "content": {
       "application/json": {
        "schema": {
-        "$ref": "#/components/schemas/PlataformaCreate"
+        "$ref": "#/components/schemas/LoginRequest"
        }
       }
      },
      "required": true
     },
     "responses": {
-     "201": {
+     "200": {
       "description": "Successful Response",
       "content": {
        "application/json": {
         "schema": {
-         "$ref": "#/components/schemas/PlataformaResponse"
+         "$ref": "#/components/schemas/SessaoResponse"
         }
        }
       }
      },
-     "409": {
-      "description": "Já existe uma loja com esse código."
+     "401": {
+      "description": "Login ou senha inválidos."
      },
      "422": {
       "description": "Validation Error",
@@ -73,480 +50,33 @@
     }
    }
   },
-  "/lojas/{codigo}": {
+  "/auth/eu": {
    "get": {
     "tags": [
-     "Lojas de origem das ofertas"
+     "Autenticação do painel"
     ],
-    "summary": "Buscar Plataforma",
-    "operationId": "buscar_plataforma_lojas__codigo__get",
-    "parameters": [
-     {
-      "name": "codigo",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Codigo"
-      }
-     }
-    ],
+    "summary": "Usuário da sessão atual",
+    "operationId": "eu_auth_eu_get",
     "responses": {
      "200": {
       "description": "Successful Response",
       "content": {
        "application/json": {
         "schema": {
-         "$ref": "#/components/schemas/PlataformaResponse"
+         "$ref": "#/components/schemas/UsuarioResponse"
         }
        }
       }
      },
-     "404": {
-      "description": "Loja não encontrada."
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/lojas/{codigo}/status": {
-   "patch": {
-    "tags": [
-     "Lojas de origem das ofertas"
-    ],
-    "summary": "Atualizar Status Plataforma",
-    "operationId": "atualizar_status_plataforma_lojas__codigo__status_patch",
-    "parameters": [
-     {
-      "name": "codigo",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Codigo"
-      }
-     }
-    ],
-    "requestBody": {
-     "required": true,
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/PlataformaStatusUpdate"
-       }
-      }
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
      }
     },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/PlataformaResponse"
-        }
-       }
-      }
-     },
-     "404": {
-      "description": "Loja não encontrada."
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/coletas/mercado-livre": {
-   "post": {
-    "tags": [
-     "Coletas"
-    ],
-    "summary": "Executar coleta manual do Mercado Livre",
-    "description": "Não obedece às janelas de execução.",
-    "operationId": "executar_coleta_mercado_livre_coletas_mercado_livre_post",
-    "responses": {
-     "201": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ExecucaoColetaResponse"
-        }
-       }
-      }
-     },
-     "404": {
-      "description": "Loja não cadastrada."
-     },
-     "409": {
-      "description": "Loja inativa ou já existe uma coleta em andamento para ela."
-     }
-    }
-   }
-  },
-  "/coletas/shopee": {
-   "post": {
-    "tags": [
-     "Coletas"
-    ],
-    "summary": "Executar coleta manual da Shopee",
-    "description": "Não obedece às janelas de execução.",
-    "operationId": "executar_coleta_shopee_coletas_shopee_post",
-    "responses": {
-     "201": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ExecucaoColetaResponse"
-        }
-       }
-      }
-     },
-     "404": {
-      "description": "Loja não cadastrada."
-     },
-     "409": {
-      "description": "Loja inativa ou já existe uma coleta em andamento para ela."
-     }
-    }
-   }
-  },
-  "/automacoes/status": {
-   "get": {
-    "tags": [
-     "Automações"
-    ],
-    "summary": "Consultar o status geral das automações",
-    "operationId": "consultar_status_automacoes_automacoes_status_get",
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/AutomacoesStatusResponse"
-        }
-       }
-      }
-     },
-     "404": {
-      "description": "Configuração global não encontrada."
-     }
-    }
-   }
-  },
-  "/janelas-execucao": {
-   "get": {
-    "tags": [
-     "Janelas de execução"
-    ],
-    "summary": "Listar Janelas",
-    "operationId": "listar_janelas_janelas_execucao_get",
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "items": {
-          "$ref": "#/components/schemas/JanelaExecucaoResponse"
-         },
-         "type": "array",
-         "title": "Response Listar Janelas Janelas Execucao Get"
-        }
-       }
-      }
-     }
-    }
-   },
-   "post": {
-    "tags": [
-     "Janelas de execução"
-    ],
-    "summary": "Criar Janela",
-    "operationId": "criar_janela_janelas_execucao_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/JanelaExecucaoCreate"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "201": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/JanelaExecucaoResponse"
-        }
-       }
-      }
-     },
-     "409": {
-      "description": "Sobreposição ou conflito com o banco."
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/janelas-execucao/{janela_id}": {
-   "get": {
-    "tags": [
-     "Janelas de execução"
-    ],
-    "summary": "Buscar Janela",
-    "operationId": "buscar_janela_janelas_execucao__janela_id__get",
-    "parameters": [
+    "security": [
      {
-      "name": "janela_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "integer",
-       "exclusiveMinimum": 0,
-       "title": "Janela Id"
-      }
+      "HTTPBearer": []
      }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/JanelaExecucaoResponse"
-        }
-       }
-      }
-     },
-     "404": {
-      "description": "Janela não encontrada."
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   },
-   "patch": {
-    "tags": [
-     "Janelas de execução"
-    ],
-    "summary": "Atualizar Janela",
-    "operationId": "atualizar_janela_janelas_execucao__janela_id__patch",
-    "parameters": [
-     {
-      "name": "janela_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "integer",
-       "exclusiveMinimum": 0,
-       "title": "Janela Id"
-      }
-     }
-    ],
-    "requestBody": {
-     "required": true,
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/JanelaExecucaoUpdate"
-       }
-      }
-     }
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/JanelaExecucaoResponse"
-        }
-       }
-      }
-     },
-     "404": {
-      "description": "Janela não encontrada."
-     },
-     "409": {
-      "description": "Sobreposição ou conflito com o banco."
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   },
-   "delete": {
-    "tags": [
-     "Janelas de execução"
-    ],
-    "summary": "Excluir Janela",
-    "operationId": "excluir_janela_janelas_execucao__janela_id__delete",
-    "parameters": [
-     {
-      "name": "janela_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "integer",
-       "exclusiveMinimum": 0,
-       "title": "Janela Id"
-      }
-     }
-    ],
-    "responses": {
-     "204": {
-      "description": "Successful Response"
-     },
-     "404": {
-      "description": "Janela não encontrada."
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/ciclos-publicacao": {
-   "get": {
-    "tags": [
-     "Ciclos de publicação"
-    ],
-    "summary": "Listar os ciclos de publicação mais recentes",
-    "operationId": "listar_ciclos_publicacao_ciclos_publicacao_get",
-    "parameters": [
-     {
-      "name": "destino_id",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "integer",
-         "exclusiveMinimum": 0
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Destino Id"
-      }
-     },
-     {
-      "name": "status",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "enum": [
-          "em_andamento",
-          "concluido",
-          "pausado",
-          "falhou",
-          "interrompido"
-         ],
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Status"
-      }
-     },
-     {
-      "name": "limite",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "type": "integer",
-       "maximum": 100,
-       "minimum": 1,
-       "default": 20,
-       "title": "Limite"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "type": "array",
-         "items": {
-          "$ref": "#/components/schemas/CicloPublicacaoResponse"
-         },
-         "title": "Response Listar Ciclos Publicacao Ciclos Publicacao Get"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
+    ]
    }
   },
   "/oauth/mercado-livre/autorizar": {
@@ -658,6 +188,653 @@
     }
    }
   },
+  "/lojas": {
+   "get": {
+    "tags": [
+     "Lojas de origem das ofertas"
+    ],
+    "summary": "Listar Plataformas",
+    "operationId": "listar_plataformas_lojas_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/PlataformaResponse"
+         },
+         "type": "array",
+         "title": "Response Listar Plataformas Lojas Get"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   },
+   "post": {
+    "tags": [
+     "Lojas de origem das ofertas"
+    ],
+    "summary": "Criar Plataforma",
+    "operationId": "criar_plataforma_lojas_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PlataformaCreate"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PlataformaResponse"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
+     "409": {
+      "description": "Já existe uma loja com esse código."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/lojas/{codigo}": {
+   "get": {
+    "tags": [
+     "Lojas de origem das ofertas"
+    ],
+    "summary": "Buscar Plataforma",
+    "operationId": "buscar_plataforma_lojas__codigo__get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "codigo",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Codigo"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PlataformaResponse"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
+     "404": {
+      "description": "Loja não encontrada."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/lojas/{codigo}/status": {
+   "patch": {
+    "tags": [
+     "Lojas de origem das ofertas"
+    ],
+    "summary": "Atualizar Status Plataforma",
+    "operationId": "atualizar_status_plataforma_lojas__codigo__status_patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "codigo",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Codigo"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PlataformaStatusUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PlataformaResponse"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
+     "404": {
+      "description": "Loja não encontrada."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/coletas/mercado-livre": {
+   "post": {
+    "tags": [
+     "Coletas"
+    ],
+    "summary": "Executar coleta manual do Mercado Livre",
+    "description": "Não obedece às janelas de execução.",
+    "operationId": "executar_coleta_mercado_livre_coletas_mercado_livre_post",
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ExecucaoColetaResponse"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
+     "404": {
+      "description": "Loja não cadastrada."
+     },
+     "409": {
+      "description": "Loja inativa ou já existe uma coleta em andamento para ela."
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/coletas/shopee": {
+   "post": {
+    "tags": [
+     "Coletas"
+    ],
+    "summary": "Executar coleta manual da Shopee",
+    "description": "Não obedece às janelas de execução.",
+    "operationId": "executar_coleta_shopee_coletas_shopee_post",
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ExecucaoColetaResponse"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
+     "404": {
+      "description": "Loja não cadastrada."
+     },
+     "409": {
+      "description": "Loja inativa ou já existe uma coleta em andamento para ela."
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/automacoes/status": {
+   "get": {
+    "tags": [
+     "Automações"
+    ],
+    "summary": "Consultar o status geral das automações",
+    "operationId": "consultar_status_automacoes_automacoes_status_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AutomacoesStatusResponse"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
+     "404": {
+      "description": "Configuração global não encontrada."
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/janelas-execucao": {
+   "get": {
+    "tags": [
+     "Janelas de execução"
+    ],
+    "summary": "Listar Janelas",
+    "operationId": "listar_janelas_janelas_execucao_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/JanelaExecucaoResponse"
+         },
+         "type": "array",
+         "title": "Response Listar Janelas Janelas Execucao Get"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   },
+   "post": {
+    "tags": [
+     "Janelas de execução"
+    ],
+    "summary": "Criar Janela",
+    "operationId": "criar_janela_janelas_execucao_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/JanelaExecucaoCreate"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JanelaExecucaoResponse"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
+     "409": {
+      "description": "Sobreposição ou conflito com o banco."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/janelas-execucao/{janela_id}": {
+   "get": {
+    "tags": [
+     "Janelas de execução"
+    ],
+    "summary": "Buscar Janela",
+    "operationId": "buscar_janela_janelas_execucao__janela_id__get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "janela_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Janela Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JanelaExecucaoResponse"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
+     "404": {
+      "description": "Janela não encontrada."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "Janelas de execução"
+    ],
+    "summary": "Atualizar Janela",
+    "operationId": "atualizar_janela_janelas_execucao__janela_id__patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "janela_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Janela Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/JanelaExecucaoUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JanelaExecucaoResponse"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
+     "404": {
+      "description": "Janela não encontrada."
+     },
+     "409": {
+      "description": "Sobreposição ou conflito com o banco."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "Janelas de execução"
+    ],
+    "summary": "Excluir Janela",
+    "operationId": "excluir_janela_janelas_execucao__janela_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "janela_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "title": "Janela Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
+     "404": {
+      "description": "Janela não encontrada."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/ciclos-publicacao": {
+   "get": {
+    "tags": [
+     "Ciclos de publicação"
+    ],
+    "summary": "Listar os ciclos de publicação mais recentes",
+    "operationId": "listar_ciclos_publicacao_ciclos_publicacao_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "destino_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "exclusiveMinimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Destino Id"
+      }
+     },
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "enum": [
+          "em_andamento",
+          "concluido",
+          "pausado",
+          "falhou",
+          "interrompido"
+         ],
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Status"
+      }
+     },
+     {
+      "name": "limite",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "default": 20,
+       "title": "Limite"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/CicloPublicacaoResponse"
+         },
+         "title": "Response Listar Ciclos Publicacao Ciclos Publicacao Get"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/produtos": {
    "get": {
     "tags": [
@@ -679,8 +856,16 @@
         }
        }
       }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
      }
-    }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
    },
    "post": {
     "tags": [
@@ -709,6 +894,9 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Plataforma ou categoria não encontrada."
      },
@@ -725,7 +913,12 @@
        }
       }
      }
-    }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
    }
   },
   "/produtos/{produto_id}": {
@@ -735,6 +928,11 @@
     ],
     "summary": "Buscar Produto",
     "operationId": "buscar_produto_produtos__produto_id__get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "produto_id",
@@ -758,6 +956,9 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Produto não encontrado."
      },
@@ -779,6 +980,11 @@
     ],
     "summary": "Atualizar Produto",
     "operationId": "atualizar_produto_produtos__produto_id__patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "produto_id",
@@ -811,6 +1017,9 @@
         }
        }
       }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
      },
      "404": {
       "description": "Produto ou categoria não encontrada."
@@ -838,6 +1047,11 @@
     ],
     "summary": "Atualizar Monitoramento Produto",
     "operationId": "atualizar_monitoramento_produto_produtos__produto_id__monitoramento_patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "produto_id",
@@ -871,6 +1085,9 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Produto não encontrado."
      },
@@ -894,6 +1111,11 @@
     ],
     "summary": "Listar Categorias",
     "operationId": "listar_categorias_categorias_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "plataforma_id",
@@ -928,6 +1150,9 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "422": {
       "description": "Validation Error",
       "content": {
@@ -946,6 +1171,11 @@
     ],
     "summary": "Criar Categoria",
     "operationId": "criar_categoria_categorias_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "requestBody": {
      "required": true,
      "content": {
@@ -966,6 +1196,9 @@
         }
        }
       }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
      },
      "404": {
       "description": "Loja ou grupo não encontrado."
@@ -993,6 +1226,11 @@
     ],
     "summary": "Buscar Categoria",
     "operationId": "buscar_categoria_categorias__categoria_id__get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "categoria_id",
@@ -1015,6 +1253,9 @@
         }
        }
       }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
      },
      "404": {
       "description": "Categoria não encontrada."
@@ -1039,6 +1280,11 @@
     ],
     "summary": "Atualizar Status Categoria",
     "operationId": "atualizar_status_categoria_categorias__categoria_id__status_patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "categoria_id",
@@ -1072,6 +1318,9 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Categoria não encontrada."
      },
@@ -1098,6 +1347,11 @@
     ],
     "summary": "Atualizar Desconto Minimo Categoria",
     "operationId": "atualizar_desconto_minimo_categoria_categorias__categoria_id__desconto_minimo_patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "categoria_id",
@@ -1131,6 +1385,9 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Categoria não encontrada."
      },
@@ -1157,6 +1414,11 @@
     ],
     "summary": "Atualizar Etiqueta Afiliado Categoria",
     "operationId": "atualizar_etiqueta_afiliado_categoria_categorias__categoria_id__etiqueta_afiliado_patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "categoria_id",
@@ -1190,6 +1452,9 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Categoria não encontrada."
      },
@@ -1217,6 +1482,11 @@
     "summary": "Listar grupos associados à categoria",
     "description": "Retorna os grupos (Telegram e WhatsApp) que recebem as publicações da categoria, com canal e status de cada um.",
     "operationId": "listar_grupos_categoria_categorias__categoria_id__grupos_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "categoria_id",
@@ -1244,6 +1514,9 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Categoria não encontrada."
      },
@@ -1268,6 +1541,11 @@
     "summary": "Associar grupo à categoria",
     "description": "Adiciona um grupo Telegram ou WhatsApp à categoria. Os demais grupos associados são preservados.",
     "operationId": "associar_grupo_categoria_categorias__categoria_id__grupos__grupo_id__post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "categoria_id",
@@ -1305,6 +1583,9 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Categoria ou grupo não encontrado."
      },
@@ -1330,6 +1611,11 @@
     "summary": "Desassociar grupo da categoria",
     "description": "Remove somente o grupo informado. Os demais grupos da categoria continuam associados.",
     "operationId": "desassociar_grupo_categoria_categorias__categoria_id__grupos__grupo_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "categoria_id",
@@ -1367,6 +1653,9 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Categoria não encontrada ou grupo não associado."
      },
@@ -1401,10 +1690,18 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Configuração global não encontrada."
      }
-    }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
    },
    "patch": {
     "tags": [
@@ -1433,6 +1730,9 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Configuração global não encontrada."
      },
@@ -1449,7 +1749,12 @@
        }
       }
      }
-    }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
    }
   },
   "/configuracoes-sistema/automacoes/{automacao}/ativar": {
@@ -1459,6 +1764,11 @@
     ],
     "summary": "Ativar Automacao",
     "operationId": "ativar_automacao_configuracoes_sistema_automacoes__automacao__ativar_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "automacao",
@@ -1486,6 +1796,9 @@
         }
        }
       }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
      },
      "404": {
       "description": "Configuração global não encontrada."
@@ -1513,6 +1826,11 @@
     ],
     "summary": "Pausar Automacao",
     "operationId": "pausar_automacao_configuracoes_sistema_automacoes__automacao__pausar_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "automacao",
@@ -1540,6 +1858,9 @@
         }
        }
       }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
      },
      "404": {
       "description": "Configuração global não encontrada."
@@ -1578,10 +1899,18 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Configuração global não encontrada."
      }
-    }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
    }
   },
   "/configuracoes-sistema/automacoes/pausar": {
@@ -1602,10 +1931,18 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Configuração global não encontrada."
      }
-    }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
    }
   },
   "/grupos/configuracoes": {
@@ -1629,8 +1966,16 @@
         }
        }
       }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
      }
-    }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
    }
   },
   "/grupos/{grupo_id}/configuracao": {
@@ -1640,6 +1985,11 @@
     ],
     "summary": "Consultar a configuração de divulgação do grupo",
     "operationId": "buscar_configuracao_grupos__grupo_id__configuracao_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "grupo_id",
@@ -1663,6 +2013,9 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Configuração de divulgação não encontrada."
      },
@@ -1684,6 +2037,11 @@
     ],
     "summary": "Criar a configuração de divulgação do grupo",
     "operationId": "criar_configuracao_grupos__grupo_id__configuracao_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "grupo_id",
@@ -1717,6 +2075,9 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Grupo não encontrado."
      },
@@ -1741,6 +2102,11 @@
     ],
     "summary": "Alterar a configuração de divulgação do grupo",
     "operationId": "atualizar_configuracao_grupos__grupo_id__configuracao_patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "grupo_id",
@@ -1773,6 +2139,9 @@
         }
        }
       }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
      },
      "404": {
       "description": "Configuração não encontrada."
@@ -1814,8 +2183,16 @@
         }
        }
       }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
      }
-    }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
    },
    "post": {
     "tags": [
@@ -1844,6 +2221,9 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "409": {
       "description": "Já existe um canal com esse código."
      },
@@ -1857,7 +2237,12 @@
        }
       }
      }
-    }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
    }
   },
   "/canais-divulgacao/{codigo}": {
@@ -1867,6 +2252,11 @@
     ],
     "summary": "Buscar Plataforma Divulgacao",
     "operationId": "buscar_plataforma_divulgacao_canais_divulgacao__codigo__get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "codigo",
@@ -1888,6 +2278,9 @@
         }
        }
       }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
      },
      "404": {
       "description": "Canal de divulgação não encontrado."
@@ -1912,6 +2305,11 @@
     ],
     "summary": "Atualizar Status Plataforma Divulgacao",
     "operationId": "atualizar_status_plataforma_divulgacao_canais_divulgacao__codigo__status_patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "codigo",
@@ -1943,6 +2341,9 @@
         }
        }
       }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
      },
      "404": {
       "description": "Canal de divulgação não encontrado."
@@ -1981,8 +2382,16 @@
         }
        }
       }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
      }
-    }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
    },
    "post": {
     "tags": [
@@ -2011,6 +2420,9 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Plataforma ou credencial não encontrada."
      },
@@ -2027,7 +2439,12 @@
        }
       }
      }
-    }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
    }
   },
   "/grupos/{grupo_id}": {
@@ -2037,6 +2454,11 @@
     ],
     "summary": "Buscar Destino",
     "operationId": "buscar_destino_grupos__grupo_id__get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "grupo_id",
@@ -2059,6 +2481,9 @@
         }
        }
       }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
      },
      "404": {
       "description": "Destino de divulgação não encontrado."
@@ -2083,6 +2508,11 @@
     ],
     "summary": "Atualizar Status Destino",
     "operationId": "atualizar_status_destino_grupos__grupo_id__status_patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "grupo_id",
@@ -2116,6 +2546,9 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Destino de divulgação não encontrado."
      },
@@ -2139,6 +2572,11 @@
     ],
     "summary": "Listar Credenciais",
     "operationId": "listar_credenciais_credenciais_plataforma_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "plataforma_id",
@@ -2173,6 +2611,9 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Plataforma não encontrado(a)."
      },
@@ -2194,6 +2635,11 @@
     ],
     "summary": "Criar Credencial",
     "operationId": "criar_credencial_credenciais_plataforma_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "requestBody": {
      "required": true,
      "content": {
@@ -2214,6 +2660,9 @@
         }
        }
       }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
      },
      "404": {
       "description": "Plataforma não encontrado(a)."
@@ -2241,6 +2690,11 @@
     ],
     "summary": "Buscar Credencial",
     "operationId": "buscar_credencial_credenciais_plataforma__credencial_id__get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "credencial_id",
@@ -2263,6 +2717,9 @@
         }
        }
       }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
      },
      "404": {
       "description": "Credencial não encontrada."
@@ -2287,6 +2744,11 @@
     ],
     "summary": "Atualizar Status Credencial",
     "operationId": "atualizar_status_credencial_credenciais_plataforma__credencial_id__status_patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "credencial_id",
@@ -2320,6 +2782,9 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Credencial não encontrada."
      },
@@ -2346,6 +2811,11 @@
     ],
     "summary": "Listar Credenciais",
     "operationId": "listar_credenciais_credenciais_divulgacao_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "plataforma_divulgacao_id",
@@ -2380,6 +2850,9 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Canal de divulgação não encontrado(a)."
      },
@@ -2401,6 +2874,11 @@
     ],
     "summary": "Criar Credencial",
     "operationId": "criar_credencial_credenciais_divulgacao_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "requestBody": {
      "required": true,
      "content": {
@@ -2421,6 +2899,9 @@
         }
        }
       }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
      },
      "404": {
       "description": "Canal de divulgação não encontrado(a)."
@@ -2448,6 +2929,11 @@
     ],
     "summary": "Buscar Credencial",
     "operationId": "buscar_credencial_credenciais_divulgacao__credencial_id__get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "credencial_id",
@@ -2470,6 +2956,9 @@
         }
        }
       }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
      },
      "404": {
       "description": "Credencial não encontrada."
@@ -2494,6 +2983,11 @@
     ],
     "summary": "Atualizar Status Credencial",
     "operationId": "atualizar_status_credencial_credenciais_divulgacao__credencial_id__status_patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "credencial_id",
@@ -2527,6 +3021,9 @@
        }
       }
      },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
+     },
      "404": {
       "description": "Credencial não encontrada."
      },
@@ -2554,6 +3051,11 @@
     "summary": "Publicar produto em todos os grupos da categoria",
     "description": "Publicação manual. Localiza a categoria do produto e tenta publicar em cada grupo associado a ela cujo canal e grupo estejam ativos, aplicando todas as regras de publicação (elegibilidade, link afiliado, desconto mínimo, faixa de preço, republicação e tentativas). Não obedece às janelas de execução. O resultado de cada grupo vem em `resultados`. Grupos do WhatsApp são ignorados até o publisher ser implementado.",
     "operationId": "publicar_produto_publicacoes_produtos__produto_id__post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "produto_id",
@@ -2576,6 +3078,9 @@
         }
        }
       }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
      },
      "404": {
       "description": "Produto ou categoria não encontrado."
@@ -2607,6 +3112,11 @@
     "summary": "Publicar produto em um grupo específico",
     "description": "Publica o produto no destino informado, desde que o grupo esteja associado à categoria do produto.",
     "operationId": "publicar_produto_em_grupo_publicacoes_produtos__produto_id__grupos__grupo_id__post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
     "parameters": [
      {
       "name": "produto_id",
@@ -2639,6 +3149,9 @@
         }
        }
       }
+     },
+     "401": {
+      "description": "Sem login, sessão expirada ou usuário inativo."
      },
      "404": {
       "description": "Produto, categoria ou destino não encontrado."
@@ -4175,6 +4688,28 @@
     "type": "object",
     "title": "JanelaExecucaoUpdate"
    },
+   "LoginRequest": {
+    "properties": {
+     "login": {
+      "type": "string",
+      "maxLength": 60,
+      "minLength": 1,
+      "title": "Login"
+     },
+     "senha": {
+      "type": "string",
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Senha"
+     }
+    },
+    "type": "object",
+    "required": [
+     "login",
+     "senha"
+    ],
+    "title": "LoginRequest"
+   },
    "MonitorAutomacoesStatus": {
     "properties": {
      "status": {
@@ -5089,6 +5624,79 @@
     "title": "ResultadoPublicacaoDestino",
     "description": "Resultado da publicação manual em um grupo."
    },
+   "SessaoResponse": {
+    "properties": {
+     "access_token": {
+      "type": "string",
+      "title": "Access Token"
+     },
+     "token_type": {
+      "type": "string",
+      "title": "Token Type",
+      "default": "bearer"
+     },
+     "expira_em_horas": {
+      "type": "integer",
+      "title": "Expira Em Horas"
+     },
+     "usuario": {
+      "$ref": "#/components/schemas/UsuarioResponse"
+     }
+    },
+    "type": "object",
+    "required": [
+     "access_token",
+     "expira_em_horas",
+     "usuario"
+    ],
+    "title": "SessaoResponse"
+   },
+   "UsuarioResponse": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "login": {
+      "type": "string",
+      "title": "Login"
+     },
+     "nome": {
+      "type": "string",
+      "title": "Nome"
+     },
+     "perfil": {
+      "type": "string",
+      "title": "Perfil"
+     },
+     "ativo": {
+      "type": "boolean",
+      "title": "Ativo"
+     },
+     "ultimo_login_em": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ultimo Login Em"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "login",
+     "nome",
+     "perfil",
+     "ativo",
+     "ultimo_login_em"
+    ],
+    "title": "UsuarioResponse"
+   },
    "ValidationError": {
     "properties": {
      "loc": {
@@ -5128,6 +5736,13 @@
      "type"
     ],
     "title": "ValidationError"
+   }
+  },
+  "securitySchemes": {
+   "HTTPBearer": {
+    "type": "http",
+    "description": "Token devolvido por POST /auth/login.",
+    "scheme": "bearer"
    }
   }
  }

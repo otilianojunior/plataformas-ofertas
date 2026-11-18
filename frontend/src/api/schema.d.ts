@@ -4,6 +4,74 @@
  */
 
 export interface paths {
+    "/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Entrar no painel */
+        post: operations["entrar_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/eu": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Usuário da sessão atual */
+        get: operations["eu_auth_eu_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/oauth/mercado-livre/autorizar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Iniciar a autorização OAuth do Mercado Livre */
+        get: operations["autorizar_mercado_livre_oauth_mercado_livre_autorizar_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/oauth/mercado-livre/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Receber o retorno da autorização OAuth do Mercado Livre */
+        get: operations["callback_mercado_livre_oauth_mercado_livre_callback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/lojas": {
         parameters: {
             query?: never;
@@ -159,40 +227,6 @@ export interface paths {
         };
         /** Listar os ciclos de publicação mais recentes */
         get: operations["listar_ciclos_publicacao_ciclos_publicacao_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/oauth/mercado-livre/autorizar": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Iniciar a autorização OAuth do Mercado Livre */
-        get: operations["autorizar_mercado_livre_oauth_mercado_livre_autorizar_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/oauth/mercado-livre/callback": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Receber o retorno da autorização OAuth do Mercado Livre */
-        get: operations["callback_mercado_livre_oauth_mercado_livre_callback_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1294,6 +1328,13 @@ export interface components {
             /** Ativa */
             ativa?: boolean | null;
         };
+        /** LoginRequest */
+        LoginRequest: {
+            /** Login */
+            login: string;
+            /** Senha */
+            senha: string;
+        };
         /** MonitorAutomacoesStatus */
         MonitorAutomacoesStatus: {
             /** Status */
@@ -1579,6 +1620,34 @@ export interface components {
             motivo?: string | null;
             publicacao?: components["schemas"]["PublicacaoResponse"] | null;
         };
+        /** SessaoResponse */
+        SessaoResponse: {
+            /** Access Token */
+            access_token: string;
+            /**
+             * Token Type
+             * @default bearer
+             */
+            token_type: string;
+            /** Expira Em Horas */
+            expira_em_horas: number;
+            usuario: components["schemas"]["UsuarioResponse"];
+        };
+        /** UsuarioResponse */
+        UsuarioResponse: {
+            /** Id */
+            id: number;
+            /** Login */
+            login: string;
+            /** Nome */
+            nome: string;
+            /** Perfil */
+            perfil: string;
+            /** Ativo */
+            ativo: boolean;
+            /** Ultimo Login Em */
+            ultimo_login_em: string | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -1601,27 +1670,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    listar_plataformas_lojas_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PlataformaResponse"][];
-                };
-            };
-        };
-    };
-    criar_plataforma_lojas_post: {
+    entrar_auth_login_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1630,87 +1679,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PlataformaCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PlataformaResponse"];
-                };
-            };
-            /** @description Já existe uma loja com esse código. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    buscar_plataforma_lojas__codigo__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                codigo: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PlataformaResponse"];
-                };
-            };
-            /** @description Loja não encontrada. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    atualizar_status_plataforma_lojas__codigo__status_patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                codigo: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PlataformaStatusUpdate"];
+                "application/json": components["schemas"]["LoginRequest"];
             };
         };
         responses: {
@@ -1720,11 +1689,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PlataformaResponse"];
+                    "application/json": components["schemas"]["SessaoResponse"];
                 };
             };
-            /** @description Loja não encontrada. */
-            404: {
+            /** @description Login ou senha inválidos. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1741,75 +1710,7 @@ export interface operations {
             };
         };
     };
-    executar_coleta_mercado_livre_coletas_mercado_livre_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExecucaoColetaResponse"];
-                };
-            };
-            /** @description Loja não cadastrada. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Loja inativa ou já existe uma coleta em andamento para ela. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    executar_coleta_shopee_coletas_shopee_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExecucaoColetaResponse"];
-                };
-            };
-            /** @description Loja não cadastrada. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Loja inativa ou já existe uma coleta em andamento para ela. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    consultar_status_automacoes_automacoes_status_get: {
+    eu_auth_eu_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1824,231 +1725,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AutomacoesStatusResponse"];
+                    "application/json": components["schemas"]["UsuarioResponse"];
                 };
             };
-            /** @description Configuração global não encontrada. */
-            404: {
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-        };
-    };
-    listar_janelas_janelas_execucao_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JanelaExecucaoResponse"][];
-                };
-            };
-        };
-    };
-    criar_janela_janelas_execucao_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["JanelaExecucaoCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JanelaExecucaoResponse"];
-                };
-            };
-            /** @description Sobreposição ou conflito com o banco. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    buscar_janela_janelas_execucao__janela_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                janela_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JanelaExecucaoResponse"];
-                };
-            };
-            /** @description Janela não encontrada. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    excluir_janela_janelas_execucao__janela_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                janela_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Janela não encontrada. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    atualizar_janela_janelas_execucao__janela_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                janela_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["JanelaExecucaoUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JanelaExecucaoResponse"];
-                };
-            };
-            /** @description Janela não encontrada. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Sobreposição ou conflito com o banco. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    listar_ciclos_publicacao_ciclos_publicacao_get: {
-        parameters: {
-            query?: {
-                destino_id?: number | null;
-                status?: ("em_andamento" | "concluido" | "pausado" | "falhou" | "interrompido") | null;
-                limite?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CicloPublicacaoResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
             };
         };
     };
@@ -2147,6 +1832,548 @@ export interface operations {
             };
         };
     };
+    listar_plataformas_lojas_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlataformaResponse"][];
+                };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    criar_plataforma_lojas_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlataformaCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlataformaResponse"];
+                };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Já existe uma loja com esse código. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    buscar_plataforma_lojas__codigo__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                codigo: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlataformaResponse"];
+                };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Loja não encontrada. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    atualizar_status_plataforma_lojas__codigo__status_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                codigo: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlataformaStatusUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlataformaResponse"];
+                };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Loja não encontrada. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    executar_coleta_mercado_livre_coletas_mercado_livre_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExecucaoColetaResponse"];
+                };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Loja não cadastrada. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Loja inativa ou já existe uma coleta em andamento para ela. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    executar_coleta_shopee_coletas_shopee_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExecucaoColetaResponse"];
+                };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Loja não cadastrada. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Loja inativa ou já existe uma coleta em andamento para ela. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    consultar_status_automacoes_automacoes_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomacoesStatusResponse"];
+                };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Configuração global não encontrada. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listar_janelas_janelas_execucao_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JanelaExecucaoResponse"][];
+                };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    criar_janela_janelas_execucao_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JanelaExecucaoCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JanelaExecucaoResponse"];
+                };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sobreposição ou conflito com o banco. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    buscar_janela_janelas_execucao__janela_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                janela_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JanelaExecucaoResponse"];
+                };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Janela não encontrada. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    excluir_janela_janelas_execucao__janela_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                janela_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Janela não encontrada. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    atualizar_janela_janelas_execucao__janela_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                janela_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JanelaExecucaoUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JanelaExecucaoResponse"];
+                };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Janela não encontrada. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sobreposição ou conflito com o banco. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_ciclos_publicacao_ciclos_publicacao_get: {
+        parameters: {
+            query?: {
+                destino_id?: number | null;
+                status?: ("em_andamento" | "concluido" | "pausado" | "falhou" | "interrompido") | null;
+                limite?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CicloPublicacaoResponse"][];
+                };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     listar_produtos_produtos_get: {
         parameters: {
             query?: never;
@@ -2164,6 +2391,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ProdutoResponse"][];
                 };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -2188,6 +2422,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ProdutoResponse"];
                 };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Plataforma ou categoria não encontrada. */
             404: {
@@ -2234,6 +2475,13 @@ export interface operations {
                     "application/json": components["schemas"]["ProdutoResponse"];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Produto não encontrado. */
             404: {
                 headers: {
@@ -2275,6 +2523,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ProdutoResponse"];
                 };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Produto ou categoria não encontrada. */
             404: {
@@ -2325,6 +2580,13 @@ export interface operations {
                     "application/json": components["schemas"]["ProdutoResponse"];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Produto não encontrado. */
             404: {
                 headers: {
@@ -2363,6 +2625,13 @@ export interface operations {
                     "application/json": components["schemas"]["CategoriaResponse"][];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -2395,6 +2664,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CategoriaResponse"];
                 };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Loja ou grupo não encontrado. */
             404: {
@@ -2441,6 +2717,13 @@ export interface operations {
                     "application/json": components["schemas"]["CategoriaResponse"];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Categoria não encontrada. */
             404: {
                 headers: {
@@ -2482,6 +2765,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CategoriaResponse"];
                 };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Categoria não encontrada. */
             404: {
@@ -2532,6 +2822,13 @@ export interface operations {
                     "application/json": components["schemas"]["CategoriaResponse"];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Categoria não encontrada. */
             404: {
                 headers: {
@@ -2581,6 +2878,13 @@ export interface operations {
                     "application/json": components["schemas"]["CategoriaResponse"];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Categoria não encontrada. */
             404: {
                 headers: {
@@ -2626,6 +2930,13 @@ export interface operations {
                     "application/json": components["schemas"]["DestinoDivulgacaoResponse"][];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Categoria não encontrada. */
             404: {
                 headers: {
@@ -2664,6 +2975,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["DestinoDivulgacaoResponse"][];
                 };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Categoria ou grupo não encontrado. */
             404: {
@@ -2711,6 +3029,13 @@ export interface operations {
                     "application/json": components["schemas"]["DestinoDivulgacaoResponse"][];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Categoria não encontrada ou grupo não associado. */
             404: {
                 headers: {
@@ -2747,6 +3072,13 @@ export interface operations {
                     "application/json": components["schemas"]["ConfiguracaoSistemaResponse"];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Configuração global não encontrada. */
             404: {
                 headers: {
@@ -2777,6 +3109,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ConfiguracaoSistemaResponse"];
                 };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Configuração global não encontrada. */
             404: {
@@ -2823,6 +3162,13 @@ export interface operations {
                     "application/json": components["schemas"]["ConfiguracaoSistemaResponse"];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Configuração global não encontrada. */
             404: {
                 headers: {
@@ -2868,6 +3214,13 @@ export interface operations {
                     "application/json": components["schemas"]["ConfiguracaoSistemaResponse"];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Configuração global não encontrada. */
             404: {
                 headers: {
@@ -2911,6 +3264,13 @@ export interface operations {
                     "application/json": components["schemas"]["ConfiguracaoSistemaResponse"];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Configuração global não encontrada. */
             404: {
                 headers: {
@@ -2937,6 +3297,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ConfiguracaoSistemaResponse"];
                 };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Configuração global não encontrada. */
             404: {
@@ -2965,6 +3332,13 @@ export interface operations {
                     "application/json": components["schemas"]["ConfiguracaoDivulgacaoResponse"][];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     buscar_configuracao_grupos__grupo_id__configuracao_get: {
@@ -2986,6 +3360,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ConfiguracaoDivulgacaoResponse"];
                 };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Configuração de divulgação não encontrada. */
             404: {
@@ -3028,6 +3409,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ConfiguracaoDivulgacaoResponse"];
                 };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Grupo não encontrado. */
             404: {
@@ -3078,6 +3466,13 @@ export interface operations {
                     "application/json": components["schemas"]["ConfiguracaoDivulgacaoResponse"];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Configuração não encontrada. */
             404: {
                 headers: {
@@ -3121,6 +3516,13 @@ export interface operations {
                     "application/json": components["schemas"]["PlataformaDivulgacaoResponse"][];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     criar_plataforma_divulgacao_canais_divulgacao_post: {
@@ -3144,6 +3546,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PlataformaDivulgacaoResponse"];
                 };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Já existe um canal com esse código. */
             409: {
@@ -3182,6 +3591,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PlataformaDivulgacaoResponse"];
                 };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Canal de divulgação não encontrado. */
             404: {
@@ -3225,6 +3641,13 @@ export interface operations {
                     "application/json": components["schemas"]["PlataformaDivulgacaoResponse"];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Canal de divulgação não encontrado. */
             404: {
                 headers: {
@@ -3261,6 +3684,13 @@ export interface operations {
                     "application/json": components["schemas"]["DestinoDivulgacaoResponse"][];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     criar_destino_grupos_post: {
@@ -3284,6 +3714,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["DestinoDivulgacaoResponse"];
                 };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Plataforma ou credencial não encontrada. */
             404: {
@@ -3330,6 +3767,13 @@ export interface operations {
                     "application/json": components["schemas"]["DestinoDivulgacaoResponse"];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Destino de divulgação não encontrado. */
             404: {
                 headers: {
@@ -3372,6 +3816,13 @@ export interface operations {
                     "application/json": components["schemas"]["DestinoDivulgacaoResponse"];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Destino de divulgação não encontrado. */
             404: {
                 headers: {
@@ -3409,6 +3860,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CredencialPlataformaResponse"][];
                 };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Plataforma não encontrado(a). */
             404: {
@@ -3449,6 +3907,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CredencialPlataformaResponse"];
                 };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Plataforma não encontrado(a). */
             404: {
@@ -3495,6 +3960,13 @@ export interface operations {
                     "application/json": components["schemas"]["CredencialPlataformaResponse"];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Credencial não encontrada. */
             404: {
                 headers: {
@@ -3536,6 +4008,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CredencialPlataformaResponse"];
                 };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Credencial não encontrada. */
             404: {
@@ -3582,6 +4061,13 @@ export interface operations {
                     "application/json": components["schemas"]["CredencialDivulgacaoResponse"][];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Canal de divulgação não encontrado(a). */
             404: {
                 headers: {
@@ -3621,6 +4107,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CredencialDivulgacaoResponse"];
                 };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Canal de divulgação não encontrado(a). */
             404: {
@@ -3667,6 +4160,13 @@ export interface operations {
                     "application/json": components["schemas"]["CredencialDivulgacaoResponse"];
                 };
             };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Credencial não encontrada. */
             404: {
                 headers: {
@@ -3708,6 +4208,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CredencialDivulgacaoResponse"];
                 };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Credencial não encontrada. */
             404: {
@@ -3753,6 +4260,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PublicacaoManualResponse"];
                 };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Produto ou categoria não encontrado. */
             404: {
@@ -3806,6 +4320,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PublicacaoResponse"];
                 };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Produto, categoria ou destino não encontrado. */
             404: {

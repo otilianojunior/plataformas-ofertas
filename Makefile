@@ -21,7 +21,7 @@ PSQL_DB = $(COMPOSE) exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$$POSTGRES_US
         db db-parar db-logs db-psql db-backup db-importar \
         migrar testes testes-unit api \
         chrome-login chrome-verificar chrome-status chrome-fechar \
-        painel-instalar painel painel-build painel-tipos \
+        painel-instalar painel painel-build painel-tipos usuario-admin usuario-senha \
         whatsapp-login whatsapp-verificar whatsapp-status whatsapp-fechar whatsapp-teste \
         servico-instalar servico-iniciar servico-parar servico-reiniciar \
         servico-status servico-logs servico-desinstalar
@@ -125,6 +125,13 @@ whatsapp-teste: ## Prepara mensagem de teste SEM enviar: make whatsapp-teste GRU
 	$(PY) -m scripts.whatsapp_web teste "$(GRUPO)" $(if $(ENVIAR),--enviar,)
 
 # -------------------------------------------------------------- painel
+usuario-admin: ## Cria o admin master do painel (pede a senha): make usuario-admin [LOGIN=admin]
+	$(PY) -m scripts.usuarios admin $(or $(LOGIN),admin)
+
+usuario-senha: ## Troca a senha de um usuário do painel: make usuario-senha LOGIN=admin
+	@test -n "$(LOGIN)" || { echo 'Informe LOGIN=...'; exit 1; }
+	$(PY) -m scripts.usuarios senha "$(LOGIN)"
+
 painel-instalar: ## Instala as dependências do painel (frontend/)
 	cd frontend && npm ci --no-audit --no-fund
 

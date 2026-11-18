@@ -123,8 +123,10 @@ function CredenciaisLojas() {
                     <code>{c.tipo_credencial}</code>
                   </td>
                   <td>
-                    <Alternador rotulo="" ligado={c.status_credencial === "ativa"} aoMudar={(ativa) => status.mutate({ id: c.id, ativa })} />
-                    <Etiqueta status={c.status_credencial} />
+                    <div className="fichas">
+                      <Alternador rotulo="" ligado={c.status_credencial === "ativa"} aoMudar={(ativa) => status.mutate({ id: c.id, ativa })} />
+                      <Etiqueta status={c.status_credencial} />
+                    </div>
                   </td>
                   <td>{formatarData(c.updated_at)}</td>
                 </tr>
@@ -133,6 +135,7 @@ function CredenciaisLojas() {
           </table>
         </div>
       )}
+      <p className="detalhe">Tipos: Mercado Livre usa client_id, client_secret e redirect_uri; Shopee usa app_id e app_secret.</p>
       <form
         className="formulario-linha"
         onSubmit={(e) => {
@@ -150,7 +153,7 @@ function CredenciaisLojas() {
             ))}
           </select>
         </Campo>
-        <Campo rotulo="Tipo" dica="ML: client_id, client_secret, redirect_uri. Shopee: app_id, app_secret.">
+        <Campo rotulo="Tipo">
           <input required value={tipo} onChange={(e) => setTipo(e.target.value)} list="tipos-loja" />
           <datalist id="tipos-loja">
             {["client_id", "client_secret", "redirect_uri", "app_id", "app_secret"].map((t) => (
@@ -226,8 +229,10 @@ function CredenciaisCanais() {
                     <code>{c.tipo_credencial}</code>
                   </td>
                   <td>
-                    <Alternador rotulo="" ligado={c.status_credencial === "ativa"} aoMudar={(ativa) => status.mutate({ id: c.id, ativa })} />
-                    <Etiqueta status={c.status_credencial} />
+                    <div className="fichas">
+                      <Alternador rotulo="" ligado={c.status_credencial === "ativa"} aoMudar={(ativa) => status.mutate({ id: c.id, ativa })} />
+                      <Etiqueta status={c.status_credencial} />
+                    </div>
                   </td>
                 </tr>
               ))}

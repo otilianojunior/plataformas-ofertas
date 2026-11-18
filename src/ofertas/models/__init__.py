@@ -15,6 +15,7 @@ from ofertas.models.publicacao import Publicacao
 from ofertas.models.configuracao_sistema import ConfiguracaoSistema
 from ofertas.models.janela_execucao import JanelaExecucao
 from ofertas.models.ciclo_publicacao import CicloPublicacao
+from ofertas.models.usuario import Usuario
 
 __all__ = [
     "CicloPublicacao",
@@ -34,4 +35,5 @@ __all__ = [
     "PlataformaDivulgacao",
     "Produto",
     "Publicacao",
+    "Usuario",
 ]

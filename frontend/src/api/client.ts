@@ -1,6 +1,7 @@
 import createClient from "openapi-fetch";
 
 import type { components, paths } from "./schema";
+import { encerrarSessao, obterToken } from "./sessao";
 
 export type Esquemas = components["schemas"];
 
@@ -8,6 +9,25 @@ export type Esquemas = components["schemas"];
 // servido pela própria API, na mesma origem.
 export const api = createClient<paths>({
   baseUrl: import.meta.env.DEV ? "/api" : "",
+});
+
+// Envia o token em toda chamada; sessão expirada (401) volta para o login.
+api.use({
+  onRequest({ request }) {
+    const token = obterToken();
+    if (token) request.headers.set("Authorization", `Bearer ${token}`);
+    return request;
+  },
+  onResponse({ request, response }) {
+    if (response.status === 401 && !request.url.endsWith("/auth/login")) {
+      encerrarSessao();
+      const destino = window.location.pathname.replace(/^\/painel/, "") || "/";
+      if (!destino.startsWith("/login")) {
+        window.location.assign(`/painel/login?voltar=${encodeURIComponent(destino)}`);
+      }
+    }
+    return response;
+  },
 });
 
 export class ErroApi extends Error {

@@ -46,7 +46,13 @@ React 18 + Vite + TypeScript, TanStack Query e `openapi-fetch`. Tipos em
 `frontend/src/api/schema.d.ts` gerados do OpenAPI (`make painel-tipos`): ao mudar
 uma rota/schema da API, regenere e rode `npm run verificar` em `frontend/`.
 Chamadas via `chamar(api.GET(...))` (lança `ErroApi` com o `detail` da API) e
-`useAcao` (mutação com aviso e recarga). Dev: Vite em :5173 com proxy `/api` →
+`useAcao` (mutação com aviso e recarga). Login: `POST /auth/login` devolve um token Fernet (mesma
+`CREDENTIAL_ENCRYPTION_KEY`, validade `SESSAO_DURACAO_HORAS`, invalidado ao trocar a
+senha); o middleware de `api/client.ts` envia o Bearer e manda para `/login` no 401.
+Todos os routers exigem `usuario_atual` (incluído em `main.py`), exceto `/auth`,
+`/health`, `/painel` e o OAuth do ML. Senhas só como hash scrypt (`core/autenticacao.py`);
+admin master por `make usuario-admin`. Nos testes, a fixture `client` já vem logada
+(`client_sem_login` para testar o 401). Dev: Vite em :5173 com proxy `/api` →
 :8000. Produção: `make painel-build` e a API serve `frontend/dist` em `/painel`
 (rotas internas caem no `index.html`).
 
@@ -86,6 +92,9 @@ Pontos importantes:
   modelo, armazenamento, tela, variante Pro/Ultra e acessórios). Aplicado no envio
   (`PublicacaoService._validar_republicacao`) e na seleção do ciclo, que busca 4x o
   limite por categoria para repor os barrados e fica com o mais barato entre iguais.
+- Teto de desconto: acima de `DESCONTO_MAXIMO_PERCENTUAL` (90) é preço "de" inflado;
+  o produto não fica elegível nem é publicado. Regra única de elegibilidade em
+  `core/elegibilidade.py` (usada pelo `ProdutoService` e pelos serviços de afiliados).
 - Categoria com `termo_busca`: coleta por termo dentro da categoria da loja
   (Shopee: keyword + productCatId; Mercado Livre: `/products/search`, pois
   `/sites/MLB/search` dá 403 — o catálogo traz produtos sem anúncio, descartados).

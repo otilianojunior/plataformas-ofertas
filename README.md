@@ -124,7 +124,21 @@ make painel            # desenvolvimento: http://127.0.0.1:5173/painel/ (recarre
 make painel-tipos      # depois de mudar rotas da API: regenera os tipos TypeScript
 ```
 
-O painel não tem login: como a API, deve ficar acessível só pela própria máquina.
+### Login
+
+O painel e a API exigem login; a página inicial é `/painel/login` e, depois de
+entrar, abre o painel. Crie o administrador master uma vez (a senha é pedida no
+terminal e guardada só como hash scrypt):
+
+```bash
+make usuario-admin                 # login "admin"; ou: make usuario-admin LOGIN=outro
+make usuario-senha LOGIN=admin     # troca a senha (derruba as sessões abertas)
+```
+
+A sessão é um token assinado com a `CREDENTIAL_ENCRYPTION_KEY` e vale
+`SESSAO_DURACAO_HORAS` (padrão 12h). Sem login ficam só `/health`, `/painel`
+(a tela de login) e o OAuth do Mercado Livre. Mesmo com login, mantenha a API
+acessível só pela própria máquina até a revisão de segurança (Etapa 6).
 
 ## Configuração (`.env`)
 
@@ -132,6 +146,8 @@ O painel não tem login: como a API, deve ficar acessível só pela própria má
 |---|---|---|---|
 | `DATABASE_URL` | sim | — | conexão da API (`postgresql+psycopg://usuario:senha@localhost:5434/banco`) |
 | `CREDENTIAL_ENCRYPTION_KEY` | sim | — | chave Fernet que criptografa as credenciais no banco. **Se for perdida, as credenciais salvas não podem mais ser lidas.** |
+| `DESCONTO_MAXIMO_PERCENTUAL` | não | `90` | desconto acima disto é tratado como preço "de" inflado e o produto não é publicado |
+| `SESSAO_DURACAO_HORAS` | não | `12` | duração do login no painel |
 | `POSTGRES_USUARIO` | não | `ofertas_app` | usuário do PostgreSQL no Docker |
 | `POSTGRES_SENHA` | sim (Docker) | — | senha do PostgreSQL no Docker |
 | `POSTGRES_BANCO` | não | `plataformas_ofertas` | nome do banco no Docker |

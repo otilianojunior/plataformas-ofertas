@@ -1,10 +1,15 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+
+import { api, chamar } from "./api/client";
+import { encerrarSessao, obterToken } from "./api/sessao";
 
 import { Automacoes } from "./pages/Automacoes";
 import { Categorias } from "./pages/Categorias";
 import { Grupos } from "./pages/Grupos";
 import { Integracoes } from "./pages/Integracoes";
+import { Login } from "./pages/Login";
 import { Painel } from "./pages/Painel";
 import { Produtos } from "./pages/Produtos";
 import { Publicacoes } from "./pages/Publicacoes";
@@ -20,7 +25,33 @@ const MENU = [
 ];
 
 export function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="*" element={<AreaLogada />} />
+    </Routes>
+  );
+}
+
+function AreaLogada() {
+  const local = useLocation();
+  if (!obterToken()) {
+    return <Navigate to={`/login?voltar=${encodeURIComponent(local.pathname)}`} replace />;
+  }
+  return <Layout />;
+}
+
+function Layout() {
   const [menuAberto, setMenuAberto] = useState(false);
+  const navegar = useNavigate();
+  const clienteQuery = useQueryClient();
+  const eu = useQuery({ queryKey: ["eu"], queryFn: () => chamar(api.GET("/auth/eu")), staleTime: 60_000 });
+
+  function sair() {
+    encerrarSessao();
+    clienteQuery.clear();
+    navegar("/login", { replace: true });
+  }
 
   return (
     <div className="aplicacao">
@@ -38,7 +69,17 @@ export function App() {
             </NavLink>
           ))}
         </nav>
-        <p className="menu-rodape">v0.9.0 · acesso local</p>
+        <div className="menu-rodape">
+          {eu.data && (
+            <p>
+              <strong>{eu.data.nome}</strong> · {eu.data.perfil}
+            </p>
+          )}
+          <button className="botao botao-texto" onClick={sair}>
+            Sair
+          </button>
+          <p>v0.9.0</p>
+        </div>
       </aside>
 
       <button className="botao-menu" aria-label="Abrir menu" onClick={() => setMenuAberto((v) => !v)}>

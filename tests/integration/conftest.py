@@ -12,8 +12,10 @@ from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
+from ofertas.api.autenticacao import usuario_atual
 from ofertas.db.session import engine, get_db
 from ofertas.main import app
+from ofertas.models.usuario import Usuario
 
 
 @pytest.fixture(scope="session")
@@ -43,12 +45,24 @@ def db_session(conexao_disponivel):
 
 
 @pytest.fixture
-def client(db_session):
+def client_sem_login(db_session):
     app.dependency_overrides[get_db] = lambda: db_session
     try:
         yield TestClient(app)  # sem `with`: o lifespan não roda
     finally:
         app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.fixture
+def client(client_sem_login):
+    """Cliente já autenticado como admin (sem passar pelo /auth/login)."""
+    app.dependency_overrides[usuario_atual] = lambda: Usuario(
+        id=0, login="teste", nome="Teste", perfil="admin", ativo=True
+    )
+    try:
+        yield client_sem_login
+    finally:
+        app.dependency_overrides.pop(usuario_atual, None)
 
 
 @pytest.fixture
