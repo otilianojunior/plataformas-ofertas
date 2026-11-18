@@ -95,6 +95,93 @@ class UsuarioService:
             ),
         )
 
+    def listar(self, session: Session) -> list[Usuario]:
+        return self.repository.listar(session)
+
+    def buscar(self, session: Session, usuario_id: int) -> Usuario:
+        usuario = self.repository.buscar(session, usuario_id)
+
+        if usuario is None:
+            raise LookupError(f"Usuário de ID '{usuario_id}' não encontrado.")
+
+        return usuario
+
+    def atualizar(
+        self,
+        session: Session,
+        usuario_id: int,
+        dados: dict,
+        executor: Usuario,
+    ) -> Usuario:
+        """Altera nome, perfil e/ou situação. Nunca deixa o sistema sem admin."""
+
+        usuario = self.buscar(session, usuario_id)
+
+        perfil = dados.get("perfil", usuario.perfil)
+        ativo = dados.get("ativo", usuario.ativo)
+
+        if perfil not in PERFIS_USUARIO:
+            raise ValueError(f"Perfil inválido: {perfil}.")
+
+        if usuario.id == executor.id and (not ativo or perfil != "admin"):
+            raise ValueError(
+                "Você não pode desativar nem tirar o perfil admin da própria conta."
+            )
+
+        deixa_de_ser_admin_ativo = (
+            usuario.perfil == "admin"
+            and usuario.ativo
+            and (perfil != "admin" or not ativo)
+        )
+
+        if (
+            deixa_de_ser_admin_ativo
+            and self.repository.contar_admins_ativos(session) <= 1
+        ):
+            raise ValueError("É preciso manter ao menos um admin ativo.")
+
+        if "nome" in dados:
+            nome = dados["nome"].strip()
+            if not nome:
+                raise ValueError("O nome não pode ficar vazio.")
+            usuario.nome = nome
+
+        usuario.perfil = perfil
+        usuario.ativo = ativo
+
+        return self.repository.salvar(session, usuario)
+
+    def redefinir_senha(
+        self,
+        session: Session,
+        usuario_id: int,
+        senha: str,
+    ) -> Usuario:
+        """Troca a senha de outro usuário; as sessões dele caem."""
+
+        usuario = self.buscar(session, usuario_id)
+        usuario.senha_hash = gerar_hash_senha(senha)
+        return self.repository.salvar(session, usuario)
+
+    def trocar_propria_senha(
+        self,
+        session: Session,
+        usuario: Usuario,
+        senha_atual: str,
+        senha_nova: str,
+    ) -> tuple[Usuario, str]:
+        if not verificar_senha(senha_atual, usuario.senha_hash):
+            raise ValueError("A senha atual não confere.")
+
+        if senha_atual == senha_nova:
+            raise ValueError("A nova senha deve ser diferente da atual.")
+
+        usuario.senha_hash = gerar_hash_senha(senha_nova)
+        self.repository.salvar(session, usuario)
+
+        # As outras sessões caem; esta recebe um token novo.
+        return usuario, gerar_token_sessao(usuario.id, usuario.senha_hash)
+
     def alterar_senha(self, session: Session, login: str, senha: str) -> Usuario:
         usuario = self.repository.buscar_por_login(session, login.strip())
 

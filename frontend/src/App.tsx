@@ -10,11 +10,15 @@ import { Categorias } from "./pages/Categorias";
 import { Grupos } from "./pages/Grupos";
 import { Integracoes } from "./pages/Integracoes";
 import { Login } from "./pages/Login";
+import { MinhaConta } from "./pages/MinhaConta";
 import { Painel } from "./pages/Painel";
 import { Produtos } from "./pages/Produtos";
 import { Publicacoes } from "./pages/Publicacoes";
+import { Usuarios } from "./pages/Usuarios";
 
-const MENU = [
+type ItemMenu = { caminho: string; nome: string; tela: JSX.Element; soAdmin?: boolean };
+
+const MENU: ItemMenu[] = [
   { caminho: "/", nome: "Painel", tela: <Painel /> },
   { caminho: "/produtos", nome: "Produtos", tela: <Produtos /> },
   { caminho: "/publicacoes", nome: "Publicações", tela: <Publicacoes /> },
@@ -22,6 +26,7 @@ const MENU = [
   { caminho: "/grupos", nome: "Grupos", tela: <Grupos /> },
   { caminho: "/automacoes", nome: "Automações", tela: <Automacoes /> },
   { caminho: "/integracoes", nome: "Lojas e canais", tela: <Integracoes /> },
+  { caminho: "/usuarios", nome: "Usuários", tela: <Usuarios />, soAdmin: true },
 ];
 
 export function App() {
@@ -47,6 +52,9 @@ function Layout() {
   const clienteQuery = useQueryClient();
   const eu = useQuery({ queryKey: ["eu"], queryFn: () => chamar(api.GET("/auth/eu")), staleTime: 60_000 });
 
+  // Telas de admin só aparecem para admin (a API também recusa com 403).
+  const itens = MENU.filter((item) => !item.soAdmin || eu.data?.perfil === "admin");
+
   function sair() {
     encerrarSessao();
     clienteQuery.clear();
@@ -63,7 +71,7 @@ function Layout() {
           Plataformas de Ofertas
         </div>
         <nav>
-          {MENU.map((item) => (
+          {itens.map((item) => (
             <NavLink key={item.caminho} to={item.caminho} end={item.caminho === "/"} onClick={() => setMenuAberto(false)}>
               {item.nome}
             </NavLink>
@@ -71,9 +79,9 @@ function Layout() {
         </nav>
         <div className="menu-rodape">
           {eu.data && (
-            <p>
+            <NavLink to="/conta" className="menu-conta" onClick={() => setMenuAberto(false)} title="Minha conta">
               <strong>{eu.data.nome}</strong> · {eu.data.perfil}
-            </p>
+            </NavLink>
           )}
           <button className="botao botao-texto" onClick={sair}>
             Sair
@@ -88,9 +96,10 @@ function Layout() {
 
       <main className="conteudo">
         <Routes>
-          {MENU.map((item) => (
+          {itens.map((item) => (
             <Route key={item.caminho} path={item.caminho} element={item.tela} />
           ))}
+          <Route path="/conta" element={<MinhaConta />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

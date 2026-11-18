@@ -135,6 +135,11 @@ make usuario-admin                 # login "admin"; ou: make usuario-admin LOGIN
 make usuario-senha LOGIN=admin     # troca a senha (derruba as sessões abertas)
 ```
 
+Os demais usuários são criados no próprio painel, em **Usuários** (só para
+admin): perfil `admin` (tudo) ou `operador` (usa o painel, sem gerenciar
+usuários). Cada um troca a própria senha em **Minha conta** (clique no nome, no
+rodapé do menu).
+
 A sessão é um token assinado com a `CREDENTIAL_ENCRYPTION_KEY` e vale
 `SESSAO_DURACAO_HORAS` (padrão 12h). Sem login ficam só `/health`, `/painel`
 (a tela de login) e o OAuth do Mercado Livre. Mesmo com login, mantenha a API

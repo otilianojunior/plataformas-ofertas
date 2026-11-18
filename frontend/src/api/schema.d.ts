@@ -38,6 +38,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/senha": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Trocar a própria senha
+         * @description Derruba as outras sessões do usuário e devolve um token novo para esta.
+         */
+        put: operations["trocar_senha_auth_senha_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/oauth/mercado-livre/autorizar": {
         parameters: {
             query?: never;
@@ -782,6 +802,61 @@ export interface paths {
          * @description Publica o produto no destino informado, desde que o grupo esteja associado à categoria do produto.
          */
         post: operations["publicar_produto_em_grupo_publicacoes_produtos__produto_id__grupos__grupo_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/usuarios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar usuários */
+        get: operations["listar_usuarios_usuarios_get"];
+        put?: never;
+        /** Criar usuário */
+        post: operations["criar_usuario_usuarios_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/usuarios/{usuario_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Alterar nome, perfil ou situação */
+        patch: operations["atualizar_usuario_usuarios__usuario_id__patch"];
+        trace?: never;
+    };
+    "/usuarios/{usuario_id}/senha": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Redefinir a senha de um usuário
+         * @description As sessões abertas desse usuário são encerradas.
+         */
+        put: operations["redefinir_senha_usuarios__usuario_id__senha_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1620,6 +1695,18 @@ export interface components {
             motivo?: string | null;
             publicacao?: components["schemas"]["PublicacaoResponse"] | null;
         };
+        /** SenhaRedefinir */
+        SenhaRedefinir: {
+            /** Senha */
+            senha: string;
+        };
+        /** SenhaTrocar */
+        SenhaTrocar: {
+            /** Senha Atual */
+            senha_atual: string;
+            /** Senha Nova */
+            senha_nova: string;
+        };
         /** SessaoResponse */
         SessaoResponse: {
             /** Access Token */
@@ -1632,6 +1719,21 @@ export interface components {
             /** Expira Em Horas */
             expira_em_horas: number;
             usuario: components["schemas"]["UsuarioResponse"];
+        };
+        /** UsuarioCreate */
+        UsuarioCreate: {
+            /** Login */
+            login: string;
+            /** Nome */
+            nome: string;
+            /** Senha */
+            senha: string;
+            /**
+             * Perfil
+             * @default operador
+             * @enum {string}
+             */
+            perfil: "admin" | "operador";
         };
         /** UsuarioResponse */
         UsuarioResponse: {
@@ -1647,6 +1749,15 @@ export interface components {
             ativo: boolean;
             /** Ultimo Login Em */
             ultimo_login_em: string | null;
+        };
+        /** UsuarioUpdate */
+        UsuarioUpdate: {
+            /** Nome */
+            nome?: string | null;
+            /** Perfil */
+            perfil?: ("admin" | "operador") | null;
+            /** Ativo */
+            ativo?: boolean | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -1734,6 +1845,53 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    trocar_senha_auth_senha_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SenhaTrocar"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessaoResponse"];
+                };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Senha atual incorreta ou igual à nova. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
@@ -4357,6 +4515,213 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    listar_usuarios_usuarios_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsuarioResponse"][];
+                };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Exige perfil admin. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    criar_usuario_usuarios_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UsuarioCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsuarioResponse"];
+                };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Exige perfil admin. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Login já existe. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    atualizar_usuario_usuarios__usuario_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                usuario_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UsuarioUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsuarioResponse"];
+                };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Exige perfil admin. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Usuário não encontrado. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Deixaria o sistema sem admin ativo ou desativaria a própria conta. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    redefinir_senha_usuarios__usuario_id__senha_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                usuario_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SenhaRedefinir"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsuarioResponse"];
+                };
+            };
+            /** @description Sem login, sessão expirada ou usuário inativo. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Exige perfil admin. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Usuário não encontrado. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };

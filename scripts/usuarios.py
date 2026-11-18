@@ -41,11 +41,12 @@ def main() -> None:
             else:
                 usuario = servico.alterar_senha(session, args.login, _pedir_senha())
             session.commit()
+            resumo = f"'{usuario.login}' ({usuario.perfil})"
         except (ValueError, LookupError) as exc:
             session.rollback()
             sys.exit(f"Erro: {exc}")
 
-    print(f"Pronto: '{usuario.login}' ({usuario.perfil}). Entre em http://127.0.0.1:8000/painel")
+    print(f"Pronto: {resumo}. Entre em http://127.0.0.1:8000/painel")
 
 
 if __name__ == "__main__":

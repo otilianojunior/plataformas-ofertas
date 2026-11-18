@@ -7,6 +7,7 @@ from ofertas.db.session import get_db
 from ofertas.models.usuario import Usuario
 from ofertas.schemas.autenticacao import (
     LoginRequest,
+    SenhaTrocar,
     SessaoResponse,
     UsuarioResponse,
 )
@@ -47,6 +48,26 @@ def usuario_atual(
         raise _nao_autorizado(str(exc)) from exc
 
 
+RESPOSTA_403 = {403: {"description": "Exige perfil admin."}}
+
+
+def exigir_admin(usuario: Usuario = Depends(usuario_atual)) -> Usuario:
+    if usuario.perfil != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas administradores podem fazer isso.",
+        )
+    return usuario
+
+
+def _sessao(usuario: Usuario, token: str) -> SessaoResponse:
+    return SessaoResponse(
+        access_token=token,
+        expira_em_horas=get_settings().sessao_duracao_horas,
+        usuario=UsuarioResponse.model_validate(usuario),
+    )
+
+
 @router.post(
     "/login",
     response_model=SessaoResponse,
@@ -64,11 +85,7 @@ def entrar(dados: LoginRequest, session: Session = Depends(get_db)):
         session.rollback()
         raise
 
-    return SessaoResponse(
-        access_token=token,
-        expira_em_horas=get_settings().sessao_duracao_horas,
-        usuario=UsuarioResponse.model_validate(usuario),
-    )
+    return _sessao(usuario, token)
 
 
 @router.get(
@@ -79,3 +96,33 @@ def entrar(dados: LoginRequest, session: Session = Depends(get_db)):
 )
 def eu(usuario: Usuario = Depends(usuario_atual)):
     return usuario
+
+
+@router.put(
+    "/senha",
+    response_model=SessaoResponse,
+    summary="Trocar a própria senha",
+    description="Derruba as outras sessões do usuário e devolve um token novo para esta.",
+    responses={
+        **RESPOSTA_401,
+        409: {"description": "Senha atual incorreta ou igual à nova."},
+    },
+)
+def trocar_senha(
+    dados: SenhaTrocar,
+    usuario: Usuario = Depends(usuario_atual),
+    session: Session = Depends(get_db),
+):
+    try:
+        usuario, token = usuario_service.trocar_propria_senha(
+            session, usuario, dados.senha_atual, dados.senha_nova
+        )
+        session.commit()
+    except ValueError as exc:
+        session.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except Exception:
+        session.rollback()
+        raise
+
+    return _sessao(usuario, token)

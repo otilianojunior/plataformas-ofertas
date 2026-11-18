@@ -15,6 +15,13 @@ class UsuarioRepository:
             select(Usuario).where(func.lower(Usuario.login) == login.lower())
         )
 
+    def listar(self, session: Session) -> list[Usuario]:
+        return list(
+            session.scalars(
+                select(Usuario).order_by(Usuario.ativo.desc(), Usuario.nome)
+            ).all()
+        )
+
     def contar_admins_ativos(self, session: Session) -> int:
         return session.scalar(
             select(func.count(Usuario.id)).where(

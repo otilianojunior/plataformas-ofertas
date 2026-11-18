@@ -51,7 +51,9 @@ Chamadas via `chamar(api.GET(...))` (lança `ErroApi` com o `detail` da API) e
 senha); o middleware de `api/client.ts` envia o Bearer e manda para `/login` no 401.
 Todos os routers exigem `usuario_atual` (incluído em `main.py`), exceto `/auth`,
 `/health`, `/painel` e o OAuth do ML. Senhas só como hash scrypt (`core/autenticacao.py`);
-admin master por `make usuario-admin`. Nos testes, a fixture `client` já vem logada
+admin master por `make usuario-admin`. Usuários: `/usuarios` (só admin; perfis `admin`
+e `operador`; nunca fica sem admin ativo; ninguém se desativa/rebaixa) e `PUT /auth/senha`
+(própria senha, devolve token novo). Desativar ou trocar a senha derruba as sessões. Nos testes, a fixture `client` já vem logada
 (`client_sem_login` para testar o 401). Dev: Vite em :5173 com proxy `/api` →
 :8000. Produção: `make painel-build` e a API serve `frontend/dist` em `/painel`
 (rotas internas caem no `index.html`).
@@ -62,7 +64,8 @@ Camadas, sempre nesta direção: `api/` → `services/` → `repositories/` → 
 
 - `api/`: routers FastAPI. Fazem `commit`/`rollback` e convertem exceções:
   `LookupError` → 404, `ValueError` (regra de negócio) → 409, `IntegrityError` → 409,
-  falha no envio externo → 502. 422 fica só para validação do Pydantic; 400 só no
+  falha no envio externo → 502, sem login → 401, sem perfil admin → 403
+  (`exigir_admin`). 422 fica só para validação do Pydantic; 400 só no
   callback OAuth. Todo erro devolvido deve constar em `responses=` da rota
   (há teste que exige 404 documentado em rotas com ID). Rotas antigas que têm
   substituta ficam com `deprecated=True`.
