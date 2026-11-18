@@ -153,7 +153,7 @@ Pontos importantes:
 - Espaçamento entre mensagens do ciclo: `PublicacaoLoteService._espacamento` espalha as
   mensagens em 90% do intervalo do grupo (10 em 30 min = 162s); mínimo de 20s no
   Telegram e `WHATSAPP_INTERVALO_MINIMO_SEGUNDOS` no WhatsApp. Configuração em uso:
-  30 min por grupo, 10 por ciclo, 3 por categoria (~20/h, ~330/dia na janela 07h–23h30).
+  30 min por grupo, 15 por ciclo, 3 por categoria (~30/h, ~480/dia na janela 07h–23h).
 
 ## Erros das integrações
 

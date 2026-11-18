@@ -19,7 +19,7 @@ SERVICO_BACKUP := plataformas-ofertas-backup
 # psql dentro do container, com o usuário e o banco do próprio container.
 PSQL_DB = $(COMPOSE) exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
 
-.PHONY: ajuda instalar subir parar status \
+.PHONY: ajuda instalar subir parar status analise \
         db db-parar db-logs db-psql db-backup backup-agendar backup-desagendar db-importar \
         migrar testes testes-unit api \
         chrome-login chrome-verificar chrome-status chrome-fechar \
@@ -48,6 +48,9 @@ subir: db migrar servico-iniciar ## Sobe o banco, aplica migrações e inicia a 
 	@echo ">> API em http://$(API_HOST):$(API_PORTA)/docs"
 
 parar: servico-parar db-parar ## Para a API e o banco
+
+analise: ## Resumo de publicações e coletas: make analise [HORAS=3]
+	$(PY) -m scripts.analise_publicacoes --horas $(or $(HORAS),3)
 
 status: ## Mostra banco, API e Chrome do Mercado Livre
 	@echo "== Banco";  $(COMPOSE) ps db
