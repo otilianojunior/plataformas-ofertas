@@ -1,11 +1,13 @@
 import logging
 import threading
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
-from ofertas.db.session import SessionLocal
+from ofertas.db.session import SessionLocal, engine
 
 from ofertas.affiliates.mercado_livre_affiliate_service import (
     MercadoLivreAffiliateService,
@@ -105,20 +107,62 @@ class ExecucaoColetaService:
         collector,
         encerrando: threading.Event | None = None,
     ) -> ExecucaoColeta:
-        lock_adquirido = session.scalar(
-            select(
-                func.pg_try_advisory_xact_lock(
-                    self.LOCK_NAMESPACE,
-                    plataforma_id,
+        with self._lock_da_loja(plataforma_id):
+            return self._executar_com_lock(
+                session,
+                plataforma_id,
+                codigo_plataforma,
+                collector,
+                encerrando,
+            )
+
+    @contextmanager
+    def _lock_da_loja(self, plataforma_id: int) -> Iterator[None]:
+        """Uma coleta por loja. O lock fica numa conexão própria porque a
+        coleta grava (commit) a cada categoria."""
+
+        with engine.connect() as conexao:
+            adquirido = conexao.scalar(
+                select(func.pg_try_advisory_lock(self.LOCK_NAMESPACE, plataforma_id))
+            )
+            conexao.commit()
+
+            if not adquirido:
+                raise ValueError(
+                    "Já existe uma coleta em andamento para esta plataforma."
                 )
+
+            try:
+                yield
+            finally:
+                conexao.scalar(
+                    select(func.pg_advisory_unlock(self.LOCK_NAMESPACE, plataforma_id))
+                )
+                conexao.commit()
+
+    @staticmethod
+    def marcar_interrompidas(session: Session) -> int:
+        """Ao subir a API nenhuma coleta roda: "em andamento" é resto de queda."""
+
+        resultado = session.execute(
+            update(ExecucaoColeta)
+            .where(ExecucaoColeta.status == "em_andamento")
+            .values(
+                status="falhou",
+                finalizada_em=datetime.now(timezone.utc),
+                erro="Interrompida: a API foi encerrada durante a coleta.",
             )
         )
+        return resultado.rowcount or 0
 
-        if not lock_adquirido:
-            raise ValueError(
-                "Já existe uma coleta em andamento para esta plataforma."
-            )
-
+    def _executar_com_lock(
+        self,
+        session: Session,
+        plataforma_id: int,
+        codigo_plataforma: str,
+        collector,
+        encerrando: threading.Event | None = None,
+    ) -> ExecucaoColeta:
         plataforma = session.get(Plataforma, plataforma_id)
 
         if plataforma is None:
@@ -141,6 +185,9 @@ class ExecucaoColetaService:
         )
         session.add(execucao)
         session.flush()
+        # Grava já: o painel mostra "executando" e cada categoria fica salva
+        # (e com os preços visíveis para a publicação) assim que termina.
+        session.commit()
 
         falhas = []
         avisos = []
@@ -205,6 +252,9 @@ class ExecucaoColetaService:
                         f"(ID {categoria.id}): "
                         f"{type(erro).__name__}: {erro}"
                     )
+
+                # Libera as linhas e a memória da sessão a cada categoria.
+                session.commit()
 
         except Exception as erro:
             logger.exception(

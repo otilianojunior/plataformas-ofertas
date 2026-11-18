@@ -90,6 +90,16 @@ class AutomacaoService:
                 )
 
     
+    def marcar_coletas_interrompidas(self) -> None:
+        try:
+            with SessionLocal() as session:
+                quantidade = self.execucao_coleta_service.marcar_interrompidas(session)
+                session.commit()
+            if quantidade:
+                logger.warning("%s coleta(s) interrompida(s) por queda da API.", quantidade)
+        except Exception:
+            logger.exception("Erro ao marcar coletas interrompidas.")
+
     def executar_coletas_liberadas(self) -> None:
         """Executa as coletas dos marketplaces conforme suas configurações."""
 

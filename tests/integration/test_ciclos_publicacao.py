@@ -85,3 +85,22 @@ def test_coleta_no_status_expoe_erro_e_encontradas(client):
     for coleta in client.get("/automacoes/status").json()["coletas"]:
         assert "ultima_execucao_erro" in coleta
         assert "quantidade_encontrada" in coleta
+
+
+def test_coleta_em_andamento_de_antes_da_queda_vira_falhou(db_session):
+    from sqlalchemy import text
+
+    from ofertas.services.execucao_coleta_service import ExecucaoColetaService
+
+    plataforma_id = db_session.execute(text("SELECT id FROM plataformas ORDER BY id LIMIT 1")).scalar_one()
+    execucao_id = db_session.execute(
+        text("INSERT INTO execucoes_coleta (plataforma_id, status) VALUES (:p, 'em_andamento') RETURNING id"),
+        {"p": plataforma_id},
+    ).scalar_one()
+
+    assert ExecucaoColetaService.marcar_interrompidas(db_session) >= 1
+
+    status, erro = db_session.execute(
+        text("SELECT status, erro FROM execucoes_coleta WHERE id = :id"), {"id": execucao_id}
+    ).one()
+    assert status == "falhou" and "Interrompida" in erro

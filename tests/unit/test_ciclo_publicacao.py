@@ -203,6 +203,7 @@ def test_coleta_para_entre_categorias_no_encerramento():
 
     servico = ExecucaoColetaService.__new__(ExecucaoColetaService)
     servico.categoria_repository = categoria_repository
+    servico._lock_da_loja = MagicMock()  # sem banco: lock sempre livre
 
     session = MagicMock()
     session.scalar.return_value = True  # lock adquirido

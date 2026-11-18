@@ -69,6 +69,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     automacao = AutomacaoService()
     publicacao_lote = PublicacaoLoteService()
 
+    await asyncio.to_thread(automacao.marcar_coletas_interrompidas)
+
     encerrando = asyncio.Event()
     tarefas_publicacao: dict[int, asyncio.Task[None]] = {}
 
