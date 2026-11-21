@@ -74,3 +74,29 @@ def test_categoria_sem_termo_continua_usando_os_destaques():
 
     client.buscar_destaques.assert_called_once()
     client.buscar_produtos_catalogo.assert_not_called()
+
+
+def test_busca_por_termo_filtra_pelo_dominio_da_categoria():
+    client = Mock()
+    client.buscar_dominio_categoria.return_value = "MLB-CELLPHONES"
+    client.buscar_produtos_catalogo.return_value = {"results": []}
+    coletor = _coletor_ml(client)
+
+    coletor.coletar_categoria(Mock(), _categoria("MLB1055", "iphone 16"))
+
+    primeira, segunda = client.buscar_produtos_catalogo.call_args_list
+    assert primeira.kwargs["dominio"] == "MLB-CELLPHONES"
+    # Sem resultado no domínio da categoria: repete a busca sem ele.
+    assert "dominio" not in segunda.kwargs
+
+
+def test_falha_ao_ler_o_dominio_busca_sem_ele():
+    client = Mock()
+    client.buscar_dominio_categoria.side_effect = RuntimeError("fora do ar")
+    client.buscar_produtos_catalogo.return_value = {"results": []}
+    coletor = _coletor_ml(client)
+
+    coletor.coletar_categoria(Mock(), _categoria("MLB1055", "iphone 16"))
+
+    client.buscar_produtos_catalogo.assert_called_once()
+    assert client.buscar_produtos_catalogo.call_args.kwargs["dominio"] is None

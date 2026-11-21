@@ -14,7 +14,7 @@ TIPOS = frozenset(
 )
 
 # Tipo do produto quando aparece no título (ordem importa, ver abaixo).
-TIPOS_NO_TITULO = TIPOS | {"headphone", "headphones", "earbuds"}
+TIPOS_NO_TITULO = TIPOS | {"headphone", "headphones", "earbuds", "smartphone", "celular", "iphone"}
 
 # Peças e acessórios de periféricos. Fica de fora o que aparece no título do
 # próprio produto (cabo, adaptador, case, suporte, compatível, switch, dongle...).
@@ -22,7 +22,7 @@ ACESSORIOS = frozenset(
     """
     almofada almofadas earpad earpads espuma espumas pad keycap keycaps
     parafuso parafusos estabilizador estabilizadores capa estojo bolsa saco
-    pelicula protetor substituicao reposicao grip skate skates adesivo adesivos
+    pelicula capinha protetor substituicao reposicao grip skate skates adesivo adesivos
     """.split()
 )
 

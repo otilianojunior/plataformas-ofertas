@@ -19,6 +19,9 @@ class MercadoLivreClient:
     MAX_RETRIES = 3
     RETRYABLE_STATUS = {429, 500, 502, 503, 504}
 
+    # Domínio de catálogo por categoria; muda raramente, vale pelo processo.
+    _dominios: dict[str, str | None] = {}
+
     def __init__(
         self,
         auth_service: AutenticacaoOAuthService | None = None,
@@ -147,12 +150,14 @@ class MercadoLivreClient:
         plataforma_id: int,
         termo: str,
         limite: int = 50,
+        dominio: str | None = None,
     ) -> dict:
         """Busca produtos de catálogo por termo (ex.: "headset razer").
 
         A busca de anúncios (/sites/MLB/search) é negada (403) para o app;
         a de catálogo funciona, mas ignora o filtro de categoria e traz
-        produtos sem anúncio ativo, que a coleta descarta.
+        produtos sem anúncio ativo, que a coleta descarta. O `dominio`
+        (ex.: MLB-CELLPHONES) tira capas e películas da busca "iphone 16".
         """
 
         if not termo.strip():
@@ -167,8 +172,24 @@ class MercadoLivreClient:
                 "q": termo.strip(),
                 "status": "active",
                 "limit": limite,
+                **({"domain_id": dominio} if dominio else {}),
             },
         )
+
+    def buscar_dominio_categoria(
+        self,
+        session: Session,
+        plataforma_id: int,
+        id_categoria: str,
+    ) -> str | None:
+        """Domínio de catálogo da categoria (ex.: MLB1055 -> MLB-CELLPHONES)."""
+
+        chave = id_categoria.strip()
+        if chave not in self._dominios:
+            categoria = self._request(session, plataforma_id, f"/categories/{chave}")
+            self._dominios[chave] = (categoria.get("settings") or {}).get("catalog_domain")
+
+        return self._dominios[chave]
 
     def buscar_item(
         self,

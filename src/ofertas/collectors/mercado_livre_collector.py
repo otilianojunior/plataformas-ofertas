@@ -28,6 +28,25 @@ class MercadoLivreCollector:
         self.client = client or MercadoLivreClient()
         self.produto_service = produto_service or ProdutoService()
 
+    def _dominio_da_categoria(
+        self,
+        session: Session,
+        categoria: PlataformaCategoria,
+    ) -> str | None:
+        try:
+            return self.client.buscar_dominio_categoria(
+                session,
+                categoria.plataforma_id,
+                categoria.id_categoria_plataforma,
+            )
+        except Exception as erro:
+            logger.warning(
+                "Domínio da categoria %s indisponível, busca sem ele: %s",
+                categoria.id_categoria_plataforma,
+                erro,
+            )
+            return None
+
     def coletar_categoria(
         self,
         session: Session,
@@ -45,11 +64,21 @@ class MercadoLivreCollector:
         plataforma_id = categoria.plataforma_id
 
         if categoria.termo_busca:
+            dominio = self._dominio_da_categoria(session, categoria)
             busca = self.client.buscar_produtos_catalogo(
                 session,
                 plataforma_id,
                 categoria.termo_busca,
+                dominio=dominio,
             )
+            # Domínio da categoria diferente do produto (teclados: categoria
+            # MLB1713 é COMPUTER_EQUIPMENT, o produto é PC_KEYBOARDS): busca sem.
+            if dominio and not busca.get("results"):
+                busca = self.client.buscar_produtos_catalogo(
+                    session,
+                    plataforma_id,
+                    categoria.termo_busca,
+                )
             produtos = [
                 {"id": resultado["id"], "type": "PRODUCT"}
                 for resultado in busca.get("results", [])

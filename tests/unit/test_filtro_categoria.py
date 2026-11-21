@@ -12,6 +12,8 @@ from ofertas.core.filtro_categoria import motivo_fora_da_categoria as motivo
         ("Teclado Attack Shark X68 HE Magnetic", "teclado attack shark"),
         ("Mouse Gamer Sem Fio Attack Shark V6 25000dpi", "mouse attack shark"),
         ("Teclado Aula F75 Mecânico Gasket com Case de Alumínio", "teclado aula"),
+        ("Apple iPhone 15 Pro Max (256 GB) - Titânio Natural", "iphone 15 pro max"),
+        ("Smartphone Samsung Galaxy S25 Ultra 512GB com Capa", "samsung s25 ultra"),
         ("Qualquer título", None),
     ],
 )
@@ -30,6 +32,9 @@ def test_produto_da_categoria_passa(titulo, termo):
         ("Almofada Compatível Com Headset Redragon Lamia 2", "headset redragon", "acessório"),
         ("Hurricane 3 saco de armazenamento de fone Razer Barracuda", "headset razer", "acessório"),
         ("Kit Gamer Mchose Teclado Ace 60 Rgb Mouse L7", "teclado mchose", "kit"),
+        ("Capa Silicone Para iPhone 16 Com MagSafe", "iphone 16", "acessório"),
+        ("Película de Vidro Samsung Galaxy S26", "samsung s26", "acessório"),
+        ("Apple iPhone 15 (128 GB) - Preto", "iphone 15 pro max", "marca"),
     ],
 )
 def test_produto_fora_da_categoria_e_descartado(titulo, termo, esperado):

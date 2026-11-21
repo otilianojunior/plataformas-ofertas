@@ -6,6 +6,11 @@ def _canal_whatsapp(client, db_session):
         text("SELECT id FROM plataformas_divulgacao WHERE codigo = 'whatsapp'")
     ).scalar()
     if existente:
+        # O canal pode estar desligado no painel; a transação é desfeita no fim.
+        db_session.execute(
+            text("UPDATE plataformas_divulgacao SET status_plataforma = true WHERE id = :id"),
+            {"id": existente},
+        )
         return existente
     resposta = client.post("/canais-divulgacao", json={"codigo": "whatsapp", "nome": "WhatsApp"})
     assert resposta.status_code == 201
