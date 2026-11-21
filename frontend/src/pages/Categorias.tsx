@@ -276,13 +276,16 @@ export function EdicaoRapida({
     return (
       <button
         className="botao-editavel"
-        title="Clique para editar"
+        title="Clique para editar (Enter salva, Esc cancela)"
         onClick={() => {
           setRascunho(valor);
           setEditando(true);
         }}
       >
         {exibir}
+        <span className="icone-editar" aria-hidden>
+          ✎
+        </span>
       </button>
     );
   }
@@ -307,6 +310,9 @@ export function EdicaoRapida({
         onKeyDown={(e) => e.key === "Escape" && setEditando(false)}
       />
       <button className="botao">OK</button>
+      <button type="button" className="botao botao-texto" onClick={() => setEditando(false)}>
+        Cancelar
+      </button>
     </form>
   );
 }
